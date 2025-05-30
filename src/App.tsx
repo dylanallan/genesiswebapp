@@ -16,10 +16,12 @@ function App() {
     );
   }
 
+  // If no user is logged in, show the Auth component
   if (!user) {
     return <Auth />;
   }
 
+  // If user is logged in, show the Dashboard
   return <Dashboard />;
 }
 
