@@ -33,12 +33,11 @@ export const Auth: React.FC = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
+          redirectTo: `${window.location.origin}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID
           },
-          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
@@ -67,7 +66,7 @@ export const Auth: React.FC = () => {
             email: data.email,
             password: data.password,
             options: {
-              emailRedirectTo: `${window.location.origin}/auth/callback`
+              emailRedirectTo: `${window.location.origin}`
             }
           });
 
