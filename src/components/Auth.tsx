@@ -37,17 +37,17 @@ export const Auth: React.FC = () => {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          },
+          }
         }
       });
 
       if (error) {
-        toast.error('Failed to sign in with Google');
         console.error('Google sign in error:', error);
+        toast.error(error.message || 'Failed to sign in with Google');
       }
     } catch (error) {
-      toast.error('An unexpected error occurred');
       console.error('Unexpected error:', error);
+      toast.error('An unexpected error occurred during sign in');
     } finally {
       setIsLoading(false);
     }
