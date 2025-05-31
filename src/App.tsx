@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 function App() {
   const user = useUser();
 
-  // Add loading state
+  // Show loading state while user state is being determined
   if (user === undefined) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
