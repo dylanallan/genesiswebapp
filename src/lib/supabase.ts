@@ -14,6 +14,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     storage: window.localStorage,
     storageKey: 'genesis.auth.token',
-    flowType: 'implicit'
+    flowType: 'pkce'
   }
 });
