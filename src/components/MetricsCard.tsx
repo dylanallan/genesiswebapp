@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, AlertCircle, Cpu, Memory, Activity } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Cpu, MemoryStick as Memory, Activity } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { startPerformanceMonitoring } from '../lib/performance';
 
