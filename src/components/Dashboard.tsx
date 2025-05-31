@@ -36,7 +36,7 @@ export const Dashboard: React.FC = () => {
   const tabs = [
     { id: 'flows', label: 'Flow Builder', icon: Workflow },
     { id: 'automation', label: 'Automation', icon: Zap },
-    { id: 'spiritual', label: 'Spiritual Mapping', icon: Tree },
+    { id: 'heritage', label: 'Heritage Mapping', icon: Tree },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'data', label: 'Data Pipeline', icon: Database },
   ];
@@ -56,7 +56,7 @@ export const Dashboard: React.FC = () => {
               </button>
               <div className="flex-shrink-0 flex items-center">
                 <Brain className="w-8 h-8 text-genesis-600" />
-                <span className="ml-2 text-xl font-semibold text-gray-900 hidden sm:block">Genesis</span>
+                <span className="ml-2 text-xl font-semibold text-gray-900 hidden sm:block">Genesis Heritage</span>
               </div>
             </div>
 
@@ -70,7 +70,7 @@ export const Dashboard: React.FC = () => {
                   <input
                     id="search"
                     className="block w-full bg-white border border-gray-300 rounded-lg py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:outline-none focus:text-gray-900 focus:placeholder-gray-400 focus:ring-1 focus:ring-genesis-500 focus:border-genesis-500"
-                    placeholder="Search..."
+                    placeholder="Search heritage flows..."
                     type="search"
                   />
                 </div>
@@ -142,7 +142,7 @@ export const Dashboard: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
                   <div className="flex items-center space-x-2">
                     <Activity className="w-6 h-6 text-green-500" />
-                    <span className="text-green-600 font-semibold">System Active</span>
+                    <span className="text-green-600 font-semibold">Heritage System Active</span>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="px-4 py-2 bg-genesis-50 text-genesis-700 rounded-full flex items-center">
@@ -161,7 +161,7 @@ export const Dashboard: React.FC = () => {
                   
                   <div className="space-y-6">
                     <MetricsCard
-                      title="System Performance"
+                      title="Heritage System Performance"
                       metrics={systemMetrics}
                       targetMetrics={targetMetrics}
                     />
