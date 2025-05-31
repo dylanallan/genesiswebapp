@@ -166,6 +166,10 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
       }
 
       case 'gpt-4': {
+        if (!import.meta.env.VITE_OPENAI_API_KEY) {
+          throw new Error('OpenAI API key not configured. Please check your environment variables.');
+        }
+
         const stream = await openai.chat.completions.create({
           model: 'gpt-4-turbo-preview',
           messages: [{ role: 'user', content: prompt }],
@@ -180,6 +184,10 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
       }
 
       case 'claude-3': {
+        if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
+          throw new Error('Anthropic API key not configured. Please check your environment variables.');
+        }
+
         const stream = await anthropic.messages.create({
           model: 'claude-3-opus-20240229',
           max_tokens: 4096,
@@ -207,9 +215,12 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
         }
         break;
       }
+
+      default:
+        throw new Error(`Unsupported model: ${model}`);
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
-    yield `Error: ${error instanceof Error ? error.message : 'An unexpected error occurred'}. Please ensure all required API keys are properly configured in your environment variables.`;
+    throw new Error(error instanceof Error ? error.message : 'An unexpected error occurred');
   }
 }
