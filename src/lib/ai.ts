@@ -72,8 +72,13 @@ const anthropic = new Anthropic({
 });
 
 export function getBestModelForTask(task: string): AIModel {
+  // If Dylan Assistant is not properly configured, skip it as default
+  const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
+  const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
+  
   if (!task.toLowerCase().includes('specific') && !task.toLowerCase().includes('alternate')) {
-    return 'dylan-assistant';
+    // If Dylan Assistant is not configured, fallback to GPT-4
+    return (dylanUrl && dylanKey) ? 'dylan-assistant' : 'gpt-4';
   }
 
   const lowercaseTask = task.toLowerCase();
@@ -98,6 +103,11 @@ export function getBestModelForTask(task: string): AIModel {
   };
 
   const modelScores = Object.entries(modelCapabilities).map(([model, capabilities]) => {
+    // Skip Dylan Assistant from scoring if not properly configured
+    if (model === 'dylan-assistant' && (!dylanUrl || !dylanKey)) {
+      return { model: model as AIModel, score: -1 };
+    }
+
     let score = 0;
     
     Object.entries(taskPatterns).forEach(([_, pattern]) => {
@@ -119,48 +129,62 @@ export function getBestModelForTask(task: string): AIModel {
     return { model: model as AIModel, score };
   });
 
-  const bestModel = modelScores.reduce((best, current) => 
-    current.score > best.score ? current : best
-  );
+  const bestModel = modelScores
+    .filter(m => m.score >= 0) // Filter out disabled models
+    .reduce((best, current) => 
+      current.score > best.score ? current : best
+    );
 
   return bestModel.model;
 }
 
 export async function* streamResponse(prompt: string, model: AIModel = 'dylan-assistant'): AsyncGenerator<string> {
   try {
+    // If Dylan Assistant is requested but not properly configured, fallback to GPT-4
+    if (model === 'dylan-assistant') {
+      const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
+      const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
+      
+      if (!dylanUrl || !dylanKey) {
+        console.warn('Dylan Assistant not configured, falling back to GPT-4');
+        model = 'gpt-4';
+      }
+    }
+
     switch (model) {
       case 'dylan-assistant': {
         const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
         const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
 
-        if (!dylanUrl || !dylanKey) {
-          throw new Error('Dylan Assistant credentials not configured. Please check your environment variables.');
-        }
+        try {
+          const response = await fetch(`${dylanUrl}/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${dylanKey}`
+            },
+            body: JSON.stringify({ prompt })
+          });
 
-        const response = await fetch(`${dylanUrl}/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${dylanKey}`
-          },
-          body: JSON.stringify({ prompt })
-        });
+          if (!response.ok) {
+            console.warn('Dylan Assistant request failed, falling back to GPT-4');
+            return yield* streamResponse(prompt, 'gpt-4');
+          }
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(`Dylan Assistant error (${response.status}): ${errorData.message || response.statusText}`);
-        }
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error('No reader available');
+          }
 
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('No reader available');
-        }
-
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          yield decoder.decode(value);
+          const decoder = new TextDecoder();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            yield decoder.decode(value);
+          }
+        } catch (error) {
+          console.warn('Dylan Assistant error, falling back to GPT-4:', error);
+          return yield* streamResponse(prompt, 'gpt-4');
         }
         break;
       }
