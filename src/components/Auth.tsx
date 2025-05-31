@@ -33,8 +33,7 @@ export const Auth: React.FC = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}`,
-          skipBrowserRedirect: false
+          redirectTo: window.location.origin
         }
       });
 
