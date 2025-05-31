@@ -56,7 +56,10 @@ export const Dashboard: React.FC = () => {
               </button>
               <div className="flex-shrink-0 flex items-center">
                 <Brain className="w-8 h-8 text-genesis-600" />
-                <span className="ml-2 text-xl font-semibold text-gray-900 hidden sm:block">Genesis Heritage</span>
+                <div className="ml-2 hidden sm:block">
+                  <h1 className="text-xl font-semibold text-gray-900">Genesis Heritage</h1>
+                  <p className="text-sm text-gray-500">Automate your business and unlock your roots</p>
+                </div>
               </div>
             </div>
 
