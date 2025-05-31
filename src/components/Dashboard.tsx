@@ -33,66 +33,61 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+      <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Brain className="w-8 h-8 text-genesis-600" />
-              <div className="ml-2">
-                <h1 className="text-xl font-semibold text-gray-900">Genesis Heritage</h1>
-                <p className="text-sm text-gray-500">Automate your business and unlock your roots</p>
-              </div>
-            </div>
-
-            <div className="flex-1 max-w-lg mx-8">
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="search"
-                  placeholder="Search flows..."
-                  className="block w-full bg-gray-50 border border-gray-300 rounded-lg py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-genesis-500 focus:border-genesis-500"
-                />
-              </div>
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center space-x-4">
+              <Brain className="w-6 h-6 text-genesis-600" />
+              <h1 className="text-lg font-medium text-gray-900">Genesis Heritage</h1>
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-green-500" />
-                <span className="text-sm text-green-600 font-medium">System Active</span>
+              <div className="flex items-center space-x-2 text-sm">
+                <Activity className="w-4 h-4 text-green-500" />
+                <span className="text-green-600">Active</span>
               </div>
               <button
                 onClick={handleSignOut}
-                className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                className="text-sm text-gray-600 hover:text-gray-900"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign out
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
       </nav>
 
+      {/* Search Bar */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Search flows..."
+              className="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="px-4 py-2 bg-genesis-50 text-genesis-700 rounded-full flex items-center">
-              <Cpu className="w-4 h-4 mr-2" />
-              <span className="text-sm font-medium">All Systems Operational</span>
-            </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm">
+            <Cpu className="w-4 h-4" />
+            <span>All Systems Operational</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <FlowBuilder />
           </div>
           
           <div className="space-y-6">
             <MetricsCard
-              title="Heritage System Performance"
+              title="System Performance"
               metrics={systemMetrics}
               targetMetrics={targetMetrics}
             />
