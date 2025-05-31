@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { supabase } from './supabase';
 import { toast } from 'sonner';
 
-export type AIModel = 'dylan-assistant' | 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3';
+export type AIModel = 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3';
 
 interface ModelCapabilities {
   reasoning: number;
@@ -16,15 +16,6 @@ interface ModelCapabilities {
 }
 
 const modelCapabilities: Record<AIModel, ModelCapabilities> = {
-  'dylan-assistant': {
-    reasoning: 0.98,
-    creativity: 0.95,
-    knowledge: 0.97,
-    speed: 0.94,
-    contextLength: 32768,
-    culturalAwareness: 0.96,
-    businessInsight: 0.97
-  },
   'gpt-4': {
     reasoning: 0.95,
     creativity: 0.9,
@@ -63,8 +54,11 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
   }
 };
 
+const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+// Initialize OpenAI client with the API key from environment variables
 const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  apiKey: openaiApiKey,
   dangerouslyAllowBrowser: true
 });
 
@@ -73,20 +67,14 @@ const anthropic = new Anthropic({
 });
 
 export function getBestModelForTask(task: string): AIModel {
-  // Check if OpenAI API key is available
-  const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!openaiKey) {
-    toast.error('OpenAI API key not configured. Please check your environment variables.');
-    throw new Error('OpenAI API key not configured');
-  }
-
-  // If no specific model is requested, use GPT-4 as the default
+  // Default to GPT-4 for most tasks
   if (!task.toLowerCase().includes('specific') && !task.toLowerCase().includes('alternate')) {
     return 'gpt-4';
   }
 
   const lowercaseTask = task.toLowerCase();
   
+  // Define task-specific keywords and their associated capabilities
   const taskPatterns = {
     cultural: {
       keywords: ['culture', 'tradition', 'heritage', 'ancestry', 'family', 'history'],
@@ -106,28 +94,33 @@ export function getBestModelForTask(task: string): AIModel {
     }
   };
 
+  // Calculate scores for each model based on task requirements
   const modelScores = Object.entries(modelCapabilities).map(([model, capabilities]) => {
     let score = 0;
     
+    // Check each task pattern
     Object.entries(taskPatterns).forEach(([_, pattern]) => {
       const matchesKeywords = pattern.keywords.some(keyword => 
         lowercaseTask.includes(keyword)
       );
       
       if (matchesKeywords) {
+        // Add capability scores for this pattern
         pattern.capabilities.forEach(capability => {
           score += capabilities[capability as keyof ModelCapabilities];
         });
       }
     });
 
+    // Consider context length if the task seems to require it
     if (task.length > 1000 || task.includes('context') || task.includes('history')) {
-      score += capabilities.contextLength / 100000;
+      score += capabilities.contextLength / 100000; // Normalize to 0-1 range
     }
 
     return { model: model as AIModel, score };
   });
 
+  // Return the model with the highest score
   const bestModel = modelScores.reduce((best, current) => 
     current.score > best.score ? current : best
   );
@@ -137,12 +130,12 @@ export function getBestModelForTask(task: string): AIModel {
 
 export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'): AsyncGenerator<string> {
   try {
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key is not configured. Please check your environment variables.');
+    }
+
     switch (model) {
       case 'gpt-4': {
-        if (!import.meta.env.VITE_OPENAI_API_KEY) {
-          throw new Error('OpenAI API key not configured. Please check your environment variables.');
-        }
-
         const stream = await openai.chat.completions.create({
           model: 'gpt-4-turbo-preview',
           messages: [{ role: 'user', content: prompt }],
@@ -157,10 +150,6 @@ export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'):
       }
 
       case 'claude-3': {
-        if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
-          throw new Error('Anthropic API key not configured. Please check your environment variables.');
-        }
-
         const stream = await anthropic.messages.create({
           model: 'claude-3-opus-20240229',
           max_tokens: 4096,
@@ -177,25 +166,44 @@ export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'):
 
       case 'gemini-pro':
       case 'llama-3': {
-        const { data, error } = await supabase.functions.invoke('ai-stream', {
-          body: { prompt, model }
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error('Supabase credentials not configured');
+        }
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/ai-stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`
+          },
+          body: JSON.stringify({ prompt, model })
         });
 
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-        for await (const chunk of data) {
-          yield chunk;
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No reader available');
+        }
+
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          yield decoder.decode(value);
         }
         break;
       }
-
-      default:
-        throw new Error(`Unsupported model: ${model}`);
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    toast.error(`AI Error: ${errorMessage}`);
-    throw new Error(errorMessage);
+    toast.error(errorMessage);
+    yield `Error: ${errorMessage}. Please ensure all required API keys are properly configured in your environment variables.`;
   }
 }
