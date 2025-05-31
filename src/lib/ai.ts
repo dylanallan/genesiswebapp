@@ -62,9 +62,8 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
   }
 };
 
-// Initialize OpenAI client with the provided API key
 const openai = new OpenAI({
-  apiKey: 'sk-Gy0Hs0rkXGBPxBPZXXXXT3BlbkFJwwwwwwwwwwwwwwwwwwww',
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true
 });
 
@@ -73,14 +72,12 @@ const anthropic = new Anthropic({
 });
 
 export function getBestModelForTask(task: string): AIModel {
-  // Default to Dylan Assistant for most tasks
   if (!task.toLowerCase().includes('specific') && !task.toLowerCase().includes('alternate')) {
     return 'dylan-assistant';
   }
 
   const lowercaseTask = task.toLowerCase();
   
-  // Define task-specific keywords and their associated capabilities
   const taskPatterns = {
     cultural: {
       keywords: ['culture', 'tradition', 'heritage', 'ancestry', 'family', 'history'],
@@ -100,33 +97,28 @@ export function getBestModelForTask(task: string): AIModel {
     }
   };
 
-  // Calculate scores for each model based on task requirements
   const modelScores = Object.entries(modelCapabilities).map(([model, capabilities]) => {
     let score = 0;
     
-    // Check each task pattern
     Object.entries(taskPatterns).forEach(([_, pattern]) => {
       const matchesKeywords = pattern.keywords.some(keyword => 
         lowercaseTask.includes(keyword)
       );
       
       if (matchesKeywords) {
-        // Add capability scores for this pattern
         pattern.capabilities.forEach(capability => {
           score += capabilities[capability as keyof ModelCapabilities];
         });
       }
     });
 
-    // Consider context length if the task seems to require it
     if (task.length > 1000 || task.includes('context') || task.includes('history')) {
-      score += capabilities.contextLength / 100000; // Normalize to 0-1 range
+      score += capabilities.contextLength / 100000;
     }
 
     return { model: model as AIModel, score };
   });
 
-  // Return the model with the highest score
   const bestModel = modelScores.reduce((best, current) => 
     current.score > best.score ? current : best
   );
@@ -142,7 +134,7 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
         const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
 
         if (!dylanUrl || !dylanKey) {
-          throw new Error('Dylan Assistant credentials not configured');
+          throw new Error('Dylan Assistant credentials not configured. Please check your environment variables.');
         }
 
         const response = await fetch(`${dylanUrl}/chat`, {
@@ -155,7 +147,8 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`Dylan Assistant error (${response.status}): ${errorData.message || response.statusText}`);
         }
 
         const reader = response.body?.getReader();
@@ -203,36 +196,14 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
 
       case 'gemini-pro':
       case 'llama-3': {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-        if (!supabaseUrl || !supabaseKey) {
-          throw new Error('Supabase credentials not configured');
-        }
-
-        const response = await fetch(`${supabaseUrl}/functions/v1/ai-stream`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`
-          },
-          body: JSON.stringify({ prompt, model })
+        const { data, error } = await supabase.functions.invoke('ai-stream', {
+          body: { prompt, model }
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (error) throw error;
 
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('No reader available');
-        }
-
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          yield decoder.decode(value);
+        for await (const chunk of data) {
+          yield chunk;
         }
         break;
       }
