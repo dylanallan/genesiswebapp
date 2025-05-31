@@ -5,23 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { Loader2 } from 'lucide-react';
 
 function App() {
-  const user = useUser();
-
-  // Show loading state while user state is being determined
-  if (user === undefined) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-genesis-600 animate-spin" />
-      </div>
-    );
-  }
-
-  // If no user is logged in, show the Auth component
-  if (!user) {
-    return <Auth />;
-  }
-
-  // If user is logged in, show the Dashboard
+  // Temporarily bypass authentication
   return <Dashboard />;
 }
 
