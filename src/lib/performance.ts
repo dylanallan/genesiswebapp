@@ -6,27 +6,63 @@ interface PerformanceMetrics {
   largestContentfulPaint: number;
   firstInputDelay: number;
   cumulativeLayoutShift: number;
+  cpuUsage: number;
+  memoryUsage: number;
+  fps: number;
 }
 
-export function measurePerformance(): PerformanceMetrics {
-  const metrics: PerformanceMetrics = {
-    timeToFirstByte: 0,
-    firstContentfulPaint: 0,
-    largestContentfulPaint: 0,
-    firstInputDelay: 0,
-    cumulativeLayoutShift: 0
-  };
+let fpsHistory: number[] = [];
+let lastFrameTime = performance.now();
+let frameCount = 0;
 
-  // Time to First Byte
+function calculateFPS(): number {
+  const now = performance.now();
+  frameCount++;
+
+  if (now - lastFrameTime >= 1000) {
+    const fps = Math.round((frameCount * 1000) / (now - lastFrameTime));
+    fpsHistory.push(fps);
+    if (fpsHistory.length > 60) fpsHistory.shift();
+    
+    frameCount = 0;
+    lastFrameTime = now;
+    return fps;
+  }
+
+  return fpsHistory[fpsHistory.length - 1] || 0;
+}
+
+export async function measurePerformance(): Promise<PerformanceMetrics> {
+  // CPU Usage estimation
+  const startTime = performance.now();
+  let count = 0;
+  while (performance.now() - startTime < 100) {
+    count++;
+  }
+  const cpuUsage = Math.min((count / 1000000) * 100, 100);
+
+  // Memory Usage
+  const memory = performance.memory || { usedJSHeapSize: 0, jsHeapSizeLimit: 0 };
+  const memoryUsage = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+
+  // FPS Calculation
+  const fps = calculateFPS();
+
+  // Navigation and Paint Metrics
   const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-  metrics.timeToFirstByte = navigationEntry.responseStart - navigationEntry.requestStart;
-
-  // First Contentful Paint
   const paintEntries = performance.getEntriesByType('paint');
   const fcpEntry = paintEntries.find(entry => entry.name === 'first-contentful-paint');
-  if (fcpEntry) {
-    metrics.firstContentfulPaint = fcpEntry.startTime;
-  }
+
+  const metrics: PerformanceMetrics = {
+    timeToFirstByte: navigationEntry.responseStart - navigationEntry.requestStart,
+    firstContentfulPaint: fcpEntry ? fcpEntry.startTime : 0,
+    largestContentfulPaint: 0,
+    firstInputDelay: 0,
+    cumulativeLayoutShift: 0,
+    cpuUsage,
+    memoryUsage,
+    fps
+  };
 
   // Largest Contentful Paint
   new PerformanceObserver((entryList) => {
@@ -51,47 +87,20 @@ export function measurePerformance(): PerformanceMetrics {
   return metrics;
 }
 
-export function optimizePerformance() {
-  // Implement performance optimizations
-  prefetchCriticalResources();
-  optimizeImageLoading();
-  implementProgressiveHydration();
-}
+export function startPerformanceMonitoring(callback: (metrics: PerformanceMetrics) => void) {
+  let animationFrameId: number;
 
-function prefetchCriticalResources() {
-  const criticalUrls = [
-    '/api/user-preferences',
-    '/api/initial-data'
-  ];
+  const monitor = async () => {
+    const metrics = await measurePerformance();
+    callback(metrics);
+    animationFrameId = requestAnimationFrame(monitor);
+  };
 
-  criticalUrls.forEach(url => {
-    const link = document.createElement('link');
-    link.rel = 'prefetch';
-    link.href = url;
-    document.head.appendChild(link);
-  });
-}
+  monitor();
 
-function optimizeImageLoading() {
-  const images = document.querySelectorAll('img');
-  images.forEach(img => {
-    if (!img.loading) {
-      img.loading = 'lazy';
+  return () => {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
     }
-  });
-}
-
-function implementProgressiveHydration() {
-  // Implement progressive hydration logic
-  // This is a placeholder for the actual implementation
-}
-
-export function monitorPerformance() {
-  const metrics = measurePerformance();
-  trackEvent({
-    eventType: 'performance_metrics',
-    userId: 'system',
-    metadata: metrics,
-    timestamp: new Date()
-  });
+  };
 }
