@@ -55,15 +55,15 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
 };
 
 const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
-// Initialize OpenAI client with the API key from environment variables
 const openai = new OpenAI({
   apiKey: openaiApiKey,
   dangerouslyAllowBrowser: true
 });
 
 const anthropic = new Anthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
+  apiKey: anthropicApiKey
 });
 
 export function getBestModelForTask(task: string): AIModel {
@@ -74,7 +74,6 @@ export function getBestModelForTask(task: string): AIModel {
 
   const lowercaseTask = task.toLowerCase();
   
-  // Define task-specific keywords and their associated capabilities
   const taskPatterns = {
     cultural: {
       keywords: ['culture', 'tradition', 'heritage', 'ancestry', 'family', 'history'],
@@ -94,33 +93,28 @@ export function getBestModelForTask(task: string): AIModel {
     }
   };
 
-  // Calculate scores for each model based on task requirements
   const modelScores = Object.entries(modelCapabilities).map(([model, capabilities]) => {
     let score = 0;
     
-    // Check each task pattern
     Object.entries(taskPatterns).forEach(([_, pattern]) => {
       const matchesKeywords = pattern.keywords.some(keyword => 
         lowercaseTask.includes(keyword)
       );
       
       if (matchesKeywords) {
-        // Add capability scores for this pattern
         pattern.capabilities.forEach(capability => {
           score += capabilities[capability as keyof ModelCapabilities];
         });
       }
     });
 
-    // Consider context length if the task seems to require it
     if (task.length > 1000 || task.includes('context') || task.includes('history')) {
-      score += capabilities.contextLength / 100000; // Normalize to 0-1 range
+      score += capabilities.contextLength / 100000;
     }
 
     return { model: model as AIModel, score };
   });
 
-  // Return the model with the highest score
   const bestModel = modelScores.reduce((best, current) => 
     current.score > best.score ? current : best
   );
@@ -130,8 +124,12 @@ export function getBestModelForTask(task: string): AIModel {
 
 export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'): AsyncGenerator<string> {
   try {
-    if (!openaiApiKey) {
+    if (!openaiApiKey && model === 'gpt-4') {
       throw new Error('OpenAI API key is not configured. Please check your environment variables.');
+    }
+
+    if (!anthropicApiKey && model === 'claude-3') {
+      throw new Error('Anthropic API key is not configured. Please check your environment variables.');
     }
 
     switch (model) {
