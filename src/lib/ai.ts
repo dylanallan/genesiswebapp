@@ -54,16 +54,15 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
   }
 };
 
-const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
-const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
+// Initialize OpenAI client with environment variable
 const openai = new OpenAI({
-  apiKey: openaiApiKey,
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true
 });
 
+// Initialize Anthropic client with environment variable
 const anthropic = new Anthropic({
-  apiKey: anthropicApiKey
+  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
 });
 
 export function getBestModelForTask(task: string): AIModel {
@@ -124,12 +123,22 @@ export function getBestModelForTask(task: string): AIModel {
 
 export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'): AsyncGenerator<string> {
   try {
-    if (!openaiApiKey && model === 'gpt-4') {
-      throw new Error('OpenAI API key is not configured. Please check your environment variables.');
+    // Check for OpenAI API key when using GPT-4
+    if (model === 'gpt-4') {
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!apiKey) {
+        toast.error('OpenAI API key is missing. Please check your environment variables.');
+        throw new Error('OpenAI API key is not configured. Please add VITE_OPENAI_API_KEY to your environment variables.');
+      }
     }
 
-    if (!anthropicApiKey && model === 'claude-3') {
-      throw new Error('Anthropic API key is not configured. Please check your environment variables.');
+    // Check for Anthropic API key when using Claude-3
+    if (model === 'claude-3') {
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        toast.error('Anthropic API key is missing. Please check your environment variables.');
+        throw new Error('Anthropic API key is not configured. Please add VITE_ANTHROPIC_API_KEY to your environment variables.');
+      }
     }
 
     switch (model) {
@@ -168,6 +177,7 @@ export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'):
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
+          toast.error('Supabase credentials are missing. Please check your environment variables.');
           throw new Error('Supabase credentials not configured');
         }
 
