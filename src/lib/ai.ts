@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { supabase } from './supabase';
+import { toast } from 'sonner';
 
 export type AIModel = 'dylan-assistant' | 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3';
 
@@ -72,13 +73,16 @@ const anthropic = new Anthropic({
 });
 
 export function getBestModelForTask(task: string): AIModel {
-  // If Dylan Assistant is not properly configured, skip it as default
-  const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
-  const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
-  
+  // Check if OpenAI API key is available
+  const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  if (!openaiKey) {
+    toast.error('OpenAI API key not configured. Please check your environment variables.');
+    throw new Error('OpenAI API key not configured');
+  }
+
+  // If no specific model is requested, use GPT-4 as the default
   if (!task.toLowerCase().includes('specific') && !task.toLowerCase().includes('alternate')) {
-    // If Dylan Assistant is not configured, fallback to GPT-4
-    return (dylanUrl && dylanKey) ? 'dylan-assistant' : 'gpt-4';
+    return 'gpt-4';
   }
 
   const lowercaseTask = task.toLowerCase();
@@ -103,11 +107,6 @@ export function getBestModelForTask(task: string): AIModel {
   };
 
   const modelScores = Object.entries(modelCapabilities).map(([model, capabilities]) => {
-    // Skip Dylan Assistant from scoring if not properly configured
-    if (model === 'dylan-assistant' && (!dylanUrl || !dylanKey)) {
-      return { model: model as AIModel, score: -1 };
-    }
-
     let score = 0;
     
     Object.entries(taskPatterns).forEach(([_, pattern]) => {
@@ -129,66 +128,16 @@ export function getBestModelForTask(task: string): AIModel {
     return { model: model as AIModel, score };
   });
 
-  const bestModel = modelScores
-    .filter(m => m.score >= 0) // Filter out disabled models
-    .reduce((best, current) => 
-      current.score > best.score ? current : best
-    );
+  const bestModel = modelScores.reduce((best, current) => 
+    current.score > best.score ? current : best
+  );
 
   return bestModel.model;
 }
 
-export async function* streamResponse(prompt: string, model: AIModel = 'dylan-assistant'): AsyncGenerator<string> {
+export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'): AsyncGenerator<string> {
   try {
-    // If Dylan Assistant is requested but not properly configured, fallback to GPT-4
-    if (model === 'dylan-assistant') {
-      const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
-      const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
-      
-      if (!dylanUrl || !dylanKey) {
-        console.warn('Dylan Assistant not configured, falling back to GPT-4');
-        model = 'gpt-4';
-      }
-    }
-
     switch (model) {
-      case 'dylan-assistant': {
-        const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
-        const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
-
-        try {
-          const response = await fetch(`${dylanUrl}/chat`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${dylanKey}`
-            },
-            body: JSON.stringify({ prompt })
-          });
-
-          if (!response.ok) {
-            console.warn('Dylan Assistant request failed, falling back to GPT-4');
-            return yield* streamResponse(prompt, 'gpt-4');
-          }
-
-          const reader = response.body?.getReader();
-          if (!reader) {
-            throw new Error('No reader available');
-          }
-
-          const decoder = new TextDecoder();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            yield decoder.decode(value);
-          }
-        } catch (error) {
-          console.warn('Dylan Assistant error, falling back to GPT-4:', error);
-          return yield* streamResponse(prompt, 'gpt-4');
-        }
-        break;
-      }
-
       case 'gpt-4': {
         if (!import.meta.env.VITE_OPENAI_API_KEY) {
           throw new Error('OpenAI API key not configured. Please check your environment variables.');
@@ -245,6 +194,8 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
-    throw new Error(error instanceof Error ? error.message : 'An unexpected error occurred');
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    toast.error(`AI Error: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 }
