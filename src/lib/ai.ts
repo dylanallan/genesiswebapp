@@ -75,9 +75,9 @@ const anthropic = new Anthropic({
 });
 
 export function getBestModelForTask(task: string): AIModel {
-  // Default to Dylan Assistant for most tasks
+  // Default to Claude-3 for most tasks
   if (!task.toLowerCase().includes('specific') && !task.toLowerCase().includes('alternate')) {
-    return 'dylan-assistant';
+    return 'claude-3';
   }
 
   const lowercaseTask = task.toLowerCase();
@@ -136,7 +136,7 @@ export function getBestModelForTask(task: string): AIModel {
   return bestModel.model;
 }
 
-export async function* streamResponse(prompt: string, model: AIModel = 'dylan-assistant'): AsyncGenerator<string> {
+export async function* streamResponse(prompt: string, model: AIModel = 'claude-3'): AsyncGenerator<string> {
   try {
     switch (model) {
       case 'dylan-assistant': {
