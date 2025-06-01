@@ -17,12 +17,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: window.localStorage,
-    storageKey: 'genesis.auth.token',
-    flowType: 'pkce'
-  },
-  db: {
-    schema: 'public'
+    storage: localStorage,
+    storageKey: 'supabase.auth.token'
   }
 });
 
