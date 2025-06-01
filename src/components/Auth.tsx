@@ -57,32 +57,55 @@ export const Auth: React.FC = () => {
     try {
       setIsLoading(true);
       
-      const { data: authData, error } = isLogin 
-        ? await supabase.auth.signInWithPassword({
-            email: data.email,
-            password: data.password,
-          })
-        : await supabase.auth.signUp({
-            email: data.email,
-            password: data.password,
-            options: {
-              emailRedirectTo: window.location.origin,
-              data: {
-                email_confirmed: false
-              }
-            }
-          });
-
-      if (error) {
-        console.error('Auth error:', error);
-        toast.error(error.message);
-        setError('root', {
-          message: error.message || 'Authentication failed. Please check your credentials.',
+      if (isLogin) {
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
         });
-      } else if (!isLogin && !authData?.user?.identities?.length) {
-        toast.success('Please check your email for the confirmation link');
-      } else if (authData?.user) {
-        toast.success(`Welcome${authData.user.email ? `, ${authData.user.email}` : ''}!`);
+
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            setError('email', { message: 'Invalid email or password' });
+            setError('password', { message: 'Invalid email or password' });
+            toast.error('Invalid email or password');
+          } else {
+            console.error('Login error:', error);
+            toast.error(error.message);
+          }
+          return;
+        }
+
+        if (authData?.user) {
+          toast.success(`Welcome back, ${authData.user.email}!`);
+        }
+      } else {
+        const { data: authData, error } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: {
+              email_confirmed: false
+            }
+          }
+        });
+
+        if (error) {
+          if (error.message.includes('already registered')) {
+            setError('email', { message: 'Email already registered' });
+            toast.error('This email is already registered');
+          } else {
+            console.error('Signup error:', error);
+            toast.error(error.message);
+          }
+          return;
+        }
+
+        if (!authData?.user?.identities?.length) {
+          toast.success('Please check your email for the confirmation link');
+        } else if (authData?.user) {
+          toast.success('Account created successfully!');
+        }
       }
     } catch (error) {
       console.error('Unexpected error:', error);
