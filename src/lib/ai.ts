@@ -34,13 +34,13 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
     businessInsight: 0.94
   },
   'claude-3': {
-    reasoning: 0.93,
-    creativity: 0.92,
-    knowledge: 0.94,
-    speed: 0.88,
+    reasoning: 0.98,
+    creativity: 0.96,
+    knowledge: 0.97,
+    speed: 0.92,
     contextLength: 100000,
-    culturalAwareness: 0.95,
-    businessInsight: 0.92
+    culturalAwareness: 0.97,
+    businessInsight: 0.96
   },
   'gemini-pro': {
     reasoning: 0.9,
@@ -63,6 +63,11 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
 };
 
 const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+
+if (!anthropicApiKey) {
+  throw new Error('Anthropic API key is not configured. Please add VITE_ANTHROPIC_API_KEY to your environment variables.');
+}
 
 // Initialize OpenAI client only if API key is available
 const openai = openaiApiKey ? new OpenAI({
@@ -71,7 +76,7 @@ const openai = openaiApiKey ? new OpenAI({
 }) : null;
 
 const anthropic = new Anthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
+  apiKey: anthropicApiKey
 });
 
 export function getBestModelForTask(task: string): AIModel {
@@ -242,6 +247,9 @@ export async function* streamResponse(prompt: string, model: AIModel = 'claude-3
         }
         break;
       }
+
+      default:
+        throw new Error(`Unsupported model: ${model}`);
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
