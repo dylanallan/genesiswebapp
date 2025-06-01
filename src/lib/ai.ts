@@ -1,60 +1,250 @@
 import OpenAI from 'openai';
-import { toast } from 'sonner';
+import Anthropic from '@anthropic-ai/sdk';
+import { supabase } from './supabase';
 
-export type AIModel = 'gpt-4' | 'gpt-3.5-turbo';
+export type AIModel = 'dylan-assistant' | 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
-
-export function getBestModelForTask(prompt: string): AIModel {
-  // Use GPT-4 for longer prompts or those containing specific keywords
-  const complexityIndicators = [
-    'analyze',
-    'complex',
-    'detailed',
-    'explain',
-    'compare',
-    'synthesize',
-    'evaluate'
-  ];
-  
-  const hasComplexityIndicator = complexityIndicators.some(indicator => 
-    prompt.toLowerCase().includes(indicator)
-  );
-  
-  // Use GPT-4 if the prompt is long (>200 chars) or contains complexity indicators
-  if (prompt.length > 200 || hasComplexityIndicator) {
-    return 'gpt-4';
-  }
-  
-  // Default to GPT-3.5 for simpler, shorter prompts
-  return 'gpt-3.5-turbo';
+interface ModelCapabilities {
+  reasoning: number;
+  creativity: number;
+  knowledge: number;
+  speed: number;
+  contextLength: number;
+  culturalAwareness: number;
+  businessInsight: number;
 }
 
-export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'): AsyncGenerator<string> {
-  try {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      toast.error('OpenAI API key is missing. Please check your environment variables.');
-      throw new Error('OpenAI API key is not configured. Please add VITE_OPENAI_API_KEY to your environment variables.');
-    }
+const modelCapabilities: Record<AIModel, ModelCapabilities> = {
+  'dylan-assistant': {
+    reasoning: 0.98,
+    creativity: 0.95,
+    knowledge: 0.97,
+    speed: 0.94,
+    contextLength: 32768,
+    culturalAwareness: 0.96,
+    businessInsight: 0.97
+  },
+  'gpt-4': {
+    reasoning: 0.95,
+    creativity: 0.9,
+    knowledge: 0.95,
+    speed: 0.85,
+    contextLength: 8192,
+    culturalAwareness: 0.93,
+    businessInsight: 0.94
+  },
+  'claude-3': {
+    reasoning: 0.93,
+    creativity: 0.92,
+    knowledge: 0.94,
+    speed: 0.88,
+    contextLength: 100000,
+    culturalAwareness: 0.95,
+    businessInsight: 0.92
+  },
+  'gemini-pro': {
+    reasoning: 0.9,
+    creativity: 0.85,
+    knowledge: 0.92,
+    speed: 0.95,
+    contextLength: 32768,
+    culturalAwareness: 0.91,
+    businessInsight: 0.9
+  },
+  'llama-3': {
+    reasoning: 0.92,
+    creativity: 0.88,
+    knowledge: 0.91,
+    speed: 0.93,
+    contextLength: 16384,
+    culturalAwareness: 0.94,
+    businessInsight: 0.91
+  }
+};
 
-    const stream = await openai.chat.completions.create({
-      model: model === 'gpt-4' ? 'gpt-4-turbo-preview' : 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
-      stream: true
+const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+// Initialize OpenAI client only if API key is available
+const openai = openaiApiKey ? new OpenAI({
+  apiKey: openaiApiKey,
+  dangerouslyAllowBrowser: true
+}) : null;
+
+const anthropic = new Anthropic({
+  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
+});
+
+export function getBestModelForTask(task: string): AIModel {
+  // Default to Dylan Assistant for most tasks
+  if (!task.toLowerCase().includes('specific') && !task.toLowerCase().includes('alternate')) {
+    return 'dylan-assistant';
+  }
+
+  const lowercaseTask = task.toLowerCase();
+  
+  // Define task-specific keywords and their associated capabilities
+  const taskPatterns = {
+    cultural: {
+      keywords: ['culture', 'tradition', 'heritage', 'ancestry', 'family', 'history'],
+      capabilities: ['culturalAwareness', 'knowledge']
+    },
+    business: {
+      keywords: ['business', 'strategy', 'optimization', 'efficiency', 'workflow'],
+      capabilities: ['businessInsight', 'reasoning']
+    },
+    creative: {
+      keywords: ['imagine', 'create', 'design', 'story', 'narrative'],
+      capabilities: ['creativity', 'culturalAwareness']
+    },
+    analysis: {
+      keywords: ['analyze', 'examine', 'investigate', 'research', 'study'],
+      capabilities: ['reasoning', 'knowledge']
+    }
+  };
+
+  // Calculate scores for each model based on task requirements
+  const modelScores = Object.entries(modelCapabilities).map(([model, capabilities]) => {
+    let score = 0;
+    
+    // Check each task pattern
+    Object.entries(taskPatterns).forEach(([_, pattern]) => {
+      const matchesKeywords = pattern.keywords.some(keyword => 
+        lowercaseTask.includes(keyword)
+      );
+      
+      if (matchesKeywords) {
+        // Add capability scores for this pattern
+        pattern.capabilities.forEach(capability => {
+          score += capabilities[capability as keyof ModelCapabilities];
+        });
+      }
     });
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || '';
-      if (content) yield content;
+    // Consider context length if the task seems to require it
+    if (task.length > 1000 || task.includes('context') || task.includes('history')) {
+      score += capabilities.contextLength / 100000; // Normalize to 0-1 range
+    }
+
+    return { model: model as AIModel, score };
+  });
+
+  // Return the model with the highest score
+  const bestModel = modelScores.reduce((best, current) => 
+    current.score > best.score ? current : best
+  );
+
+  return bestModel.model;
+}
+
+export async function* streamResponse(prompt: string, model: AIModel = 'dylan-assistant'): AsyncGenerator<string> {
+  try {
+    switch (model) {
+      case 'dylan-assistant': {
+        const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
+        const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
+
+        if (!dylanUrl || !dylanKey) {
+          throw new Error('Dylan Assistant credentials not configured');
+        }
+
+        const response = await fetch(`${dylanUrl}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${dylanKey}`
+          },
+          body: JSON.stringify({ prompt })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No reader available');
+        }
+
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          yield decoder.decode(value);
+        }
+        break;
+      }
+
+      case 'gpt-4': {
+        if (!openai) {
+          throw new Error('OpenAI API key is not configured. Please add VITE_OPENAI_API_KEY to your environment variables.');
+        }
+
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4-turbo-preview',
+          messages: [{ role: 'user', content: prompt }],
+          stream: true
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) yield content;
+        }
+        break;
+      }
+
+      case 'claude-3': {
+        const stream = await anthropic.messages.create({
+          model: 'claude-3-opus-20240229',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: prompt }],
+          stream: true
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.delta?.text || '';
+          if (content) yield content;
+        }
+        break;
+      }
+
+      case 'gemini-pro':
+      case 'llama-3': {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error('Supabase credentials not configured');
+        }
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/ai-stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`
+          },
+          body: JSON.stringify({ prompt, model })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No reader available');
+        }
+
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          yield decoder.decode(value);
+        }
+        break;
+      }
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    toast.error(errorMessage);
-    yield `Error: ${errorMessage}. Please ensure your OpenAI API key is properly configured.`;
+    yield `Error: ${error instanceof Error ? error.message : 'An unexpected error occurred'}. Please ensure all required API keys are properly configured in your environment variables.`;
   }
 }
