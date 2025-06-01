@@ -20,6 +20,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: window.localStorage,
     storageKey: 'genesis.auth.token',
     flowType: 'pkce'
+  },
+  db: {
+    schema: 'public'
   }
 });
 
