@@ -8,6 +8,31 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true
 });
 
+export function getBestModelForTask(prompt: string): AIModel {
+  // Use GPT-4 for longer prompts or those containing specific keywords
+  const complexityIndicators = [
+    'analyze',
+    'complex',
+    'detailed',
+    'explain',
+    'compare',
+    'synthesize',
+    'evaluate'
+  ];
+  
+  const hasComplexityIndicator = complexityIndicators.some(indicator => 
+    prompt.toLowerCase().includes(indicator)
+  );
+  
+  // Use GPT-4 if the prompt is long (>200 chars) or contains complexity indicators
+  if (prompt.length > 200 || hasComplexityIndicator) {
+    return 'gpt-4';
+  }
+  
+  // Default to GPT-3.5 for simpler, shorter prompts
+  return 'gpt-3.5-turbo';
+}
+
 export async function* streamResponse(prompt: string, model: AIModel = 'gpt-4'): AsyncGenerator<string> {
   try {
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
