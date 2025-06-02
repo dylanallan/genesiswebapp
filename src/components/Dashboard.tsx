@@ -3,9 +3,12 @@ import { motion } from 'framer-motion';
 import { FlowBuilder } from './FlowBuilder';
 import { MetricsCard } from './MetricsCard';
 import { Chat } from './Chat';
-import { Brain, Activity, Cpu, LogOut, Search, ChevronDown, Bell, Settings } from 'lucide-react';
+import { ColorSettings } from './ColorSettings';
+import { Brain, Activity, Cpu, LogOut, Search, ChevronDown, Bell, Settings, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUser } from '@supabase/auth-helpers-react';
+import { useAtom } from 'jotai';
+import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';
 
 const systemMetrics = {
@@ -27,30 +30,45 @@ const targetMetrics = {
 export const Dashboard: React.FC = () => {
   const user = useUser();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [notifications] = useState<string[]>([]);
+  const [preferences] = useAtom(userPreferencesAtom);
   
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
 
+  const { colorScheme } = preferences;
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: colorScheme.background }}>
       {/* Top Navigation */}
-      <nav className="bg-white shadow-sm sticky top-0 z-50">
+      <nav className="sticky top-0 z-50 border-b" style={{ 
+        backgroundColor: colorScheme.primary,
+        borderColor: colorScheme.border
+      }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <Brain className="w-6 h-6 text-genesis-600" />
-                <h1 className="text-lg font-medium text-gray-900">Genesis Heritage</h1>
+                <Brain className="w-6 h-6" style={{ color: colorScheme.accent }} />
+                <h1 className="text-lg font-medium" style={{ color: colorScheme.text }}>
+                  Genesis Heritage
+                </h1>
               </div>
-              <p className="text-sm text-gray-500 hidden sm:block">
+              <p className="text-sm hidden sm:block" style={{ color: colorScheme.text }}>
                 Automate your business and unlock your roots
               </p>
             </div>
 
             <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-genesis-500 rounded-full">
+              <button 
+                className="relative p-2 rounded-full hover:bg-opacity-10"
+                style={{ 
+                  color: colorScheme.text,
+                  backgroundColor: `${colorScheme.secondary}22`
+                }}
+              >
                 <Bell className="w-5 h-5" />
                 {notifications.length > 0 && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
@@ -60,31 +78,54 @@ export const Dashboard: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-genesis-500"
+                  className="flex items-center space-x-2 p-2 rounded-full hover:bg-opacity-10"
+                  style={{ 
+                    backgroundColor: `${colorScheme.secondary}22`
+                  }}
                 >
-                  <div className="w-8 h-8 rounded-full bg-genesis-100 flex items-center justify-center">
-                    <span className="text-sm font-medium text-genesis-600">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: colorScheme.accent,
+                      color: colorScheme.primary
+                    }}
+                  >
+                    <span className="text-sm font-medium">
                       {user?.email?.[0].toUpperCase()}
                     </span>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-4 h-4" style={{ color: colorScheme.text }} />
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{user?.email}</p>
+                  <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border"
+                    style={{ 
+                      backgroundColor: colorScheme.primary,
+                      borderColor: colorScheme.border
+                    }}
+                  >
+                    <div className="px-4 py-2 border-b" style={{ borderColor: colorScheme.border }}>
+                      <p className="text-sm font-medium" style={{ color: colorScheme.text }}>
+                        {user?.email}
+                      </p>
                     </div>
                     <button
-                      onClick={() => {/* Handle settings */}}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      onClick={() => {
+                        setShowSettings(true);
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-opacity-10 flex items-center"
+                      style={{ 
+                        color: colorScheme.text,
+                        backgroundColor: `${colorScheme.secondary}22`
+                      }}
                     >
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
                     </button>
                     <button
                       onClick={handleSignOut}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-opacity-10 flex items-center"
+                      style={{ backgroundColor: `${colorScheme.secondary}22` }}
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign out
@@ -97,19 +138,20 @@ export const Dashboard: React.FC = () => {
         </div>
       </nav>
 
-      {/* Search Bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="search"
-              placeholder="Search flows, automations, or type / for commands..."
-              className="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
-            />
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="relative max-w-lg w-full mx-4">
+            <button
+              onClick={() => setShowSettings(false)}
+              className="absolute -top-2 -right-2 p-2 rounded-full bg-gray-800 text-gray-300 hover:bg-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <ColorSettings />
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
