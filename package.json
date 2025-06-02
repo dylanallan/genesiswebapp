@@ -15,7 +15,7 @@
     "@anthropic-ai/sdk": "^0.17.1",
     "@google-cloud/vision": "^4.0.2",
     "@hookform/resolvers": "^3.3.4",
-    "@microsoft/semantic-kernel": "^1.0.0",
+    "@microsoft/semantic-kernel-js": "^1.0.0",
     "@pinecone-database/pinecone": "^2.0.0",
     "@stripe/stripe-js": "^2.4.0",
     "@supabase/auth-helpers-react": "^0.4.2",
