@@ -11,11 +11,21 @@ export interface UserSession {
   documents: Document[];
 }
 
+export interface ColorScheme {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  text: string;
+  border: string;
+}
+
 export interface UserPreferences {
   theme: 'light' | 'dark';
   notifications: boolean;
   language: string;
   culturalContext: string;
+  colorScheme: ColorScheme;
   automationPreferences: AutomationPreferences;
 }
 
@@ -88,13 +98,34 @@ export interface Analysis {
   timestamp: Date;
 }
 
+// Default color schemes
+export const defaultColorSchemes = {
+  dark: {
+    primary: '#1e293b',
+    secondary: '#334155',
+    accent: '#3b82f6',
+    background: '#0f172a',
+    text: '#f8fafc',
+    border: '#475569'
+  },
+  light: {
+    primary: '#ffffff',
+    secondary: '#f1f5f9',
+    accent: '#3b82f6',
+    background: '#f8fafc',
+    text: '#1e293b',
+    border: '#e2e8f0'
+  }
+} as const;
+
 // Persistent storage atoms
 export const userSessionAtom = atomWithStorage<UserSession | null>('genesis.session', null);
 export const userPreferencesAtom = atomWithStorage<UserPreferences>('genesis.preferences', {
-  theme: 'light',
+  theme: 'dark',
   notifications: true,
   language: 'en',
   culturalContext: '',
+  colorScheme: defaultColorSchemes.dark,
   automationPreferences: {
     workflowTriggers: [],
     notificationSettings: {
