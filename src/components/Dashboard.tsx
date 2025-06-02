@@ -4,6 +4,8 @@ import { FlowBuilder } from './FlowBuilder';
 import { MetricsCard } from './MetricsCard';
 import { Chat } from './Chat';
 import { ColorSettings } from './ColorSettings';
+import { FamilyPhotoAnalyzer } from './FamilyPhotoAnalyzer';
+import { MarketingAutomation } from './MarketingAutomation';
 import { Brain, Activity, Cpu, LogOut, Search, ChevronDown, Bell, Settings, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -178,8 +180,10 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="lg:col-span-2 space-y-6">
             <FlowBuilder />
+            <FamilyPhotoAnalyzer />
+            <MarketingAutomation />
           </div>
           
           <div className="space-y-6">
