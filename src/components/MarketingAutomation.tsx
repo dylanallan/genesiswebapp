@@ -93,13 +93,8 @@ export const MarketingAutomation: React.FC = () => {
   const loadFunnels = async () => {
     setIsLoading(true);
     try {
-      const { data: funnelsData, error } = await supabase
-        .from('marketing_funnels')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setFunnels(funnelsData || []);
+      const funnelsData = await marketingAutomation.getFunnels();
+      setFunnels(funnelsData);
     } catch (error) {
       console.error('Error loading funnels:', error);
       toast.error('Failed to load marketing funnels');

@@ -125,6 +125,21 @@ export class MarketingAutomation {
     return MarketingAutomation.instance;
   }
 
+  async getFunnels(): Promise<MarketingFunnel[]> {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_funnels')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching funnels:', error);
+      throw error;
+    }
+  }
+
   async createFunnel(funnel: Partial<MarketingFunnel>): Promise<string> {
     try {
       const { data, error } = await supabase
