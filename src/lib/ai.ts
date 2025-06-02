@@ -62,18 +62,11 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
   }
 };
 
-const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 if (!anthropicApiKey) {
   throw new Error('Anthropic API key is not configured. Please add VITE_ANTHROPIC_API_KEY to your environment variables.');
 }
-
-// Initialize OpenAI client only if API key is available
-const openai = openaiApiKey ? new OpenAI({
-  apiKey: openaiApiKey,
-  dangerouslyAllowBrowser: true
-}) : null;
 
 const anthropic = new Anthropic({
   apiKey: anthropicApiKey
@@ -144,59 +137,6 @@ export function getBestModelForTask(task: string): AIModel {
 export async function* streamResponse(prompt: string, model: AIModel = 'claude-3'): AsyncGenerator<string> {
   try {
     switch (model) {
-      case 'dylan-assistant': {
-        const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
-        const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
-
-        if (!dylanUrl || !dylanKey) {
-          throw new Error('Dylan Assistant credentials not configured');
-        }
-
-        const response = await fetch(`${dylanUrl}/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${dylanKey}`
-          },
-          body: JSON.stringify({ prompt })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('No reader available');
-        }
-
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          yield decoder.decode(value);
-        }
-        break;
-      }
-
-      case 'gpt-4': {
-        if (!openai) {
-          throw new Error('OpenAI API key is not configured. Please add VITE_OPENAI_API_KEY to your environment variables.');
-        }
-
-        const stream = await openai.chat.completions.create({
-          model: 'gpt-4-turbo-preview',
-          messages: [{ role: 'user', content: prompt }],
-          stream: true
-        });
-
-        for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content || '';
-          if (content) yield content;
-        }
-        break;
-      }
-
       case 'claude-3': {
         const stream = await anthropic.messages.create({
           model: 'claude-3-opus-20240229',
@@ -208,42 +148,6 @@ export async function* streamResponse(prompt: string, model: AIModel = 'claude-3
         for await (const chunk of stream) {
           const content = chunk.delta?.text || '';
           if (content) yield content;
-        }
-        break;
-      }
-
-      case 'gemini-pro':
-      case 'llama-3': {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-        if (!supabaseUrl || !supabaseKey) {
-          throw new Error('Supabase credentials not configured');
-        }
-
-        const response = await fetch(`${supabaseUrl}/functions/v1/ai-stream`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`
-          },
-          body: JSON.stringify({ prompt, model })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('No reader available');
-        }
-
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          yield decoder.decode(value);
         }
         break;
       }
