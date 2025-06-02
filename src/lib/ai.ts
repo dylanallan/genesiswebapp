@@ -63,9 +63,9 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
   }
 };
 
-// Initialize OpenAI client with the provided API key
+// Initialize OpenAI client with the API key from environment variables
 const openai = new OpenAI({
-  apiKey: 'sk-Gy0Hs0rkXGBPxBPZXXXXT3BlbkFJwwwwwwwwwwwwwwwwwwww',
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true
 });
 
@@ -182,6 +182,10 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
       }
 
       case 'gpt-4': {
+        if (!import.meta.env.VITE_OPENAI_API_KEY) {
+          throw new Error('OpenAI API key not configured');
+        }
+
         const stream = await openai.chat.completions.create({
           model: 'gpt-4-turbo-preview',
           messages: [{ role: 'user', content: prompt }],
