@@ -1,20 +1,23 @@
 /*
-  # Database Performance Optimization
+  # Analytics and Performance Monitoring Schema
 
-  1. Extensions
-    - Enable pg_trgm for text search
-    - Enable pg_stat_statements for query analysis
-  
-  2. Indexes
-    - Add optimized indexes for metrics and journeys
-    - Create GIN indexes for JSON and text search
-  
-  3. Analytics Views
-    - Create materialized view for AI system insights
-    - Add system health monitoring
+  1. New Tables
+    - system_health_metrics
+      - Stores system-wide health metrics
+      - Includes timestamp, metric name, value, and metadata
     
-  4. Maintenance
-    - Add view refresh function
+  2. Indexes
+    - Performance-optimized indexes for metrics and analytics
+    - Text search capabilities using pg_trgm
+    - JSONB search optimization
+    
+  3. Materialized Views
+    - AI system insights aggregation
+    - System health hourly aggregation
+    - Model performance summary
+    
+  4. Functions
+    - refresh_analytics_views for maintaining materialized views
 */
 
 -- Enable extensions
@@ -43,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_base_jsonb
 ON knowledge_base USING gin (content jsonb_path_ops);
 
 CREATE INDEX IF NOT EXISTS idx_sacred_content_text
-ON sacred_content USING gin ((content::text) gin_trgm_ops);
+ON sacred_content USING gin (content gin_trgm_ops);
 
 -- Create materialized view for AI system insights
 CREATE MATERIALIZED VIEW ai_system_insights AS
