@@ -26,14 +26,13 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
 };
 
 const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+let anthropic: Anthropic | null = null;
 
-if (!anthropicApiKey) {
-  throw new Error('Anthropic API key is not configured. Please add VITE_ANTHROPIC_API_KEY to your environment variables.');
+if (anthropicApiKey) {
+  anthropic = new Anthropic({
+    apiKey: anthropicApiKey
+  });
 }
-
-const anthropic = new Anthropic({
-  apiKey: anthropicApiKey
-});
 
 export function getBestModelForTask(_task: string): AIModel {
   return 'claude-3';
@@ -41,6 +40,11 @@ export function getBestModelForTask(_task: string): AIModel {
 
 export async function* streamResponse(prompt: string, _model: AIModel = 'claude-3'): AsyncGenerator<string> {
   try {
+    if (!anthropic) {
+      yield "I apologize, but I'm currently operating in demo mode as the Anthropic API key is not configured. In a production environment, I would provide AI-generated responses here. For now, I'll acknowledge your input: " + prompt;
+      return;
+    }
+
     const stream = await anthropic.messages.create({
       model: 'claude-3-opus-20240229',
       max_tokens: 4096,
