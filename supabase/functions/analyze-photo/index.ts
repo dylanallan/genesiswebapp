@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { ImageAnnotatorClient } from '@google-cloud/vision';
+import { createClient } from 'npm:@supabase/supabase-js';
+import { ImageAnnotatorClient } from 'npm:@google-cloud/vision';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
