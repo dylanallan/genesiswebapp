@@ -12,6 +12,7 @@ interface InsightResult {
   recommendations: string[];
   patterns: Pattern[];
   learnings?: Learning[];
+  adaptations?: Adaptation[];
 }
 
 interface Pattern {
@@ -20,6 +21,7 @@ interface Pattern {
   significance: number;
   examples: string[];
   evolution?: PatternEvolution[];
+  metadata?: Record<string, any>;
 }
 
 interface PatternEvolution {
@@ -27,6 +29,7 @@ interface PatternEvolution {
   change: string;
   impact: number;
   adaptation: string;
+  learningRate: number;
 }
 
 interface Learning {
@@ -35,19 +38,47 @@ interface Learning {
   confidence: number;
   applicationAreas: string[];
   timestamp: Date;
+  validationScore: number;
+}
+
+interface Adaptation {
+  trigger: string;
+  response: string;
+  effectiveness: number;
+  timestamp: Date;
+  context: Record<string, any>;
 }
 
 let model: tf.LayersModel | null = null;
 let chain: LangChain | null = null;
+let adaptiveLayer: tf.Sequential | null = null;
 
 async function initializeAI() {
   if (!model) {
     model = await tf.loadLayersModel('/models/insight-generator.json');
+    
+    // Initialize adaptive layer for continuous learning
+    adaptiveLayer = tf.sequential({
+      layers: [
+        tf.layers.dense({ units: 128, activation: 'relu', inputShape: [1536] }),
+        tf.layers.dropout({ rate: 0.3 }),
+        tf.layers.dense({ units: 64, activation: 'relu' }),
+        tf.layers.dense({ units: 32, activation: 'softmax' })
+      ]
+    });
+    
+    adaptiveLayer.compile({
+      optimizer: tf.train.adam(0.001),
+      loss: 'categoricalCrossentropy',
+      metrics: ['accuracy']
+    });
   }
+  
   if (!chain) {
     chain = new LangChain({
       temperature: 0.7,
-      maxTokens: 2048
+      maxTokens: 2048,
+      contextWindow: 8192
     });
   }
 }
@@ -56,32 +87,32 @@ export async function analyzeUserData(): Promise<InsightResult[]> {
   try {
     await initializeAI();
 
-    // Fetch comprehensive data
+    // Fetch comprehensive data with temporal aspects
     const { data: allData, error: dataError } = await supabase
       .from('analytics_events')
-      .select('*')
+      .select('*, temporal_metadata(*)')
       .order('timestamp', { ascending: false });
 
     if (dataError) throw dataError;
 
-    // Initialize NLP tools with advanced configurations
+    // Initialize advanced NLP pipeline
     const classifier = new natural.BayesClassifier();
     const tfidf = new natural.TfIdf();
     
-    // Train the system with historical data
+    // Train the system with historical data and temporal context
     allData?.forEach(item => {
       classifier.addDocument(JSON.stringify(item), item.category);
       tfidf.addDocument(JSON.stringify(item));
     });
     classifier.train();
 
-    // Generate embeddings for pattern recognition
-    const embeddings = await generateEmbeddings(allData);
+    // Generate embeddings with temporal awareness
+    const embeddings = await generateTemporalEmbeddings(allData);
     
-    // Analyze patterns and generate insights
+    // Analyze patterns with adaptive learning
     const insights: InsightResult[] = [];
     
-    // Cultural insights with adaptive learning
+    // Cultural insights with evolutionary learning
     const culturalInsights = await analyzeCulturalPatterns(allData, tfidf, embeddings);
     insights.push(culturalInsights);
 
@@ -93,8 +124,9 @@ export async function analyzeUserData(): Promise<InsightResult[]> {
     const historicalInsights = await analyzeHistoricalConnections(allData, embeddings);
     insights.push(historicalInsights);
 
-    // Self-learning system updates
+    // Update system knowledge and adapt
     await updateSystemKnowledge(insights);
+    await adaptToNewPatterns(insights);
 
     return insights;
   } catch (error) {
@@ -104,10 +136,23 @@ export async function analyzeUserData(): Promise<InsightResult[]> {
   }
 }
 
-async function generateEmbeddings(data: any[]): Promise<tf.Tensor> {
-  const preprocessed = data.map(item => JSON.stringify(item));
+async function generateTemporalEmbeddings(data: any[]): Promise<tf.Tensor> {
+  const preprocessed = data.map(item => ({
+    ...JSON.stringify(item),
+    temporal_weight: calculateTemporalWeight(item.timestamp)
+  }));
+  
   const tokenized = await chain!.tokenize(preprocessed);
-  return await model!.predict(tokenized) as tf.Tensor;
+  const baseEmbeddings = await model!.predict(tokenized) as tf.Tensor;
+  
+  // Apply temporal weighting
+  return tf.mul(baseEmbeddings, tf.tensor(preprocessed.map(p => p.temporal_weight)));
+}
+
+function calculateTemporalWeight(timestamp: string): number {
+  const age = Date.now() - new Date(timestamp).getTime();
+  const maxAge = 1000 * 60 * 60 * 24 * 365; // 1 year
+  return Math.exp(-age / maxAge); // Exponential decay
 }
 
 async function analyzeCulturalPatterns(
@@ -119,36 +164,46 @@ async function analyzeCulturalPatterns(
   const insights: string[] = [];
   const recommendations: string[] = [];
   const learnings: Learning[] = [];
+  const adaptations: Adaptation[] = [];
 
-  // Advanced pattern recognition
+  // Advanced pattern recognition with clustering
   const culturalClusters = await tf.tidy(() => {
     return tf.cluster(embeddings, {
       k: 5,
-      maxIter: 500
+      maxIter: 500,
+      initialization: 'kmeans++'
     });
   });
 
-  // Analyze each cluster for cultural patterns
+  // Analyze each cluster with evolutionary learning
   for (let i = 0; i < culturalClusters.length; i++) {
     const clusterData = data.filter((_, idx) => culturalClusters[i].includes(idx));
     const evolution = await analyzePatternEvolution(clusterData);
+    
+    // Generate cluster metadata
+    const metadata = await generateClusterMetadata(clusterData);
     
     patterns.push({
       type: `cultural_cluster_${i}`,
       frequency: clusterData.length,
       significance: calculateSignificance(clusterData),
       examples: extractExamples(clusterData),
-      evolution
+      evolution,
+      metadata
     });
 
-    // Generate learnings from pattern
+    // Generate and validate learnings
+    const learning = await generateClusterLearning(clusterData);
+    const validationScore = await validateLearning(learning, clusterData);
+    
     learnings.push({
-      source: `cluster_${i}`,
-      insight: await generateClusterInsight(clusterData),
-      confidence: calculateConfidence(clusterData),
-      applicationAreas: identifyApplicationAreas(clusterData),
-      timestamp: new Date()
+      ...learning,
+      validationScore
     });
+
+    // Generate adaptive responses
+    const adaptation = await generateAdaptation(clusterData, patterns);
+    adaptations.push(adaptation);
   }
 
   // Self-improving recommendations
@@ -160,7 +215,8 @@ async function analyzeCulturalPatterns(
     insights,
     recommendations,
     patterns,
-    learnings
+    learnings,
+    adaptations
   };
 }
 
@@ -171,6 +227,13 @@ async function analyzeBusinessPatterns(
 ): Promise<InsightResult> {
   // Similar implementation with business-focused analysis
   // ... (implementation details)
+  return {
+    category: 'business',
+    confidence: 0,
+    insights: [],
+    recommendations: [],
+    patterns: []
+  };
 }
 
 async function analyzeHistoricalConnections(
@@ -179,6 +242,13 @@ async function analyzeHistoricalConnections(
 ): Promise<InsightResult> {
   // Similar implementation with historical analysis
   // ... (implementation details)
+  return {
+    category: 'historical',
+    confidence: 0,
+    insights: [],
+    recommendations: [],
+    patterns: []
+  };
 }
 
 async function updateSystemKnowledge(insights: InsightResult[]): Promise<void> {
@@ -213,10 +283,45 @@ async function updateSystemKnowledge(insights: InsightResult[]): Promise<void> {
   }
 }
 
-// Helper functions
+async function generateClusterMetadata(data: any[]): Promise<Record<string, any>> {
+  // Implementation for generating cluster metadata
+  return {};
+}
+
+async function generateClusterLearning(data: any[]): Promise<Learning> {
+  // Implementation for generating cluster learning
+  return {
+    source: '',
+    insight: '',
+    confidence: 0,
+    applicationAreas: [],
+    timestamp: new Date(),
+    validationScore: 0
+  };
+}
+
+async function validateLearning(learning: Learning, data: any[]): Promise<number> {
+  // Implementation for validating learning
+  return 0;
+}
+
+async function generateAdaptation(data: any[], patterns: Pattern[]): Promise<Adaptation> {
+  // Implementation for generating adaptation
+  return {
+    trigger: '',
+    response: '',
+    effectiveness: 0,
+    timestamp: new Date(),
+    context: {}
+  };
+}
+
+async function adaptToNewPatterns(insights: InsightResult[]): Promise<void> {
+  // Implementation for adapting to new patterns
+}
+
 function prepareTrainingData(insights: InsightResult[]) {
   // Implementation for preparing training data
-  // ... (implementation details)
   return {
     inputs: tf.tensor([]),
     labels: tf.tensor([])
@@ -225,37 +330,31 @@ function prepareTrainingData(insights: InsightResult[]) {
 
 function generatePromptUpdates(insights: InsightResult[]) {
   // Implementation for generating prompt updates
-  // ... (implementation details)
   return [];
 }
 
 async function generateClusterInsight(data: any[]) {
   // Implementation for generating cluster insights
-  // ... (implementation details)
   return '';
 }
 
 function calculateSignificance(data: any[]): number {
   // Implementation for calculating significance
-  // ... (implementation details)
   return 0;
 }
 
 function extractExamples(data: any[]): string[] {
   // Implementation for extracting examples
-  // ... (implementation details)
   return [];
 }
 
 function calculateConfidence(data: any[]): number {
   // Implementation for calculating confidence
-  // ... (implementation details)
   return 0;
 }
 
 function identifyApplicationAreas(data: any[]): string[] {
   // Implementation for identifying application areas
-  // ... (implementation details)
   return [];
 }
 
@@ -264,18 +363,15 @@ async function generateAdaptiveRecommendations(
   learnings: Learning[]
 ): Promise<string[]> {
   // Implementation for generating adaptive recommendations
-  // ... (implementation details)
   return [];
 }
 
 function calculateOverallConfidence(patterns: Pattern[]): number {
   // Implementation for calculating overall confidence
-  // ... (implementation details)
   return 0;
 }
 
 async function analyzePatternEvolution(data: any[]): Promise<PatternEvolution[]> {
   // Implementation for analyzing pattern evolution
-  // ... (implementation details)
   return [];
 }
