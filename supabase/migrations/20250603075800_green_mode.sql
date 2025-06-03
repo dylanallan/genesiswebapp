@@ -1,18 +1,3 @@
-/*
-  # Security Enhancement Migration
-
-  1. New Tables
-    - security_alerts: Tracks security anomalies and incidents
-    - user_security_metadata: Stores user security information
-  2. Functions
-    - enable_emergency_security_measures: Implements emergency security protocols
-    - update_security_scores: Updates user security scores
-    - calculate_security_score: Calculates individual user security scores
-  3. Security
-    - RLS enabled on all tables
-    - Admin-only access policies
-*/
-
 -- Create security alerts table
 CREATE TABLE IF NOT EXISTS security_alerts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
