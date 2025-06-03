@@ -63,7 +63,7 @@ const modelCapabilities: Record<AIModel, ModelCapabilities> = {
   }
 };
 
-// Initialize OpenAI client with the API key from environment variables if available
+// Initialize OpenAI client if API key is available
 const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
 let openai: OpenAI | null = null;
 
@@ -72,11 +72,9 @@ if (openaiApiKey) {
     apiKey: openaiApiKey,
     dangerouslyAllowBrowser: true
   });
-} else {
-  console.warn('OpenAI API key not configured. GPT-4 responses will fall back to another available model.');
 }
 
-// Initialize Anthropic client only if API key is available
+// Initialize Anthropic client if API key is available
 const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 let anthropic: Anthropic | null = null;
 
@@ -84,16 +82,9 @@ if (anthropicApiKey) {
   anthropic = new Anthropic({
     apiKey: anthropicApiKey
   });
-} else {
-  console.warn('Anthropic API key not configured. Claude-3 responses will be simulated.');
 }
 
 export function getBestModelForTask(task: string): AIModel {
-  // If GPT-4 is requested but not available, fall back to another model
-  if (!openaiApiKey && task.toLowerCase().includes('gpt-4')) {
-    return 'dylan-assistant';
-  }
-
   // Default to Dylan Assistant for most tasks
   if (!task.toLowerCase().includes('specific') && !task.toLowerCase().includes('alternate')) {
     return 'dylan-assistant';
@@ -123,11 +114,6 @@ export function getBestModelForTask(task: string): AIModel {
 
   // Calculate scores for each model based on task requirements
   const modelScores = Object.entries(modelCapabilities).map(([model, capabilities]) => {
-    // Skip GPT-4 if OpenAI API key is not configured
-    if (model === 'gpt-4' && !openaiApiKey) {
-      return { model: model as AIModel, score: -1 };
-    }
-
     let score = 0;
     
     // Check each task pattern
@@ -152,31 +138,37 @@ export function getBestModelForTask(task: string): AIModel {
     return { model: model as AIModel, score };
   });
 
-  // Return the model with the highest score, excluding unavailable models
-  const bestModel = modelScores
-    .filter(m => m.score >= 0)
-    .reduce((best, current) => 
-      current.score > best.score ? current : best
-    );
+  // Return the model with the highest score
+  const bestModel = modelScores.reduce((best, current) => 
+    current.score > best.score ? current : best
+  );
 
   return bestModel.model;
 }
 
 export async function* streamResponse(prompt: string, model: AIModel = 'dylan-assistant'): AsyncGenerator<string> {
   try {
-    // If GPT-4 is requested but not available, fall back to Dylan Assistant
-    if (model === 'gpt-4' && !openai) {
-      model = 'dylan-assistant';
-      yield "Note: Falling back to Dylan Assistant as GPT-4 is not configured.\n\n";
-    }
-
     switch (model) {
       case 'dylan-assistant': {
         const dylanUrl = import.meta.env.VITE_DYLAN_ASSISTANT_URL;
         const dylanKey = import.meta.env.VITE_DYLAN_ASSISTANT_KEY;
 
         if (!dylanUrl || !dylanKey) {
-          throw new Error('Dylan Assistant credentials not configured');
+          // Fallback to GPT-4 if Dylan Assistant is not configured
+          if (openai) {
+            const stream = await openai.chat.completions.create({
+              model: 'gpt-4-turbo-preview',
+              messages: [{ role: 'user', content: prompt }],
+              stream: true
+            });
+
+            for await (const chunk of stream) {
+              const content = chunk.choices[0]?.delta?.content || '';
+              if (content) yield content;
+            }
+            return;
+          }
+          throw new Error('No AI models are currently available. Please configure at least one model.');
         }
 
         const response = await fetch(`${dylanUrl}/chat`, {
@@ -208,7 +200,9 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
 
       case 'gpt-4': {
         if (!openai) {
-          throw new Error('This should not happen as we already checked for OpenAI availability');
+          // Fallback to Dylan Assistant if OpenAI is not configured
+          yield* streamResponse(prompt, 'dylan-assistant');
+          return;
         }
 
         const stream = await openai.chat.completions.create({
@@ -226,7 +220,8 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
 
       case 'claude-3': {
         if (!anthropic) {
-          yield "I apologize, but I'm currently operating in demo mode as the Anthropic API key is not configured. In a production environment, I would provide AI-generated responses here. For now, I'll acknowledge your input: " + prompt;
+          // Fallback to Dylan Assistant if Anthropic is not configured
+          yield* streamResponse(prompt, 'dylan-assistant');
           return;
         }
 
@@ -250,7 +245,9 @@ export async function* streamResponse(prompt: string, model: AIModel = 'dylan-as
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
-          throw new Error('Supabase credentials not configured');
+          // Fallback to Dylan Assistant if Supabase is not configured
+          yield* streamResponse(prompt, 'dylan-assistant');
+          return;
         }
 
         const response = await fetch(`${supabaseUrl}/functions/v1/ai-stream`, {
