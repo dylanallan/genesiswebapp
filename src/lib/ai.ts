@@ -67,6 +67,11 @@ export async function* streamResponse(
       console.warn('Local model unavailable, falling back to cloud models:', error);
     }
 
+    // Check if we have the required environment variables
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      throw new Error('Missing required Supabase configuration');
+    }
+
     // Fall back to cloud models
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-stream`,
@@ -81,8 +86,15 @@ export async function* streamResponse(
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.details || errorData.error || response.statusText);
+      let errorMessage = 'Failed to connect to AI service';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.details || errorData.error || response.statusText;
+      } catch {
+        // If we can't parse the error JSON, use the status text
+        errorMessage = response.statusText;
+      }
+      throw new Error(errorMessage);
     }
 
     const reader = response.body?.getReader();
@@ -104,6 +116,6 @@ export async function* streamResponse(
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
-    throw error;
+    yield `I apologize, but I'm having trouble connecting to the AI service. ${error instanceof Error ? error.message : 'Please try again later or contact support if the issue persists.'}`;
   }
 }

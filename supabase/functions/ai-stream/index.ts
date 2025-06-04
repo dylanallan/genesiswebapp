@@ -42,14 +42,19 @@ function validateEnvironment(model: string) {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Validate request
     if (!req.body) {
       return new Response(
-        JSON.stringify({ error: 'Request body is required' }),
+        JSON.stringify({ 
+          error: 'Request body is required',
+          details: 'The request body is missing'
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -61,7 +66,10 @@ Deno.serve(async (req) => {
 
     if (!prompt) {
       return new Response(
-        JSON.stringify({ error: 'Prompt is required' }),
+        JSON.stringify({ 
+          error: 'Prompt is required',
+          details: 'The prompt field is missing in the request body'
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -69,13 +77,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate environment configuration
     try {
       validateEnvironment(model);
     } catch (error) {
+      console.error('Environment validation error:', error);
       return new Response(
         JSON.stringify({ 
-          error: error instanceof Error ? error.message : 'API configuration error',
-          details: 'The requested AI model is not currently available. Please try a different model or contact support.'
+          error: 'Configuration Error',
+          details: error instanceof Error ? error.message : 'The requested AI model is not currently available. Please try a different model or contact support.'
         }),
         {
           status: 503,
@@ -114,7 +124,9 @@ Deno.serve(async (req) => {
             controller.close();
           } catch (error) {
             console.error('OpenAI API Error:', error);
-            controller.error(error instanceof Error ? error.message : 'OpenAI API error occurred');
+            const errorMessage = error instanceof Error ? error.message : 'OpenAI API error occurred';
+            controller.enqueue(encoder.encode(`Error: ${errorMessage}`));
+            controller.close();
           }
         }
       });
@@ -147,7 +159,9 @@ Deno.serve(async (req) => {
             controller.close();
           } catch (error) {
             console.error('Gemini API Error:', error);
-            controller.error(error instanceof Error ? error.message : 'Gemini API error occurred');
+            const errorMessage = error instanceof Error ? error.message : 'Gemini API error occurred';
+            controller.enqueue(encoder.encode(`Error: ${errorMessage}`));
+            controller.close();
           }
         }
       });
@@ -177,7 +191,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'An unknown error occurred'
+        details: error instanceof Error ? error.message : 'An unknown error occurred while processing your request'
       }),
       {
         status: 500,
