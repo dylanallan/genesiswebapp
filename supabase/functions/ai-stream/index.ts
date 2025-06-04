@@ -16,7 +16,16 @@ interface RequestBody {
   model: 'gpt-4' | 'claude-3' | 'gemini-pro';
 }
 
+// Verify Gemini API key and create client
+function initializeGeminiClient() {
+  if (!geminiKey) {
+    throw new Error('GEMINI_API_KEY environment variable is not set');
+  }
+  return new GoogleGenerativeAI(geminiKey);
+}
+
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -27,12 +36,6 @@ Deno.serve(async (req) => {
       throw new Error('Request body is required');
     }
 
-    // Validate Gemini API key
-    if (!geminiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is not set');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { prompt, model } = await req.json() as RequestBody;
 
     if (!prompt) {
@@ -43,15 +46,31 @@ Deno.serve(async (req) => {
 
     switch (model) {
       case 'gemini-pro': {
-        const genAI = new GoogleGenerativeAI(geminiKey);
-        const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-        
         try {
+          const genAI = initializeGeminiClient();
+          const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
+          
           const result = await geminiModel.generateContentStream(prompt);
+          if (!result || !result.stream) {
+            throw new Error('Failed to get stream from Gemini API');
+          }
           response = result.stream;
         } catch (error) {
           console.error('Gemini API Error:', error);
-          throw new Error('Failed to generate content from Gemini API');
+          return new Response(
+            JSON.stringify({ 
+              error: error instanceof Error ? 
+                `Gemini API Error: ${error.message}` : 
+                'Failed to generate content from Gemini API'
+            }),
+            {
+              status: 500,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
         }
         break;
       }
@@ -82,6 +101,7 @@ Deno.serve(async (req) => {
         );
     }
 
+    // Return the streaming response
     return new Response(response, {
       headers: {
         ...corsHeaders,
