@@ -32,48 +32,63 @@ function initializeOpenAIClient() {
   return new OpenAI({ apiKey: openaiKey });
 }
 
-function validateEnvironment() {
-  if (!geminiKey && !openaiKey) {
-    throw new Error('Neither GEMINI_API_KEY nor OPENAI_API_KEY environment variables are set');
+function validateEnvironment(model: string) {
+  if (model === 'gemini-pro' && !geminiKey) {
+    throw new Error('GEMINI_API_KEY environment variable is not set');
+  }
+  if ((model === 'codex' || model === 'gpt-4') && !openaiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
   }
 }
 
 Deno.serve(async (req) => {
-  try {
-    validateEnvironment();
-  } catch (error) {
-    console.error('Environment validation failed:', error);
-    return new Response(
-      JSON.stringify({ error: 'Service configuration error. Please contact support.' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-  }
-
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     if (!req.body) {
-      throw new Error('Request body is required');
+      return new Response(
+        JSON.stringify({ error: 'Request body is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const { prompt, model } = await req.json() as RequestBody;
 
     if (!prompt) {
-      throw new Error('Prompt is required');
+      return new Response(
+        JSON.stringify({ error: 'Prompt is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate environment variables for the requested model
+    try {
+      validateEnvironment(model);
+    } catch (error) {
+      return new Response(
+        JSON.stringify({ 
+          error: error instanceof Error ? error.message : 'API configuration error',
+          details: 'The requested AI model is not currently available. Please try a different model or contact support.'
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const encoder = new TextEncoder();
 
     if (model === 'codex' || model === 'gpt-4') {
-      if (!openaiKey) {
-        throw new Error('OpenAI API key is not configured');
-      }
-
       const stream = new ReadableStream({
         async start(controller) {
           try {
@@ -99,7 +114,7 @@ Deno.serve(async (req) => {
             controller.close();
           } catch (error) {
             console.error('OpenAI API Error:', error);
-            controller.error(error instanceof Error ? error.message : 'Unknown error occurred');
+            controller.error(error instanceof Error ? error.message : 'OpenAI API error occurred');
           }
         }
       });
@@ -115,10 +130,6 @@ Deno.serve(async (req) => {
     }
 
     if (model === 'gemini-pro') {
-      if (!geminiKey) {
-        throw new Error('Gemini API key is not configured');
-      }
-
       const stream = new ReadableStream({
         async start(controller) {
           try {
@@ -138,7 +149,7 @@ Deno.serve(async (req) => {
             controller.close();
           } catch (error) {
             console.error('Gemini API Error:', error);
-            controller.error(error instanceof Error ? error.message : 'Unknown error occurred');
+            controller.error(error instanceof Error ? error.message : 'Gemini API error occurred');
           }
         }
       });
@@ -153,27 +164,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const stream = new ReadableStream({
-      start(controller) {
-        const message = `Model '${model}' is not supported. Please use 'gemini-pro' or 'codex'.`;
-        controller.enqueue(encoder.encode(message));
-        controller.close();
+    return new Response(
+      JSON.stringify({ 
+        error: 'Unsupported model',
+        details: `Model '${model}' is not supported. Please use 'gemini-pro' or 'gpt-4'.`
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    });
-
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    );
   } catch (error) {
     console.error('AI Stream Error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unknown error occurred'
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'An unknown error occurred'
       }),
       {
         status: 500,
