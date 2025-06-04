@@ -1,5 +1,3 @@
-import { atom } from 'jotai';
-
 interface CacheConfig {
   ttl: number;
   maxSize: number;
@@ -58,6 +56,3 @@ export const responseCache = new Cache<string>({
   ttl: 1000 * 60 * 60, // 1 hour
   maxSize: 1000
 });
-
-export const userPreferencesAtom = atom<Record<string, any>>({});
-export const systemStateAtom = atom<Record<string, any>>({});
