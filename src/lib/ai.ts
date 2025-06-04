@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Ollama } from 'ollama';
 
-export type AIModel = 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3' | 'deepseek-1' | 'ollama-3.2';
+export type AIModel = 'gpt-4' | 'claude-3' | 'gemini-pro' | 'codex' | 'deepseek-1' | 'ollama-3.2';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -12,9 +12,6 @@ const ollama = new Ollama({
   host: 'http://localhost:11434'
 });
 
-/**
- * Determines the best AI model for a given task based on input content
- */
 export function getBestModelForTask(input: string): AIModel {
   const wordCount = input.split(/\s+/).length;
   const hasComplexity = /\b(analyze|compare|explain|evaluate)\b/i.test(input);
@@ -22,7 +19,7 @@ export function getBestModelForTask(input: string): AIModel {
   const hasCode = /\b(code|program|function|class|algorithm)\b/i.test(input);
   
   if (hasCode) {
-    return 'deepseek-1';
+    return 'codex';
   } else if (hasCreativity) {
     return 'claude-3';
   } else if (wordCount > 100 || hasComplexity) {
@@ -34,9 +31,6 @@ export function getBestModelForTask(input: string): AIModel {
   return 'gemini-pro';
 }
 
-/**
- * Streams AI response chunks from the edge function
- */
 export async function* streamResponse(
   prompt: string,
   model: AIModel
@@ -76,12 +70,10 @@ export async function* streamResponse(
       throw new Error(`Supabase function error: ${error.message}`);
     }
 
-    // Handle error responses from the Edge Function
     if (data?.error) {
       throw new Error(`AI Stream error: ${data.error}`);
     }
 
-    // The response is now directly streamable
     const response = new Response(data);
     
     if (!response.ok) {
