@@ -30,7 +30,7 @@ export async function* streamResponse(
     }
 
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-router`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-stream`,
       {
         method: 'POST',
         headers: {
@@ -42,7 +42,8 @@ export async function* streamResponse(
     );
 
     if (!response.ok) {
-      throw new Error(`AI service error: ${response.statusText}`);
+      const error = await response.json();
+      throw new Error(error.details || error.error || 'AI service error');
     }
 
     const reader = response.body?.getReader();
