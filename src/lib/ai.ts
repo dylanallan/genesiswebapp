@@ -10,12 +10,12 @@ const supabase = createClient(
 );
 
 const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  apiKey: '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',
   dangerouslyAllowBrowser: true
 });
 
 const anthropic = new Anthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+  apiKey: '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',
 });
 
 /**
