@@ -13,15 +13,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Create and export the Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storage: localStorage,
-    storageKey: 'genesis.auth.token'
-  }
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Add error handling for auth state changes
 supabase.auth.onAuthStateChange((event, session) => {

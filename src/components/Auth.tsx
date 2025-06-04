@@ -27,38 +27,12 @@ export const Auth: React.FC = () => {
     resolver: zodResolver(authSchema)
   });
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Google sign in error:', error);
-        toast.error(error.message || 'Failed to sign in with Google');
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error('An unexpected error occurred during sign in');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const onSubmit = async (data: AuthForm) => {
     try {
       setIsLoading(true);
       
       if (isLogin) {
-        const { data: authData, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
         });
@@ -75,19 +49,11 @@ export const Auth: React.FC = () => {
           return;
         }
 
-        if (authData?.user) {
-          toast.success(`Welcome back, ${authData.user.email}!`);
-        }
+        toast.success('Welcome back!');
       } else {
-        const { data: authData, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: {
-              email_confirmed: false
-            }
-          }
         });
 
         if (error) {
@@ -101,25 +67,18 @@ export const Auth: React.FC = () => {
           return;
         }
 
-        if (!authData?.user?.identities?.length) {
-          toast.success('Please check your email for the confirmation link');
-        } else if (authData?.user) {
-          toast.success('Account created successfully!');
-        }
+        toast.success('Account created successfully! Please check your email.');
       }
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error('An unexpected error occurred');
-      setError('root', {
-        message: 'An unexpected error occurred. Please try again.',
-      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex flex-col items-center justify-start py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex items-center justify-center p-4">
       <motion.div 
         className="max-w-md w-full space-y-8"
         initial={{ opacity: 0, y: 20 }}
@@ -141,8 +100,8 @@ export const Auth: React.FC = () => {
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {isLogin 
-              ? "Access your AI-powered business automation suite"
-              : "Start your journey with AI-powered business automation"
+              ? "Access your AI-powered learning platform"
+              : "Start your learning journey with AI"
             }
           </p>
         </div>
@@ -183,12 +142,6 @@ export const Auth: React.FC = () => {
               </div>
             </div>
 
-            {errors.root && (
-              <div className="rounded-lg bg-red-50 p-4">
-                <p className="text-sm text-red-600">{errors.root.message}</p>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={isLoading}
@@ -209,33 +162,6 @@ export const Auth: React.FC = () => {
               )}
             </button>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={isLoading}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-genesis-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <img 
-                  src="https://www.google.com/favicon.ico" 
-                  alt="Google" 
-                  className="w-5 h-5 mr-2"
-                />
-                Sign in with Google
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="text-center">
