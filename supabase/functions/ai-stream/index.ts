@@ -13,7 +13,9 @@ const geminiKey = Deno.env.get('GEMINI_API_KEY')!;
 
 interface RequestBody {
   prompt: string;
-  model: 'gpt-4' | 'claude-3' | 'gemini-pro';
+  model: 'gpt-4' | 'claude-3' | 'gemini-pro' | 'dylan-allan';
+  apiKey?: string;
+  apiSecret?: string;
 }
 
 Deno.serve(async (req) => {
@@ -23,11 +25,35 @@ Deno.serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { prompt, model } = await req.json() as RequestBody;
+    const { prompt, model, apiKey, apiSecret } = await req.json() as RequestBody;
 
     let response: ReadableStream;
 
     switch (model) {
+      case 'dylan-allan': {
+        if (!apiKey || !apiSecret) {
+          throw new Error('API key and secret are required for Dylan Allan AI');
+        }
+
+        // Connect to Dylan Allan AI API
+        const dylanResponse = await fetch('https://dylan-allan.ai.io/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'X-API-Secret': apiSecret
+          },
+          body: JSON.stringify({ prompt })
+        });
+
+        if (!dylanResponse.ok) {
+          throw new Error('Failed to connect to Dylan Allan AI');
+        }
+
+        response = dylanResponse.body!;
+        break;
+      }
+
       case 'gemini-pro': {
         const genAI = new GoogleGenerativeAI(geminiKey);
         const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Ollama } from 'ollama';
 
-export type AIModel = 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3' | 'deepseek-1' | 'ollama-3.2';
+export type AIModel = 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3' | 'deepseek-1' | 'ollama-3.2' | 'dylan-allan';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -12,36 +12,63 @@ const ollama = new Ollama({
   host: 'http://localhost:11434'
 });
 
-/**
- * Determines the best AI model for a given task based on input content
- */
+const DYLAN_ALLAN_API_KEY = '1097107540373-3c2pnab29djjn7fqnf36gk8sh3n8rdoi.apps.googleusercontent.com';
+const DYLAN_ALLAN_SECRET = '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';
+
 export function getBestModelForTask(input: string): AIModel {
-  const wordCount = input.split(/\s+/).length;
-  const hasComplexity = /\b(analyze|compare|explain|evaluate)\b/i.test(input);
-  const hasCreativity = /\b(create|design|generate|imagine)\b/i.test(input);
-  const hasCode = /\b(code|program|function|class|algorithm)\b/i.test(input);
-  
-  if (hasCode) {
-    return 'deepseek-1';
-  } else if (hasCreativity) {
-    return 'claude-3';
-  } else if (wordCount > 100 || hasComplexity) {
-    return 'gpt-4';
-  } else if (wordCount < 50) {
-    return 'ollama-3.2';
-  }
-  
-  return 'gemini-pro';
+  // Default to Dylan Allan AI for most interactions
+  return 'dylan-allan';
 }
 
-/**
- * Streams AI response chunks from the edge function
- */
 export async function* streamResponse(
   prompt: string,
   model: AIModel
 ): AsyncGenerator<string> {
   try {
+    if (model === 'dylan-allan') {
+      const { data, error } = await supabase.functions.invoke('ai-stream', {
+        body: { 
+          prompt,
+          model,
+          apiKey: DYLAN_ALLAN_API_KEY,
+          apiSecret: DYLAN_ALLAN_SECRET
+        }
+      });
+
+      if (error) {
+        throw new Error(`Supabase function error: ${error.message}`);
+      }
+
+      if (!data || !data.url || !data.headers) {
+        throw new Error('Invalid response from AI stream function');
+      }
+
+      const response = await fetch(data.url, { headers: data.headers });
+      
+      if (!response.ok) {
+        throw new Error(`Stream request failed: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      const decoder = new TextDecoder();
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        yield chunk;
+      }
+      return;
+    }
+
     if (model === 'ollama-3.2') {
       const response = await ollama.chat({
         model: 'llama2:3.2',
