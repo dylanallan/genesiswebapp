@@ -62,7 +62,6 @@ export async function* streamResponse(
       return;
     }
 
-    // Direct fetch to Edge Function instead of using supabase.functions.invoke
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-stream`,
       {

@@ -18,7 +18,6 @@ interface RequestBody {
   model: 'gpt-4' | 'claude-3' | 'gemini-pro' | 'codex';
 }
 
-// Initialize API clients with error handling
 function initializeGeminiClient() {
   if (!geminiKey) {
     throw new Error('GEMINI_API_KEY environment variable is not set');
@@ -33,7 +32,6 @@ function initializeOpenAIClient() {
   return new OpenAI({ apiKey: openaiKey });
 }
 
-// Validate environment variables early
 function validateEnvironment() {
   if (!geminiKey && !openaiKey) {
     throw new Error('Neither GEMINI_API_KEY nor OPENAI_API_KEY environment variables are set');
@@ -41,7 +39,6 @@ function validateEnvironment() {
 }
 
 Deno.serve(async (req) => {
-  // Validate environment variables on startup
   try {
     validateEnvironment();
   } catch (error) {
@@ -102,8 +99,7 @@ Deno.serve(async (req) => {
             controller.close();
           } catch (error) {
             console.error('OpenAI API Error:', error);
-            controller.enqueue(encoder.encode('Error: ' + (error instanceof Error ? error.message : 'Unknown error occurred')));
-            controller.close();
+            controller.error(error instanceof Error ? error.message : 'Unknown error occurred');
           }
         }
       });
@@ -133,19 +129,16 @@ Deno.serve(async (req) => {
             const response = await result.response;
             const text = response.text();
             
-            // Stream the response in smaller chunks
             const chunkSize = 100;
             for (let i = 0; i < text.length; i += chunkSize) {
               const chunk = text.slice(i, i + chunkSize);
               controller.enqueue(encoder.encode(chunk));
-              // Reduced delay to improve responsiveness
               await new Promise(resolve => setTimeout(resolve, 20));
             }
             controller.close();
           } catch (error) {
             console.error('Gemini API Error:', error);
-            controller.enqueue(encoder.encode('Error: ' + (error instanceof Error ? error.message : 'Unknown error occurred')));
-            controller.close();
+            controller.error(error instanceof Error ? error.message : 'Unknown error occurred');
           }
         }
       });
@@ -160,7 +153,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // For unsupported models
     const stream = new ReadableStream({
       start(controller) {
         const message = `Model '${model}' is not supported. Please use 'gemini-pro' or 'codex'.`;
