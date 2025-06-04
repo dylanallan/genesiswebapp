@@ -18,7 +18,7 @@ interface RequestBody {
   model: 'gpt-4' | 'claude-3' | 'gemini-pro' | 'codex';
 }
 
-// Initialize API clients
+// Initialize API clients with error handling
 function initializeGeminiClient() {
   if (!geminiKey) {
     throw new Error('GEMINI_API_KEY environment variable is not set');
@@ -33,7 +33,28 @@ function initializeOpenAIClient() {
   return new OpenAI({ apiKey: openaiKey });
 }
 
+// Validate environment variables early
+function validateEnvironment() {
+  if (!geminiKey && !openaiKey) {
+    throw new Error('Neither GEMINI_API_KEY nor OPENAI_API_KEY environment variables are set');
+  }
+}
+
 Deno.serve(async (req) => {
+  // Validate environment variables on startup
+  try {
+    validateEnvironment();
+  } catch (error) {
+    console.error('Environment validation failed:', error);
+    return new Response(
+      JSON.stringify({ error: 'Service configuration error. Please contact support.' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -51,98 +72,98 @@ Deno.serve(async (req) => {
 
     const encoder = new TextEncoder();
 
-    if (model === 'codex') {
-      try {
-        const openai = initializeOpenAIClient();
-        const stream = new ReadableStream({
-          async start(controller) {
-            try {
-              const completion = await openai.chat.completions.create({
-                model: 'gpt-4',
-                messages: [
-                  {
-                    role: 'system',
-                    content: 'You are an expert programmer. Provide detailed, production-ready code solutions.'
-                  },
-                  { role: 'user', content: prompt }
-                ],
-                stream: true
-              });
-
-              for await (const chunk of completion) {
-                const content = chunk.choices[0]?.delta?.content || '';
-                if (content) {
-                  controller.enqueue(encoder.encode(content));
-                }
-              }
-              controller.close();
-            } catch (error) {
-              console.error('OpenAI API Error:', error);
-              controller.enqueue(encoder.encode('Error generating code from OpenAI API'));
-              controller.close();
-            }
-          }
-        });
-
-        return new Response(stream, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-          },
-        });
-      } catch (error) {
-        console.error('OpenAI Setup Error:', error);
-        throw error;
+    if (model === 'codex' || model === 'gpt-4') {
+      if (!openaiKey) {
+        throw new Error('OpenAI API key is not configured');
       }
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            const openai = initializeOpenAIClient();
+            const completion = await openai.chat.completions.create({
+              model: 'gpt-4',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are an expert programmer. Provide detailed, production-ready code solutions.'
+                },
+                { role: 'user', content: prompt }
+              ],
+              stream: true
+            });
+
+            for await (const chunk of completion) {
+              const content = chunk.choices[0]?.delta?.content || '';
+              if (content) {
+                controller.enqueue(encoder.encode(content));
+              }
+            }
+            controller.close();
+          } catch (error) {
+            console.error('OpenAI API Error:', error);
+            controller.enqueue(encoder.encode('Error: ' + (error instanceof Error ? error.message : 'Unknown error occurred')));
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
     }
 
     if (model === 'gemini-pro') {
-      try {
-        const genAI = initializeGeminiClient();
-        const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-        
-        const stream = new ReadableStream({
-          async start(controller) {
-            try {
-              const result = await geminiModel.generateContent(prompt);
-              const response = await result.response;
-              const text = response.text();
-              
-              const chunkSize = 100;
-              for (let i = 0; i < text.length; i += chunkSize) {
-                const chunk = text.slice(i, i + chunkSize);
-                controller.enqueue(encoder.encode(chunk));
-                await new Promise(resolve => setTimeout(resolve, 50));
-              }
-              controller.close();
-            } catch (error) {
-              console.error('Error generating content:', error);
-              controller.enqueue(encoder.encode('Error generating response from Gemini API'));
-              controller.close();
-            }
-          }
-        });
-
-        return new Response(stream, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-          },
-        });
-      } catch (error) {
-        console.error('Gemini API Error:', error);
-        throw error;
+      if (!geminiKey) {
+        throw new Error('Gemini API key is not configured');
       }
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            const genAI = initializeGeminiClient();
+            const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
+            
+            const result = await geminiModel.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            
+            // Stream the response in smaller chunks
+            const chunkSize = 100;
+            for (let i = 0; i < text.length; i += chunkSize) {
+              const chunk = text.slice(i, i + chunkSize);
+              controller.enqueue(encoder.encode(chunk));
+              // Reduced delay to improve responsiveness
+              await new Promise(resolve => setTimeout(resolve, 20));
+            }
+            controller.close();
+          } catch (error) {
+            console.error('Gemini API Error:', error);
+            controller.enqueue(encoder.encode('Error: ' + (error instanceof Error ? error.message : 'Unknown error occurred')));
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
     }
 
-    // For unsupported models, return a temporary response
+    // For unsupported models
     const stream = new ReadableStream({
       start(controller) {
-        const message = `I apologize, but ${model} is not yet available. Please try using 'gemini-pro' or 'codex' model instead.`;
+        const message = `Model '${model}' is not supported. Please use 'gemini-pro' or 'codex'.`;
         controller.enqueue(encoder.encode(message));
         controller.close();
       }

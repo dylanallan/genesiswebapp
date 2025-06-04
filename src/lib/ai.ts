@@ -62,20 +62,19 @@ export async function* streamResponse(
       return;
     }
 
-    const { data, error } = await supabase.functions.invoke('ai-stream', {
-      body: { prompt, model }
-    });
+    // Direct fetch to Edge Function instead of using supabase.functions.invoke
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-stream`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ prompt, model })
+      }
+    );
 
-    if (error) {
-      throw new Error(`Supabase function error: ${error.message}`);
-    }
-
-    if (data?.error) {
-      throw new Error(`AI Stream error: ${data.error}`);
-    }
-
-    const response = new Response(data);
-    
     if (!response.ok) {
       throw new Error(`Stream request failed: ${response.statusText}`);
     }
