@@ -42,7 +42,6 @@ function validateEnvironment(model: string) {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -70,7 +69,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate environment variables for the requested model
     try {
       validateEnvironment(model);
     } catch (error) {
@@ -94,11 +92,13 @@ Deno.serve(async (req) => {
           try {
             const openai = initializeOpenAIClient();
             const completion = await openai.chat.completions.create({
-              model: 'gpt-4',
+              model: model === 'codex' ? 'gpt-4-turbo-preview' : 'gpt-4',
               messages: [
                 {
                   role: 'system',
-                  content: 'You are an expert programmer. Provide detailed, production-ready code solutions.'
+                  content: model === 'codex' 
+                    ? 'You are an expert programmer. Provide detailed, production-ready code solutions.'
+                    : 'You are a helpful AI assistant with expertise in various domains.'
                 },
                 { role: 'user', content: prompt }
               ],
@@ -136,15 +136,13 @@ Deno.serve(async (req) => {
             const genAI = initializeGeminiClient();
             const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
             
-            const result = await geminiModel.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const result = await geminiModel.generateContentStream(prompt);
             
-            const chunkSize = 100;
-            for (let i = 0; i < text.length; i += chunkSize) {
-              const chunk = text.slice(i, i + chunkSize);
-              controller.enqueue(encoder.encode(chunk));
-              await new Promise(resolve => setTimeout(resolve, 20));
+            for await (const chunk of result.stream) {
+              const text = chunk.text();
+              if (text) {
+                controller.enqueue(encoder.encode(text));
+              }
             }
             controller.close();
           } catch (error) {

@@ -19,7 +19,7 @@ export function getBestModelForTask(input: string): AIModel {
   const hasCode = /\b(code|program|function|class|algorithm)\b/i.test(input);
   
   if (hasCode) {
-    return 'codex';
+    return 'deepseek-1';
   } else if (hasCreativity) {
     return 'claude-3';
   } else if (wordCount > 100 || hasComplexity) {
@@ -36,32 +36,38 @@ export async function* streamResponse(
   model: AIModel
 ): AsyncGenerator<string> {
   try {
-    if (model === 'ollama-3.2') {
-      const response = await ollama.chat({
-        model: 'llama2:3.2',
-        messages: [{ role: 'user', content: prompt }],
-        stream: true
-      });
+    // Try local models first
+    try {
+      if (model === 'ollama-3.2') {
+        const response = await ollama.chat({
+          model: 'llama2:3.2',
+          messages: [{ role: 'user', content: prompt }],
+          stream: true
+        });
 
-      for await (const chunk of response) {
-        yield chunk.message.content;
+        for await (const chunk of response) {
+          yield chunk.message.content;
+        }
+        return;
       }
-      return;
+
+      if (model === 'deepseek-1') {
+        const response = await ollama.chat({
+          model: 'deepseek-coder:6.7b',
+          messages: [{ role: 'user', content: prompt }],
+          stream: true
+        });
+
+        for await (const chunk of response) {
+          yield chunk.message.content;
+        }
+        return;
+      }
+    } catch (error) {
+      console.warn('Local model unavailable, falling back to cloud models:', error);
     }
 
-    if (model === 'deepseek-1') {
-      const response = await ollama.chat({
-        model: 'deepseek-coder:6.7b',
-        messages: [{ role: 'user', content: prompt }],
-        stream: true
-      });
-
-      for await (const chunk of response) {
-        yield chunk.message.content;
-      }
-      return;
-    }
-
+    // Fall back to cloud models
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-stream`,
       {
@@ -75,7 +81,8 @@ export async function* streamResponse(
     );
 
     if (!response.ok) {
-      throw new Error(`Stream request failed: ${response.statusText}`);
+      const errorData = await response.json();
+      throw new Error(errorData.details || errorData.error || response.statusText);
     }
 
     const reader = response.body?.getReader();
