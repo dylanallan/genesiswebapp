@@ -1,13 +1,26 @@
-import React from 'react';
-import { createClient } from '@supabase/supabase-js';
+import React, { useEffect } from 'react';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useEffect(() => {
+    const validateSetup = async () => {
+      try {
+        const { error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Supabase initialization error:', error);
+          toast.error('Failed to initialize authentication. Please check your configuration.');
+        }
+      } catch (error) {
+        console.error('Supabase setup error:', error);
+        toast.error('Authentication setup failed. Please verify your environment variables.');
+      }
+    };
+
+    validateSetup();
+  }, []);
+
   return (
     <SessionContextProvider supabaseClient={supabase}>
       {children}
