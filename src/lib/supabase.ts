@@ -9,14 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storage: localStorage
-  }
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN') {
