@@ -68,11 +68,19 @@ export async function* streamResponse(
       return;
     }
 
-    const { data: { url, headers } } = await supabase.functions.invoke('ai-stream', {
+    const { data, error } = await supabase.functions.invoke('ai-stream', {
       body: { prompt, model }
     });
 
-    const response = await fetch(url, { headers });
+    if (error) {
+      throw new Error(`Supabase function error: ${error.message}`);
+    }
+
+    if (!data || !data.url || !data.headers) {
+      throw new Error('Invalid response from AI stream function');
+    }
+
+    const response = await fetch(data.url, { headers: data.headers });
     
     if (!response.ok) {
       throw new Error(`Stream request failed: ${response.statusText}`);
