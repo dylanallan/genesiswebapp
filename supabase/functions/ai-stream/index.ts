@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.39.7";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai";
+import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.2.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +22,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate request
+    if (!req.body) {
+      throw new Error('Request body is required');
+    }
+
     // Validate Gemini API key
     if (!geminiKey) {
       throw new Error('GEMINI_API_KEY environment variable is not set');
@@ -30,14 +35,24 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { prompt, model } = await req.json() as RequestBody;
 
+    if (!prompt) {
+      throw new Error('Prompt is required');
+    }
+
     let response: ReadableStream;
 
     switch (model) {
       case 'gemini-pro': {
         const genAI = new GoogleGenerativeAI(geminiKey);
         const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-        const result = await geminiModel.generateContentStream(prompt);
-        response = result.stream;
+        
+        try {
+          const result = await geminiModel.generateContentStream(prompt);
+          response = result.stream;
+        } catch (error) {
+          console.error('Gemini API Error:', error);
+          throw new Error('Failed to generate content from Gemini API');
+        }
         break;
       }
 
