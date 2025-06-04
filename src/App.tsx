@@ -6,7 +6,12 @@ import { useSession } from '@supabase/auth-helpers-react';
 
 function AppContent() {
   const session = useSession();
-  return session ? <Dashboard /> : <Auth />;
+
+  if (!session) {
+    return <Auth />;
+  }
+
+  return <Dashboard />;
 }
 
 function App() {
