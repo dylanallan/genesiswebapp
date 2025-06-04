@@ -33,6 +33,7 @@
     "lucide-react": "^0.344.0",
     "natural": "^6.10.5",
     "node-llama-cpp": "^2.8.8",
+    "ollama": "^0.4.4",
     "openai": "^4.28.0",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",
