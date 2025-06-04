@@ -36,11 +36,12 @@ export async function* streamResponse(
   model: AIModel
 ): AsyncGenerator<string> {
   try {
-    // Try local models first
-    try {
-      if (model === 'ollama-3.2') {
+    // Try local models first if they're requested
+    if (model === 'ollama-3.2' || model === 'deepseek-1') {
+      try {
+        const modelName = model === 'ollama-3.2' ? 'llama2:3.2' : 'deepseek-coder:6.7b';
         const response = await ollama.chat({
-          model: 'llama2:3.2',
+          model: modelName,
           messages: [{ role: 'user', content: prompt }],
           stream: true
         });
@@ -49,27 +50,16 @@ export async function* streamResponse(
           yield chunk.message.content;
         }
         return;
+      } catch (error) {
+        console.warn('Local model unavailable:', error);
+        yield 'Local AI model is not available. Falling back to cloud model...';
+        // Fall through to cloud models
       }
-
-      if (model === 'deepseek-1') {
-        const response = await ollama.chat({
-          model: 'deepseek-coder:6.7b',
-          messages: [{ role: 'user', content: prompt }],
-          stream: true
-        });
-
-        for await (const chunk of response) {
-          yield chunk.message.content;
-        }
-        return;
-      }
-    } catch (error) {
-      console.warn('Local model unavailable, falling back to cloud models:', error);
     }
 
     // Check if we have the required environment variables
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      throw new Error('Missing required Supabase configuration');
+      throw new Error('Missing required Supabase configuration. Please check your environment variables.');
     }
 
     // Fall back to cloud models
@@ -94,7 +84,7 @@ export async function* streamResponse(
         // If we can't parse the error JSON, use the status text
         errorMessage = response.statusText;
       }
-      throw new Error(errorMessage);
+      throw new Error(`AI service error: ${errorMessage}`);
     }
 
     const reader = response.body?.getReader();
@@ -116,6 +106,14 @@ export async function* streamResponse(
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
-    yield `I apologize, but I'm having trouble connecting to the AI service. ${error instanceof Error ? error.message : 'Please try again later or contact support if the issue persists.'}`;
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch')) {
+        yield 'Unable to connect to the AI service. Please check your internet connection and try again. If the problem persists, the service may be temporarily unavailable.';
+      } else {
+        yield `AI Service Error: ${error.message}`;
+      }
+    } else {
+      yield 'An unexpected error occurred while connecting to the AI service. Please try again later.';
+    }
   }
 }

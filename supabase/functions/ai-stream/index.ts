@@ -41,6 +41,39 @@ function validateEnvironment(model: string) {
   }
 }
 
+async function handleStreamError(error: unknown): Promise<Response> {
+  console.error('AI Stream Error:', error);
+  
+  let status = 500;
+  let message = 'An unknown error occurred while processing your request';
+  let details = '';
+  
+  if (error instanceof Error) {
+    message = error.message;
+    if (message.includes('API key')) {
+      status = 503;
+      details = 'API configuration is missing or invalid';
+    } else if (message.includes('network') || message.includes('fetch')) {
+      status = 503;
+      details = 'Unable to connect to AI service provider';
+    }
+  }
+  
+  return new Response(
+    JSON.stringify({ 
+      error: message,
+      details: details || message
+    }),
+    {
+      status,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -187,19 +220,6 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('AI Stream Error:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'An unknown error occurred while processing your request'
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return handleStreamError(error);
   }
 });
