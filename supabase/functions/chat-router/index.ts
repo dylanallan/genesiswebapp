@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.2.1";
 import OpenAI from "npm:openai@4.28.0";
+import { Anthropic } from "npm:@anthropic-ai/sdk@0.17.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,18 +26,35 @@ Deno.serve(async (req) => {
         try {
           let response: string;
 
-          if (model === 'gemini-pro') {
-            const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
-            const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-            const result = await geminiModel.generateContent(prompt);
-            response = result.response.text();
-          } else {
-            const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-            const completion = await openai.chat.completions.create({
-              model: 'gpt-4',
-              messages: [{ role: 'user', content: prompt }]
-            });
-            response = completion.choices[0]?.message?.content || '';
+          switch (model) {
+            case 'gemini-pro': {
+              const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
+              const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
+              const result = await geminiModel.generateContent(prompt);
+              response = result.response.text();
+              break;
+            }
+            case 'claude-3': {
+              const anthropic = new Anthropic({
+                apiKey: Deno.env.get('CLAUDE_API_KEY')!,
+              });
+              const message = await anthropic.messages.create({
+                model: 'claude-3-opus-20240229',
+                max_tokens: 1024,
+                messages: [{ role: 'user', content: prompt }]
+              });
+              response = message.content[0].text;
+              break;
+            }
+            case 'gpt-4':
+            default: {
+              const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
+              const completion = await openai.chat.completions.create({
+                model: 'gpt-4-turbo-preview',
+                messages: [{ role: 'user', content: prompt }]
+              });
+              response = completion.choices[0]?.message?.content || '';
+            }
           }
 
           controller.enqueue(new TextEncoder().encode(response));
