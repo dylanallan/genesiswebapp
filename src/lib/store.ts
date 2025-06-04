@@ -1,44 +1,41 @@
 import { atom } from 'jotai';
 
 export interface ColorScheme {
-  name: string;
   primary: string;
   secondary: string;
   accent: string;
   background: string;
   text: string;
+  border: string;
 }
 
-export const defaultColorSchemes: ColorScheme[] = [
-  {
-    name: 'Light',
-    primary: '#3b82f6',
-    secondary: '#6b7280',
-    accent: '#f59e0b',
-    background: '#ffffff',
-    text: '#1f2937'
+export const defaultColorSchemes: Record<'light' | 'dark', ColorScheme> = {
+  light: {
+    primary: '#ffffff',
+    secondary: '#f1f5f9',
+    accent: '#3b82f6',
+    background: '#f8fafc',
+    text: '#1e293b',
+    border: '#e2e8f0'
   },
-  {
-    name: 'Dark',
-    primary: '#60a5fa',
-    secondary: '#9ca3af',
-    accent: '#fbbf24',
-    background: '#1f2937',
-    text: '#f3f4f6'
+  dark: {
+    primary: '#1e293b',
+    secondary: '#334155',
+    accent: '#3b82f6',
+    background: '#0f172a',
+    text: '#f8fafc',
+    border: '#475569'
   }
-];
+};
 
-export interface LMSState {
-  currentCourse: string | null;
-  currentLesson: string | null;
-  progress: Record<string, number>;
+export interface UserPreferences {
+  theme: 'light' | 'dark';
+  colorScheme: ColorScheme;
 }
 
-export const lmsStateAtom = atom<LMSState>({
-  currentCourse: null,
-  currentLesson: null,
-  progress: {}
+export const userPreferencesAtom = atom<UserPreferences>({
+  theme: 'light',
+  colorScheme: defaultColorSchemes.light
 });
 
-export const userPreferencesAtom = atom<Record<string, any>>({});
 export const systemStateAtom = atom<Record<string, any>>({});

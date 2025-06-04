@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAtom } from 'jotai';
-import { userPreferencesAtom, defaultColorSchemes, type ColorScheme } from '../lib/cache';
+import { userPreferencesAtom, defaultColorSchemes, type ColorScheme } from '../lib/store';
 import { Settings, Sun, Moon, Palette } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
