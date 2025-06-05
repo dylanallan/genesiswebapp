@@ -8,8 +8,12 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 const authSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
 });
 
 type AuthForm = z.infer<typeof authSchema>;
@@ -17,20 +21,19 @@ type AuthForm = z.infer<typeof authSchema>;
 export const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setError,
-    reset,
+    reset
   } = useForm<AuthForm>({
     resolver: zodResolver(authSchema)
   });
 
   const onSubmit = async (data: AuthForm) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email: data.email,
@@ -38,39 +41,36 @@ export const Auth: React.FC = () => {
         });
 
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            setError('email', { message: 'Invalid email or password' });
-            setError('password', { message: 'Invalid email or password' });
+          if (error.message.includes('Invalid login')) {
             toast.error('Invalid email or password');
           } else {
-            console.error('Login error:', error);
             toast.error(error.message);
           }
           return;
         }
-
-        toast.success('Welcome back!');
       } else {
         const { error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
         });
 
         if (error) {
           if (error.message.includes('already registered')) {
-            setError('email', { message: 'Email already registered' });
             toast.error('This email is already registered');
           } else {
-            console.error('Signup error:', error);
             toast.error(error.message);
           }
           return;
         }
 
-        toast.success('Account created successfully! Please check your email.');
+        toast.success('Please check your email to verify your account');
+        reset();
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('Auth error:', error);
       toast.error('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -96,13 +96,10 @@ export const Auth: React.FC = () => {
           </motion.div>
 
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            {isLogin ? 'Sign in to Genesis' : 'Create your Genesis account'}
+            {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isLogin 
-              ? "Access your AI-powered learning platform"
-              : "Start your learning journey with AI"
-            }
+            {isLogin ? 'Sign in to your account' : 'Start your learning journey'}
           </p>
         </div>
 
@@ -112,34 +109,30 @@ export const Auth: React.FC = () => {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
               </label>
-              <div className="mt-1">
-                <input
-                  {...register('email')}
-                  type="email"
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-genesis-500 focus:border-genesis-500 sm:text-sm"
-                  placeholder="you@example.com"
-                />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                )}
-              </div>
+              <input
+                {...register('email')}
+                type="email"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-genesis-500 focus:border-genesis-500"
+                placeholder="you@example.com"
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <div className="mt-1">
-                <input
-                  {...register('password')}
-                  type="password"
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-genesis-500 focus:border-genesis-500 sm:text-sm"
-                  placeholder="••••••••"
-                />
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-                )}
-              </div>
+              <input
+                {...register('password')}
+                type="password"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-genesis-500 focus:border-genesis-500"
+                placeholder="••••••••"
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
             </div>
 
             <button

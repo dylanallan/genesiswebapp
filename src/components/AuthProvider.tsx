@@ -23,7 +23,10 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGNF') {
+        throw error;
+      }
+
       if (data) {
         setPreferences(data);
       }

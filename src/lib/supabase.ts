@@ -10,18 +10,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Ensure URL is properly formatted
-const formattedUrl = supabaseUrl.trim().replace(/\/+$/, '');
-if (!formattedUrl.startsWith('https://')) {
-  throw new Error('Supabase URL must start with https://');
-}
-
 // Create and export the Supabase client
-export const supabase = createClient(formattedUrl, supabaseAnonKey.trim(), {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: localStorage,
+    storageKey: 'genesis.auth.token',
+    flowType: 'pkce'
   }
 });
 
@@ -29,13 +26,19 @@ export const supabase = createClient(formattedUrl, supabaseAnonKey.trim(), {
 supabase.auth.onAuthStateChange((event, session) => {
   switch (event) {
     case 'SIGNED_IN':
-      toast.success('Successfully signed in!');
+      toast.success(`Welcome${session?.user?.email ? ` ${session.user.email}` : ''}!`);
       break;
     case 'SIGNED_OUT':
-      toast.info('Signed out');
+      toast.info('Signed out successfully');
       break;
     case 'USER_UPDATED':
-      toast.success('Profile updated');
+      toast.success('Profile updated successfully');
+      break;
+    case 'PASSWORD_RECOVERY':
+      toast.info('Password reset email sent');
+      break;
+    case 'USER_DELETED':
+      toast.info('Account deleted successfully');
       break;
   }
 });
