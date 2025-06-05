@@ -43,13 +43,17 @@ export const Auth: React.FC = () => {
 
         if (error) {
           if (error.message.includes('Invalid login')) {
-            toast.error('Invalid email or password');
+            toast.error('Invalid email or password. Please double-check your credentials and try again.');
             resetField('password'); // Clear password field on failed login
+          } else if (error.message.includes('Email not confirmed')) {
+            toast.error('Please verify your email address before signing in. Check your inbox for the verification link.');
           } else {
-            toast.error(error.message);
+            toast.error(`Authentication failed: ${error.message}`);
           }
           return;
         }
+
+        toast.success('Successfully signed in!');
       } else {
         const { error } = await supabase.auth.signUp({
           email: data.email,
@@ -66,7 +70,7 @@ export const Auth: React.FC = () => {
             resetField('password'); // Clear only the password field
             return;
           } else {
-            toast.error(error.message);
+            toast.error(`Registration failed: ${error.message}`);
           }
           return;
         }
@@ -76,7 +80,7 @@ export const Auth: React.FC = () => {
       }
     } catch (error) {
       console.error('Auth error:', error);
-      toast.error('An unexpected error occurred');
+      toast.error('An unexpected error occurred. Please try again later.');
     } finally {
       setIsLoading(false);
     }
