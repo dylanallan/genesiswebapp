@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.2.1";
 import OpenAI from "npm:openai@4.28.0";
+import { Anthropic } from "npm:@anthropic-ai/sdk@0.17.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,217 +10,96 @@ const corsHeaders = {
 };
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-const geminiKey = Deno.env.get('GEMINI_API_KEY');
-const openaiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-interface RequestBody {
-  prompt: string;
-  model: 'gpt-4' | 'claude-3' | 'gemini-pro' | 'codex';
-}
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-function initializeGeminiClient() {
-  if (!geminiKey) {
-    throw new Error('GEMINI_API_KEY environment variable is not set');
-  }
-  return new GoogleGenerativeAI(geminiKey);
-}
+async function getAIConfig(service: string) {
+  const { data, error } = await supabase
+    .from('ai_service_config')
+    .select('api_key, config')
+    .eq('service_name', service)
+    .eq('is_active', true)
+    .single();
 
-function initializeOpenAIClient() {
-  if (!openaiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
-  }
-  return new OpenAI({ apiKey: openaiKey });
-}
-
-function validateEnvironment(model: string) {
-  if (model === 'gemini-pro' && !geminiKey) {
-    throw new Error('GEMINI_API_KEY environment variable is not set');
-  }
-  if ((model === 'codex' || model === 'gpt-4') && !openaiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
-  }
-}
-
-async function handleStreamError(error: unknown): Promise<Response> {
-  console.error('AI Stream Error:', error);
-  
-  let status = 500;
-  let message = 'An unknown error occurred while processing your request';
-  let details = '';
-  
-  if (error instanceof Error) {
-    message = error.message;
-    if (message.includes('API key')) {
-      status = 503;
-      details = 'API configuration is missing or invalid';
-    } else if (message.includes('network') || message.includes('fetch')) {
-      status = 503;
-      details = 'Unable to connect to AI service provider';
-    }
-  }
-  
-  return new Response(
-    JSON.stringify({ 
-      error: message,
-      details: details || message
-    }),
-    {
-      status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  if (error) throw new Error(`Failed to get ${service} configuration`);
+  return data;
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Validate request
-    if (!req.body) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Request body is required',
-          details: 'The request body is missing'
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const { prompt, model } = await req.json() as RequestBody;
+    const { prompt, model } = await req.json();
 
     if (!prompt) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Prompt is required',
-          details: 'The prompt field is missing in the request body'
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('Prompt is required');
     }
 
-    // Validate environment configuration
-    try {
-      validateEnvironment(model);
-    } catch (error) {
-      console.error('Environment validation error:', error);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Configuration Error',
-          details: error instanceof Error ? error.message : 'The requested AI model is not currently available. Please try a different model or contact support.'
-        }),
-        {
-          status: 503,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          let response: string;
 
-    const encoder = new TextEncoder();
-
-    if (model === 'codex' || model === 'gpt-4') {
-      const stream = new ReadableStream({
-        async start(controller) {
-          try {
-            const openai = initializeOpenAIClient();
-            const completion = await openai.chat.completions.create({
-              model: model === 'codex' ? 'gpt-4-turbo-preview' : 'gpt-4',
-              messages: [
-                {
-                  role: 'system',
-                  content: model === 'codex' 
-                    ? 'You are an expert programmer. Provide detailed, production-ready code solutions.'
-                    : 'You are a helpful AI assistant with expertise in various domains.'
-                },
-                { role: 'user', content: prompt }
-              ],
-              stream: true
-            });
-
-            for await (const chunk of completion) {
-              const content = chunk.choices[0]?.delta?.content || '';
-              if (content) {
-                controller.enqueue(encoder.encode(content));
-              }
+          switch (model) {
+            case 'gemini-pro': {
+              const config = await getAIConfig('gemini');
+              const genAI = new GoogleGenerativeAI(config.api_key);
+              const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
+              const result = await geminiModel.generateContent(prompt);
+              response = result.response.text();
+              break;
             }
-            controller.close();
-          } catch (error) {
-            console.error('OpenAI API Error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'OpenAI API error occurred';
-            controller.enqueue(encoder.encode(`Error: ${errorMessage}`));
-            controller.close();
-          }
-        }
-      });
-
-      return new Response(stream, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      });
-    }
-
-    if (model === 'gemini-pro') {
-      const stream = new ReadableStream({
-        async start(controller) {
-          try {
-            const genAI = initializeGeminiClient();
-            const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-            
-            const result = await geminiModel.generateContentStream(prompt);
-            
-            for await (const chunk of result.stream) {
-              const text = chunk.text();
-              if (text) {
-                controller.enqueue(encoder.encode(text));
-              }
+            case 'claude-3': {
+              const config = await getAIConfig('anthropic');
+              const anthropic = new Anthropic({
+                apiKey: config.api_key,
+              });
+              const message = await anthropic.messages.create({
+                model: config.config.model,
+                max_tokens: 1024,
+                messages: [{ role: 'user', content: prompt }]
+              });
+              response = message.content[0].text;
+              break;
             }
-            controller.close();
-          } catch (error) {
-            console.error('Gemini API Error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Gemini API error occurred';
-            controller.enqueue(encoder.encode(`Error: ${errorMessage}`));
-            controller.close();
+            case 'gpt-4':
+            default: {
+              const config = await getAIConfig('openai');
+              const openai = new OpenAI({ apiKey: config.api_key });
+              const completion = await openai.chat.completions.create({
+                model: config.config.model,
+                messages: [{ role: 'user', content: prompt }]
+              });
+              response = completion.choices[0]?.message?.content || '';
+            }
           }
+
+          controller.enqueue(new TextEncoder().encode(response));
+          controller.close();
+        } catch (error) {
+          controller.error(error);
         }
-      });
+      }
+    });
 
-      return new Response(stream, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      });
-    }
-
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      }
+    });
+  } catch (error) {
     return new Response(
-      JSON.stringify({ 
-        error: 'Unsupported model',
-        details: `Model '${model}' is not supported. Please use 'gemini-pro' or 'gpt-4'.`
-      }),
-      {
-        status: 400,
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error occurred' }),
+      { 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
-  } catch (error) {
-    return handleStreamError(error);
   }
 });
