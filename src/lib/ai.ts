@@ -60,6 +60,6 @@ export async function* streamResponse(
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
-    yield 'Sorry, I encountered an error. Please try again in a moment.';
+    throw error;
   }
 }
