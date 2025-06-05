@@ -1,11 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabase';
 
 export type AIModel = 'gpt-4' | 'claude-3' | 'gemini-pro' | 'codex';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export function getBestModelForTask(input: string): AIModel {
   const wordCount = input.split(/\s+/).length;
