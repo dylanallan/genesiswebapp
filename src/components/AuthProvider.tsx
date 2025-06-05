@@ -1,31 +1,19 @@
 import React, { useEffect } from 'react';
-import { SessionContextProvider } from '@supabase/auth-helpers-react';
+import { SessionContextProvider, useSession } from '@supabase/auth-helpers-react';
 import { supabase } from '../lib/supabase';
 import { Auth } from './Auth';
 import { useAtom } from 'jotai';
 import { userPreferencesAtom } from '../lib/store';
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const session = useSession();
   const [, setPreferences] = useAtom(userPreferencesAtom);
 
   useEffect(() => {
-    // Load user preferences when session changes
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserPreferences(session.user.id);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadUserPreferences(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [setPreferences]);
+    if (session?.user) {
+      loadUserPreferences(session.user.id);
+    }
+  }, [session]);
 
   const loadUserPreferences = async (userId: string) => {
     try {
@@ -44,9 +32,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  if (!session) {
+    return <Auth />;
+  }
+
+  return <>{children}</>;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <SessionContextProvider supabaseClient={supabase}>
-      {children}
+      <AuthContent>{children}</AuthContent>
     </SessionContextProvider>
   );
 };
