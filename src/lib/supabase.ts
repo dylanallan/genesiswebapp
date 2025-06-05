@@ -4,10 +4,20 @@ import { toast } from 'sonner';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Validate URL and key before creating client
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables');
   toast.error('Application configuration error');
   throw new Error('Missing required environment variables');
+}
+
+// Validate URL format
+try {
+  new URL(supabaseUrl);
+} catch (error) {
+  console.error('Invalid Supabase URL format');
+  toast.error('Invalid application configuration');
+  throw new Error('Invalid Supabase URL format');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
