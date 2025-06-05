@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { streamResponse, AIModel, getBestModelForTask } from '../lib/ai';
 import { analyzeGenealogyData, generatePersonalizedPlan, AnalysisResult } from '../lib/analyzers';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface Message {
   role: 'assistant' | 'user' | 'system' | 'agent';
@@ -209,10 +210,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     }
   };
 
-  const handleAuthError = (error: any) => {
+  const handleAuthError = async (error: any) => {
     if (error.message === 'Authentication required') {
       toast.error('Your session has expired. Please sign in again.');
-      // You might want to trigger a sign-out or redirect to login here
+      // Sign out the user and clear their session
+      await supabase.auth.signOut();
       return true;
     }
     return false;
