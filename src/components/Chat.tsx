@@ -266,14 +266,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       }
     } catch (error: any) {
       console.error('Error:', error);
-      if (!handleAuthError(error)) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'I apologize, but I encountered an error. Please try again.',
-          timestamp: new Date(),
-          model: currentModel
-        }]);
+      if (handleAuthError(error)) {
+        return; // Stop execution if authentication error is handled
       }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.',
+        timestamp: new Date(),
+        model: currentModel
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -308,14 +309,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       setStreamingContent('');
     } catch (error: any) {
       console.error('Error:', error);
-      if (!handleAuthError(error)) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'I apologize, but I encountered an error. Please try again.',
-          timestamp: new Date(),
-          model: currentModel
-        }]);
+      if (handleAuthError(error)) {
+        return; // Stop execution if authentication error is handled
       }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.',
+        timestamp: new Date(),
+        model: currentModel
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -359,14 +361,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       setStreamingContent('');
     } catch (error: any) {
       console.error('Error:', error);
-      if (!handleAuthError(error)) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'I apologize, but I encountered an error. Please try again.',
-          timestamp: new Date(),
-          model: selectedModel
-        }]);
+      if (handleAuthError(error)) {
+        return; // Stop execution if authentication error is handled
       }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.',
+        timestamp: new Date(),
+        model: selectedModel
+      }]);
     } finally {
       setIsLoading(false);
     }
