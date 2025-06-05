@@ -26,7 +26,8 @@ export const Auth: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
+    resetField
   } = useForm<AuthForm>({
     resolver: zodResolver(authSchema)
   });
@@ -43,6 +44,7 @@ export const Auth: React.FC = () => {
         if (error) {
           if (error.message.includes('Invalid login')) {
             toast.error('Invalid email or password');
+            resetField('password'); // Clear password field on failed login
           } else {
             toast.error(error.message);
           }
