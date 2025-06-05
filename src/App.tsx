@@ -1,12 +1,12 @@
 import React from 'react';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useSession } from '@supabase/auth-helpers-react';
 
 function App() {
-  const user = useUser();
+  const session = useSession();
 
-  if (!user) {
+  if (!session) {
     return <Auth />;
   }
 
