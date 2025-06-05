@@ -61,7 +61,10 @@ export const Auth: React.FC = () => {
 
         if (error) {
           if (error.message.includes('already registered')) {
-            toast.error('This email is already registered');
+            toast.error('This email is already registered. Please sign in instead.');
+            setIsLogin(true); // Switch to login form
+            resetField('password'); // Clear only the password field
+            return;
           } else {
             toast.error(error.message);
           }
