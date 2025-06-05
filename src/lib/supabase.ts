@@ -10,8 +10,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Ensure URL is properly formatted
+const formattedUrl = supabaseUrl.trim().replace(/\/+$/, '');
+if (!formattedUrl.startsWith('https://')) {
+  throw new Error('Supabase URL must start with https://');
+}
+
 // Create and export the Supabase client
-export const supabase = createClient(supabaseUrl.trim(), supabaseAnonKey.trim(), {
+export const supabase = createClient(formattedUrl, supabaseAnonKey.trim(), {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
