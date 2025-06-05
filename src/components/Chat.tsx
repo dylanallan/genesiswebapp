@@ -209,6 +209,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     }
   };
 
+  const handleAuthError = (error: any) => {
+    if (error.message === 'Authentication required') {
+      toast.error('Your session has expired. Please sign in again.');
+      // You might want to trigger a sign-out or redirect to login here
+      return true;
+    }
+    return false;
+  };
+
   const handlePathwayClick = async (pathway: string, category: string) => {
     const agentPrompt = agentPrompts[pathway as keyof typeof agentPrompts];
     if (!agentPrompt) return;
@@ -252,18 +261,19 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
 
-      // Show contact form for automation pathways
       if (automationPathways.includes(pathway)) {
         setShowContactForm(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
-        timestamp: new Date(),
-        model: currentModel
-      }]);
+      if (!handleAuthError(error)) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'I apologize, but I encountered an error. Please try again.',
+          timestamp: new Date(),
+          model: currentModel
+        }]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -296,14 +306,16 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
-        timestamp: new Date(),
-        model: currentModel
-      }]);
+      if (!handleAuthError(error)) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'I apologize, but I encountered an error. Please try again.',
+          timestamp: new Date(),
+          model: currentModel
+        }]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -345,14 +357,16 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
-        timestamp: new Date(),
-        model: selectedModel
-      }]);
+      if (!handleAuthError(error)) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'I apologize, but I encountered an error. Please try again.',
+          timestamp: new Date(),
+          model: selectedModel
+        }]);
+      }
     } finally {
       setIsLoading(false);
     }
