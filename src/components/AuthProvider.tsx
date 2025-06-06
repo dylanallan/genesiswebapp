@@ -1,17 +1,28 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSession, SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from '../lib/supabase';
 import { Auth } from './Auth';
+import { toast } from 'sonner';
 
 const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const session = useSession();
 
-  // If there's no session, show the Auth component
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Session check error:', error);
+        toast.error('Authentication error. Please sign in again.');
+      }
+    };
+
+    checkSession();
+  }, []);
+
   if (!session) {
     return <Auth />;
   }
 
-  // If there is a session, render the protected content
   return <>{children}</>;
 };
 

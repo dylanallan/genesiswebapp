@@ -18,7 +18,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storage: localStorage,
-    storageKey: 'genesis.auth.token'
+    storageKey: 'genesis.auth.token',
+    flowType: 'pkce'
   }
 });
 
@@ -26,16 +27,47 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 supabase.auth.onAuthStateChange((event, session) => {
   switch (event) {
     case 'SIGNED_IN':
-      toast.success(`Welcome${session?.user?.email ? ` ${session.user.email}` : ''}!`);
+      if (session?.user?.email) {
+        toast.success(`Welcome back, ${session.user.email}!`);
+      }
       break;
     case 'SIGNED_OUT':
       toast.info('Signed out successfully');
       break;
+    case 'TOKEN_REFRESHED':
+      console.log('Auth token refreshed');
+      break;
     case 'USER_UPDATED':
       toast.success('Profile updated successfully');
+      break;
+    case 'USER_DELETED':
+      toast.info('Account deleted successfully');
       break;
     case 'PASSWORD_RECOVERY':
       toast.info('Password reset email sent');
       break;
   }
 });
+
+// Export helper functions
+export const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    return user;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+};
+
+export const refreshSession = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    return session;
+  } catch (error) {
+    console.error('Error refreshing session:', error);
+    return null;
+  }
+};

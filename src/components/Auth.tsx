@@ -46,13 +46,10 @@ export const Auth: React.FC = () => {
         }
       });
 
-      if (error) {
-        console.error('Google sign in error:', error);
-        toast.error('Failed to sign in with Google');
-      }
+      if (error) throw error;
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error('An unexpected error occurred');
+      console.error('Google sign in error:', error);
+      toast.error('Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -67,46 +64,36 @@ export const Auth: React.FC = () => {
           password: data.password,
         });
 
-        if (error) {
-          if (error.message.includes('Invalid login')) {
-            toast.error('Invalid email or password. Please double-check your credentials and try again.');
-            resetField('password');
-          } else if (error.message.includes('Email not confirmed')) {
-            toast.error('Please verify your email address before signing in. Check your inbox for the verification link.');
-          } else {
-            toast.error(`Authentication failed: ${error.message}`);
-          }
-          return;
-        }
-
-        toast.success('Successfully signed in!');
+        if (error) throw error;
       } else {
         const { error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: {
+              email_confirmed: false
+            }
           }
         });
 
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('This email is already registered. Please sign in instead.');
-            setIsLogin(true);
-            resetField('password');
-            return;
-          } else {
-            toast.error(`Registration failed: ${error.message}`);
-          }
-          return;
-        }
-
+        if (error) throw error;
         toast.success('Please check your email to verify your account');
         reset();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error);
-      toast.error('An unexpected error occurred. Please try again later.');
+      if (error.message.includes('Invalid login credentials')) {
+        toast.error('Invalid email or password');
+        resetField('password');
+      } else if (error.message.includes('Email not confirmed')) {
+        toast.error('Please verify your email before signing in');
+      } else if (error.message.includes('already registered')) {
+        toast.error('This email is already registered');
+        setIsLogin(true);
+      } else {
+        toast.error('Authentication failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -134,7 +121,7 @@ export const Auth: React.FC = () => {
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Start your learning journey'}
+            {isLogin ? 'Sign in to your account' : 'Start your journey'}
           </p>
         </div>
 
