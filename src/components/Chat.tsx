@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight, Workflow, ListChecks, Globe, Trophy, Mic, MicOff, LogIn, AlertCircle, Settings, Zap } from 'lucide-react';
+import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight, Workflow, ListChecks, Globe, Trophy, Mic, MicOff, LogIn, AlertCircle, Settings, Zap, CheckCircle, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
-import { streamResponse, getBestModelForTask, getMockResponse, checkAIServiceHealth, getAIProviderStatus } from '../lib/ai';
+import { streamResponse, getBestModelForTask, getMockResponse, checkAIServiceHealth, getAIProviderStatus, getAvailableModels, enableAIProvider, disableAIProvider } from '../lib/ai';
 import { analyzeGenealogyData, generatePersonalizedPlan, AnalysisResult } from '../lib/analyzers';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 
 interface Message {
-  role: 'assistant' | 'user' | 'system' | 'agent';
+  role: 'user' | 'assistant' | 'system' | 'agent';
   content: string;
   timestamp: Date;
   model?: string;
@@ -75,6 +75,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   const [aiServiceHealth, setAiServiceHealth] = useState<boolean>(true);
   const [providerStatus, setProviderStatus] = useState<Map<string, any>>(new Map());
   const [showProviderStatus, setShowProviderStatus] = useState(false);
+  const [showProviderSettings, setShowProviderSettings] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -266,6 +267,26 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     } catch (error) {
       console.error('Error signing in:', error);
       toast.error('Failed to sign in. Please try again.');
+    }
+  };
+
+  const handleProviderToggle = async (providerId: string, isActive: boolean) => {
+    try {
+      if (isActive) {
+        const apiKey = prompt(`Enter API key for ${providerId}:`);
+        if (apiKey) {
+          await enableAIProvider(providerId, apiKey);
+        }
+      } else {
+        await disableAIProvider(providerId);
+      }
+      
+      // Refresh provider status
+      const status = await getAIProviderStatus();
+      setProviderStatus(status);
+    } catch (error) {
+      console.error('Error toggling provider:', error);
+      toast.error('Failed to update provider status');
     }
   };
 
@@ -548,6 +569,8 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       <Brain className="w-6 h-6 text-blue-500" />;
   };
 
+  const availableModels = getAvailableModels();
+
   return (
     <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-sm border border-blue-100">
       <div className="flex items-center justify-between p-4 border-b border-blue-100">
@@ -600,14 +623,43 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
       {showProviderStatus && (
         <div className="bg-gray-50 border-b border-gray-200 p-4">
-          <h4 className="font-medium text-gray-900 mb-2">AI Provider Status</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="font-medium text-gray-900">AI Provider Status</h4>
+            {isAuthenticated && (
+              <button
+                onClick={() => setShowProviderSettings(!showProviderSettings)}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             {Array.from(providerStatus.entries()).map(([id, status]) => (
-              <div key={id} className="flex items-center justify-between text-sm">
-                <span className="text-gray-700">{status.name}</span>
+              <div key={id} className="flex items-center justify-between text-sm p-2 bg-white rounded border">
                 <div className="flex items-center space-x-2">
                   <div className={`w-2 h-2 rounded-full ${status.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className="text-gray-700 font-medium">{status.name}</span>
+                </div>
+                <div className="flex items-center space-x-2">
                   <span className="text-gray-500">{Math.round(status.performance * 100)}%</span>
+                  {status.hasApiKey ? (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-red-500" />
+                  )}
+                  {showProviderSettings && isAuthenticated && (
+                    <button
+                      onClick={() => handleProviderToggle(id, !status.isActive)}
+                      className={`px-2 py-1 text-xs rounded ${
+                        status.isActive 
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      }`}
+                    >
+                      {status.isActive ? 'Disable' : 'Enable'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -622,7 +674,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
               🤖 You can explore basic features now, but sign in for full AI-powered insights!
             </p>
             <p className="text-blue-600 text-sm mt-1">
-              Click any recommendation below to see how it works
+              Access to GPT-4, Claude 3, Gemini Pro, DylanAllan.io, and more specialized AI models
             </p>
           </div>
         )}
@@ -761,11 +813,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
             onChange={(e) => setCurrentModel(e.target.value)}
             className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
           >
-            <option value="auto">Auto-Select Best AI</option>
-            <option value="gpt-4">GPT-4 (Coding)</option>
-            <option value="claude-3">Claude 3 (Cultural)</option>
-            <option value="gemini-pro">Gemini Pro (Analysis)</option>
-            <option value="dylanallan">DylanAllan.io (Business)</option>
+            {availableModels.map(model => (
+              <option key={model.id} value={model.id}>
+                {model.name} - {model.description}
+              </option>
+            ))}
           </select>
         </div>
         <div className="flex space-x-2">
