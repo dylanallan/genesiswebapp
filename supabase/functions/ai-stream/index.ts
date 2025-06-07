@@ -21,6 +21,21 @@ interface AIRequest {
   type?: string;
   maxTokens?: number;
   temperature?: number;
+  quality?: 'fast' | 'balanced' | 'premium';
+  urgency?: 'low' | 'medium' | 'high';
+}
+
+interface AIProvider {
+  id: string;
+  name: string;
+  type: string;
+  endpoint: string;
+  apiKey?: string;
+  models: string[];
+  capabilities: string[];
+  isActive: boolean;
+  priority: number;
+  config?: Record<string, any>;
 }
 
 async function getAIConfig(serviceName: string) {
@@ -33,30 +48,70 @@ async function getAIConfig(serviceName: string) {
       .single();
 
     if (error || !data) {
-      throw new Error(`${serviceName} configuration not found or inactive`);
+      console.warn(`${serviceName} configuration not found or inactive`);
+      return null;
     }
     
     return data;
   } catch (error) {
     console.error(`Failed to get ${serviceName} configuration:`, error);
-    throw error;
+    return null;
   }
 }
 
 async function routeRequest(request: AIRequest, userId: string): Promise<{ provider: string; stream: ReadableStream }> {
   const { prompt, type, context } = request;
   
-  // Determine best provider based on request type and content
+  // Enhanced provider selection logic
   let selectedProvider = 'openai-gpt4'; // default
   
-  if (type === 'business' || prompt.toLowerCase().includes('automation') || prompt.toLowerCase().includes('workflow')) {
-    selectedProvider = 'dylanallan-assistant';
-  } else if (type === 'cultural' || prompt.toLowerCase().includes('heritage') || prompt.toLowerCase().includes('tradition')) {
-    selectedProvider = 'anthropic-claude';
-  } else if (type === 'coding' || prompt.toLowerCase().includes('code') || prompt.toLowerCase().includes('programming')) {
+  // Business automation (highest priority for DylanAllan)
+  if (type === 'business' || 
+      prompt.toLowerCase().includes('automation') || 
+      prompt.toLowerCase().includes('workflow') ||
+      prompt.toLowerCase().includes('business') ||
+      prompt.toLowerCase().includes('strategy')) {
+    selectedProvider = 'dylanallan-business';
+  }
+  // Coding tasks (DeepSeek specialization)
+  else if (type === 'coding' || 
+           prompt.toLowerCase().includes('code') || 
+           prompt.toLowerCase().includes('programming') ||
+           prompt.toLowerCase().includes('function') ||
+           prompt.toLowerCase().includes('debug')) {
+    selectedProvider = 'deepseek-coder';
+  }
+  // Research needs (Perplexity specialization)
+  else if (type === 'research' || 
+           prompt.toLowerCase().includes('research') || 
+           prompt.toLowerCase().includes('information') ||
+           prompt.toLowerCase().includes('current') ||
+           prompt.toLowerCase().includes('latest')) {
+    selectedProvider = 'perplexity-sonar';
+  }
+  // Cultural analysis (Claude specialization)
+  else if (type === 'cultural' || 
+           prompt.toLowerCase().includes('heritage') || 
+           prompt.toLowerCase().includes('tradition') ||
+           prompt.toLowerCase().includes('culture') ||
+           prompt.toLowerCase().includes('ancestry')) {
+    selectedProvider = 'anthropic-claude-3-opus';
+  }
+  // Creative tasks
+  else if (type === 'creative' || 
+           prompt.toLowerCase().includes('creative') || 
+           prompt.toLowerCase().includes('story') ||
+           prompt.toLowerCase().includes('design') ||
+           prompt.toLowerCase().includes('write')) {
+    selectedProvider = 'anthropic-claude-3-opus';
+  }
+  // Complex analysis (GPT-4 specialization)
+  else if (type === 'analysis' || 
+           prompt.toLowerCase().includes('analyze') || 
+           prompt.toLowerCase().includes('explain') ||
+           prompt.toLowerCase().includes('compare') ||
+           prompt.toLowerCase().includes('evaluate')) {
     selectedProvider = 'openai-gpt4';
-  } else if (type === 'analysis' || prompt.toLowerCase().includes('analyze')) {
-    selectedProvider = 'google-gemini';
   }
 
   const startTime = Date.now();
@@ -64,7 +119,7 @@ async function routeRequest(request: AIRequest, userId: string): Promise<{ provi
   try {
     const stream = await generateResponse(selectedProvider, request);
     
-    // Log successful request (we'll update with actual metrics after streaming)
+    // Log successful request
     await logRequest(userId, selectedProvider, request, Date.now() - startTime, true);
     
     return { provider: selectedProvider, stream };
@@ -75,32 +130,34 @@ async function routeRequest(request: AIRequest, userId: string): Promise<{ provi
     await logRequest(userId, selectedProvider, request, Date.now() - startTime, false, error.message);
     
     // Try fallback provider
-    const fallbackProvider = selectedProvider === 'openai-gpt4' ? 'google-gemini' : 'openai-gpt4';
+    const fallbackProvider = selectedProvider === 'openai-gpt4' ? 'google-gemini-pro' : 'openai-gpt4';
     try {
       const stream = await generateResponse(fallbackProvider, request);
       await logRequest(userId, fallbackProvider, request, Date.now() - startTime, true);
       return { provider: fallbackProvider, stream };
     } catch (fallbackError) {
       await logRequest(userId, fallbackProvider, request, Date.now() - startTime, false, fallbackError.message);
-      throw fallbackError;
+      
+      // Final fallback - return mock response
+      return { provider: 'fallback', stream: createFallbackStream(request) };
     }
   }
 }
 
 async function generateResponse(provider: string, request: AIRequest): Promise<ReadableStream> {
-  const { prompt, maxTokens = 1000, temperature = 0.7 } = request;
+  const { prompt, maxTokens = 2000, temperature = 0.7 } = request;
   
   switch (provider) {
     case 'openai-gpt4': {
       const config = await getAIConfig('openai-gpt4');
-      if (!config.api_key) throw new Error('OpenAI API key not configured');
+      if (!config?.api_key) throw new Error('OpenAI API key not configured');
       
       const openai = new OpenAI({ apiKey: config.api_key });
       
       const stream = await openai.chat.completions.create({
         model: 'gpt-4-turbo-preview',
         messages: [
-          { role: 'system', content: 'You are a helpful AI assistant specialized in coding and technical analysis.' },
+          { role: 'system', content: getSystemPrompt(provider, request) },
           { role: 'user', content: prompt }
         ],
         stream: true,
@@ -125,9 +182,9 @@ async function generateResponse(provider: string, request: AIRequest): Promise<R
       });
     }
     
-    case 'anthropic-claude': {
-      const config = await getAIConfig('anthropic-claude');
-      if (!config.api_key) throw new Error('Anthropic API key not configured');
+    case 'anthropic-claude-3-opus': {
+      const config = await getAIConfig('anthropic-claude-3-opus');
+      if (!config?.api_key) throw new Error('Anthropic API key not configured');
       
       const anthropic = new Anthropic({ apiKey: config.api_key });
       
@@ -136,7 +193,7 @@ async function generateResponse(provider: string, request: AIRequest): Promise<R
         max_tokens: maxTokens,
         messages: [{ 
           role: 'user', 
-          content: `As a cultural heritage and analysis specialist: ${prompt}` 
+          content: `${getSystemPrompt(provider, request)}\n\n${prompt}` 
         }]
       });
 
@@ -156,14 +213,14 @@ async function generateResponse(provider: string, request: AIRequest): Promise<R
       });
     }
     
-    case 'google-gemini': {
-      const config = await getAIConfig('google-gemini');
-      if (!config.api_key) throw new Error('Google API key not configured');
+    case 'google-gemini-pro': {
+      const config = await getAIConfig('google-gemini-pro');
+      if (!config?.api_key) throw new Error('Google API key not configured');
       
       const genAI = new GoogleGenerativeAI(config.api_key);
       const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
       
-      const result = await model.generateContentStream(prompt);
+      const result = await model.generateContentStream(`${getSystemPrompt(provider, request)}\n\n${prompt}`);
       
       return new ReadableStream({
         async start(controller) {
@@ -182,20 +239,23 @@ async function generateResponse(provider: string, request: AIRequest): Promise<R
       });
     }
     
-    case 'dylanallan-assistant': {
+    case 'dylanallan-business': {
       // Try to connect to DylanAllan.io API
       try {
         const response = await fetch('https://dylanallan.io/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'Genesis-Heritage-AI-Router/1.0'
+            'User-Agent': 'Genesis-Heritage-AI-Router/2.0'
           },
           body: JSON.stringify({
             message: prompt,
             context: 'business_automation',
-            stream: true
-          })
+            stream: true,
+            quality: request.quality || 'balanced',
+            urgency: request.urgency || 'medium'
+          }),
+          signal: AbortSignal.timeout(15000)
         });
 
         if (!response.ok) {
@@ -207,43 +267,163 @@ async function generateResponse(provider: string, request: AIRequest): Promise<R
         console.error('DylanAllan API error:', error);
         
         // Fallback to business-focused response
-        const fallbackResponse = `As a business automation specialist, I understand you're looking for guidance on: ${prompt}
+        const fallbackResponse = `🚀 **Business Automation Analysis**
 
-While I'm currently unable to connect to the specialized DylanAllan.io business consultant, I can provide general automation recommendations:
+I understand you're looking for business optimization guidance. Here's my comprehensive analysis:
 
-1. **Process Analysis**: Identify repetitive tasks that consume significant time
-2. **Workflow Mapping**: Document current processes to find optimization opportunities  
-3. **Tool Integration**: Connect your existing business tools for seamless data flow
-4. **Automation Priorities**: Start with high-impact, low-complexity automations
+**🔄 Process Automation Opportunities:**
+• **Workflow Optimization**: Identify and automate repetitive tasks
+• **Customer Journey Automation**: Streamline lead nurturing and conversion
+• **Data Integration**: Connect disparate systems for unified operations
+• **Communication Automation**: Set up intelligent notification systems
+
+**📊 Strategic Business Analysis:**
+• **Efficiency Audits**: Analyze current processes for bottlenecks
+• **ROI Optimization**: Prioritize high-impact, low-effort improvements
+• **Scalability Planning**: Design systems that grow with your business
+• **Competitive Advantage**: Leverage automation for market differentiation
+
+**🛠️ Implementation Roadmap:**
+1. **Assessment Phase**: Document current workflows and pain points
+2. **Quick Wins**: Implement simple automations for immediate impact
+3. **Integration Phase**: Connect tools and systems for seamless operation
+4. **Optimization**: Continuously refine and improve automated processes
 
 For detailed business strategy and automation consulting, I recommend visiting dylanallan.io directly for personalized guidance.
 
 Would you like me to help you with any specific aspect of business automation?`;
 
-        return new ReadableStream({
-          start(controller) {
-            const words = fallbackResponse.split(' ');
-            let index = 0;
-            
-            const sendWord = () => {
-              if (index < words.length) {
-                controller.enqueue(new TextEncoder().encode(words[index] + ' '));
-                index++;
-                setTimeout(sendWord, 50);
-              } else {
-                controller.close();
-              }
-            };
-            
-            sendWord();
-          }
-        });
+        return createTextStream(fallbackResponse);
       }
+    }
+    
+    case 'deepseek-coder': {
+      const config = await getAIConfig('deepseek-coder');
+      if (!config?.api_key) throw new Error('DeepSeek API key not configured');
+      
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.api_key}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-coder',
+          messages: [
+            { role: 'system', content: getSystemPrompt(provider, request) },
+            { role: 'user', content: prompt }
+          ],
+          stream: true,
+          max_tokens: maxTokens,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`DeepSeek API error: ${response.status} ${response.statusText}`);
+      }
+
+      return response.body!;
+    }
+    
+    case 'perplexity-sonar': {
+      const config = await getAIConfig('perplexity-sonar');
+      if (!config?.api_key) throw new Error('Perplexity API key not configured');
+      
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.api_key}`
+        },
+        body: JSON.stringify({
+          model: 'sonar-large-32k-chat',
+          messages: [
+            { role: 'system', content: getSystemPrompt(provider, request) },
+            { role: 'user', content: prompt }
+          ],
+          stream: true,
+          max_tokens: maxTokens,
+          temperature
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Perplexity API error: ${response.status} ${response.statusText}`);
+      }
+
+      return response.body!;
     }
     
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
+}
+
+function getSystemPrompt(provider: string, request: AIRequest): string {
+  const basePrompt = "You are a helpful AI assistant.";
+  
+  switch (request.type) {
+    case 'business':
+      return "You are a business automation and consulting specialist. Provide practical, actionable advice for improving business processes and efficiency. Focus on ROI, scalability, and sustainable growth strategies.";
+    case 'cultural':
+      return "You are a cultural heritage specialist. Help users explore and integrate their cultural background into modern life while preserving traditions. Be respectful and knowledgeable about diverse cultures.";
+    case 'coding':
+      return "You are a programming expert. Provide clear, well-documented code solutions and explain best practices. Focus on clean, maintainable, and efficient code.";
+    case 'analysis':
+      return "You are an analytical expert. Provide thorough, well-reasoned analysis with clear conclusions and recommendations. Use data-driven insights when possible.";
+    case 'creative':
+      return "You are a creative specialist. Help with creative projects, storytelling, design thinking, and innovative solutions. Be imaginative while staying practical.";
+    case 'research':
+      return "You are a research specialist. Provide comprehensive, well-sourced information and analysis. Focus on accuracy, depth, and current information.";
+    case 'technical':
+      return "You are a technical specialist. Provide detailed technical guidance, troubleshooting, and solutions. Focus on accuracy and practical implementation.";
+    default:
+      return basePrompt;
+  }
+}
+
+function createTextStream(text: string): ReadableStream {
+  return new ReadableStream({
+    start(controller) {
+      const words = text.split(' ');
+      let index = 0;
+      
+      const sendWord = () => {
+        if (index < words.length) {
+          controller.enqueue(new TextEncoder().encode(words[index] + ' '));
+          index++;
+          setTimeout(sendWord, 50);
+        } else {
+          controller.close();
+        }
+      };
+      
+      sendWord();
+    }
+  });
+}
+
+function createFallbackStream(request: AIRequest): ReadableStream {
+  const fallbackText = `I understand you're asking about: "${request.prompt}"
+
+I'm currently experiencing connectivity issues with our AI providers, but I can still help you with basic guidance:
+
+**Available Capabilities:**
+• Business automation and process optimization
+• Cultural heritage exploration and preservation
+• Technical development and programming assistance
+• Research and analysis support
+• Creative project guidance
+
+**Next Steps:**
+1. Please try your request again in a few moments
+2. For immediate assistance, consider breaking down your question into smaller parts
+3. Check your internet connection and try refreshing the page
+
+I apologize for any inconvenience. Our AI routing system will be back to full capacity shortly.`;
+
+  return createTextStream(fallbackText);
 }
 
 async function logRequest(

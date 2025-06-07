@@ -4,13 +4,13 @@ import { supabase } from './supabase';
 export type AIModel = 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku' | 'gemini-pro' | 'gemini-1.5-pro' | 'dylanallan' | 'deepseek-coder' | 'perplexity' | 'cohere' | 'ollama' | 'auto';
 
 export function getBestModelForTask(input: string): AIModel {
-  // Enhanced model selection logic
-  const businessKeywords = ['automation', 'workflow', 'business', 'strategy', 'consulting', 'efficiency', 'process', 'optimization', 'revenue', 'profit', 'marketing', 'sales'];
-  const culturalKeywords = ['heritage', 'tradition', 'culture', 'ancestry', 'family', 'cultural', 'identity', 'genealogy', 'ethnicity', 'customs'];
-  const codingKeywords = ['code', 'programming', 'function', 'api', 'development', 'debug', 'algorithm', 'software', 'javascript', 'python', 'react', 'typescript'];
-  const analysisKeywords = ['analyze', 'analysis', 'compare', 'evaluate', 'research', 'study', 'examine', 'investigate', 'assess', 'review'];
-  const creativeKeywords = ['creative', 'design', 'story', 'write', 'content', 'marketing', 'brand', 'narrative', 'artistic'];
-  const researchKeywords = ['research', 'information', 'facts', 'data', 'current', 'latest', 'news', 'trends', 'statistics'];
+  // Enhanced model selection logic with better keyword detection
+  const businessKeywords = ['automation', 'workflow', 'business', 'strategy', 'consulting', 'efficiency', 'process', 'optimization', 'revenue', 'profit', 'marketing', 'sales', 'funnel', 'lead', 'conversion', 'roi', 'kpi'];
+  const culturalKeywords = ['heritage', 'tradition', 'culture', 'ancestry', 'family', 'cultural', 'identity', 'genealogy', 'ethnicity', 'customs', 'ritual', 'ceremony', 'ancestor'];
+  const codingKeywords = ['code', 'programming', 'function', 'api', 'development', 'debug', 'algorithm', 'software', 'javascript', 'python', 'react', 'typescript', 'html', 'css', 'sql', 'git'];
+  const analysisKeywords = ['analyze', 'analysis', 'compare', 'evaluate', 'research', 'study', 'examine', 'investigate', 'assess', 'review', 'data', 'statistics', 'metrics'];
+  const creativeKeywords = ['creative', 'design', 'story', 'write', 'content', 'marketing', 'brand', 'narrative', 'artistic', 'imagination', 'brainstorm'];
+  const researchKeywords = ['research', 'information', 'facts', 'data', 'current', 'latest', 'news', 'trends', 'statistics', 'study', 'report', 'findings'];
   
   const lowerInput = input.toLowerCase();
   
@@ -87,6 +87,10 @@ export async function* streamResponse(
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         throw new Error('Request timed out. Please try again.');
+      }
+      
+      if (error.message.includes('Rate limit exceeded')) {
+        throw new Error('Rate limit exceeded. Please wait a moment before trying again.');
       }
       
       // Try enhanced fallback response

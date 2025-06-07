@@ -48,6 +48,7 @@ class AIRouter {
   private fallbackResponses: Map<string, string> = new Map();
   private loadBalancer: Map<string, number> = new Map();
   private circuitBreakers: Map<string, { failures: number; lastFailure: Date; isOpen: boolean }> = new Map();
+  private isInitialized = false;
 
   private constructor() {
     this.initializeProviders();
@@ -63,6 +64,8 @@ class AIRouter {
   }
 
   private async initializeProviders() {
+    if (this.isInitialized) return;
+
     const defaultProviders: AIProvider[] = [
       {
         id: 'openai-gpt4',
@@ -300,7 +303,9 @@ class AIRouter {
         .from('ai_service_config')
         .select('*');
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Could not load AI providers from database:', error);
+      }
 
       defaultProviders.forEach(provider => {
         const dbProvider = dbProviders?.find(p => p.service_name === provider.id);
@@ -317,13 +322,18 @@ class AIRouter {
         this.circuitBreakers.set(provider.id, { failures: 0, lastFailure: new Date(0), isOpen: false });
       });
 
+      this.isInitialized = true;
       console.log(`🚀 Initialized ${this.providers.size} AI providers with advanced routing`);
     } catch (error) {
       console.error('Error loading AI providers:', error);
+      // Initialize with defaults even if database fails
       defaultProviders.forEach(provider => {
         this.providers.set(provider.id, provider);
         this.performanceMetrics.set(provider.id, provider.performance || 0.7);
+        this.loadBalancer.set(provider.id, 0);
+        this.circuitBreakers.set(provider.id, { failures: 0, lastFailure: new Date(0), isOpen: false });
       });
+      this.isInitialized = true;
     }
   }
 
@@ -476,55 +486,15 @@ How can I assist you today? I'll automatically route your request to the most su
         circuitBreaker.failures = 0;
         console.log(`🔄 Circuit breaker reset for ${provider.name}`);
       }
-
-      // Health check for critical providers
-      if (provider.priority <= 2 && !circuitBreaker.isOpen) {
-        try {
-          await this.performHealthCheck(provider);
-        } catch (error) {
-          this.handleProviderFailure(id, error);
-        }
-      }
     }
-  }
-
-  private async performHealthCheck(provider: AIProvider): Promise<void> {
-    const timeout = provider.config?.timeout || 10000;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      if (provider.type === 'dylanallan') {
-        const response = await fetch(`${provider.endpoint}/health`, {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'User-Agent': 'Genesis-Heritage-Health-Check/1.0'
-          }
-        });
-        if (!response.ok) throw new Error(`Health check failed: ${response.status}`);
-      }
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
-
-  private handleProviderFailure(providerId: string, error: any) {
-    const circuitBreaker = this.circuitBreakers.get(providerId)!;
-    circuitBreaker.failures++;
-    circuitBreaker.lastFailure = new Date();
-
-    if (circuitBreaker.failures >= 3) {
-      circuitBreaker.isOpen = true;
-      console.warn(`⚠️ Circuit breaker opened for ${providerId} due to repeated failures`);
-    }
-
-    // Reduce performance score
-    const currentPerf = this.performanceMetrics.get(providerId) || 0.7;
-    this.performanceMetrics.set(providerId, Math.max(0.1, currentPerf - 0.1));
   }
 
   async routeRequest(request: AIRequest): Promise<AsyncGenerator<string>> {
+    // Ensure providers are initialized
+    if (!this.isInitialized) {
+      await this.initializeProviders();
+    }
+
     const startTime = Date.now();
     let selectedProvider: AIProvider | null = null;
     let attempts = 0;
@@ -1229,6 +1199,21 @@ How can I assist you today? I'll automatically route your request to the most su
     // Decrease load counter
     const currentLoad = this.loadBalancer.get(providerId) || 0;
     this.loadBalancer.set(providerId, Math.max(0, currentLoad - 1));
+  }
+
+  private handleProviderFailure(providerId: string, error: any) {
+    const circuitBreaker = this.circuitBreakers.get(providerId)!;
+    circuitBreaker.failures++;
+    circuitBreaker.lastFailure = new Date();
+
+    if (circuitBreaker.failures >= 3) {
+      circuitBreaker.isOpen = true;
+      console.warn(`⚠️ Circuit breaker opened for ${providerId} due to repeated failures`);
+    }
+
+    // Reduce performance score
+    const currentPerf = this.performanceMetrics.get(providerId) || 0.7;
+    this.performanceMetrics.set(providerId, Math.max(0.1, currentPerf - 0.1));
   }
 
   private async updatePerformanceMetrics() {
