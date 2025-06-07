@@ -99,7 +99,7 @@ class AIRouter {
         capabilities: ['business', 'automation', 'consulting', 'strategy'],
         costPerToken: 0.00001,
         maxTokens: 4096,
-        isActive: true,
+        isActive: false, // Disabled by default due to connectivity issues
         priority: 4
       }
     ];
@@ -402,6 +402,10 @@ class AIRouter {
 
   private async* executeDylanAllanRequest(provider: AIProvider, request: AIRequest): AsyncGenerator<string> {
     try {
+      // Add timeout and better error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(provider.endpoint, {
         method: 'POST',
         headers: {
@@ -413,11 +417,14 @@ class AIRouter {
           context: request.context || 'business_automation',
           user_id: request.userId,
           stream: true
-        })
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`DylanAllan API error: ${response.statusText}`);
+        throw new Error(`DylanAllan API error: ${response.status} ${response.statusText}`);
       }
 
       const reader = response.body?.getReader();
@@ -434,12 +441,38 @@ class AIRouter {
       }
     } catch (error) {
       console.error('DylanAllan API error:', error);
-      // Fallback to a business-focused response
-      const fallbackResponse = `I understand you're looking for business automation guidance. While I'm currently unable to connect to the specialized business consultant, I can provide general automation recommendations. For detailed business strategy and automation consulting, please visit dylanallan.io directly.`;
       
+      // Provide a comprehensive fallback response based on the request type
+      let fallbackResponse = '';
+      
+      if (request.type === 'business' || request.context?.includes('business')) {
+        fallbackResponse = `I understand you're looking for business automation and consulting guidance. While I'm currently unable to connect to the specialized DylanAllan.io business consultant service, I can provide some general recommendations:
+
+**Business Automation Strategies:**
+• Identify repetitive tasks that consume significant time
+• Implement workflow automation tools like Zapier or Microsoft Power Automate
+• Consider CRM automation for customer relationship management
+• Automate financial processes like invoicing and expense tracking
+• Use project management tools with automation features
+
+**Consulting Approach:**
+• Conduct a thorough business process audit
+• Map out current workflows and identify bottlenecks
+• Prioritize automation opportunities by ROI potential
+• Start with simple automations and gradually increase complexity
+• Measure results and continuously optimize
+
+For detailed business strategy, automation consulting, and personalized solutions, I recommend visiting dylanallan.io directly or contacting their team for a consultation.
+
+Would you like me to elaborate on any of these automation strategies?`;
+      } else {
+        fallbackResponse = `I apologize, but I'm currently unable to connect to the specialized consulting service. However, I can still help you with general business and automation questions. Please let me know what specific area you'd like assistance with, and I'll do my best to provide helpful guidance.`;
+      }
+      
+      // Stream the fallback response
       const words = fallbackResponse.split(' ');
-      for (const word of words) {
-        yield word + ' ';
+      for (let i = 0; i < words.length; i++) {
+        yield words[i] + (i < words.length - 1 ? ' ' : '');
         await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
