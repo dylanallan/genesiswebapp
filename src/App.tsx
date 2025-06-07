@@ -1,13 +1,13 @@
 import React from 'react';
 import { AuthProvider } from './components/AuthProvider';
-import { Dashboard } from './components/Dashboard';
+import { SuperchargedDashboard } from './components/SuperchargedDashboard';
 import { Toaster } from 'sonner';
 
 function App() {
   return (
     <>
       <AuthProvider>
-        <Dashboard />
+        <SuperchargedDashboard />
       </AuthProvider>
       <Toaster position="top-right" />
     </>
