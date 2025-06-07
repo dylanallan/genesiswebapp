@@ -7,7 +7,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  toast.error('Missing Supabase configuration. Please check your environment variables.');
+  console.error('Missing Supabase configuration');
   throw new Error('Missing Supabase environment variables');
 }
 
@@ -69,5 +69,15 @@ export const refreshSession = async () => {
   } catch (error) {
     console.error('Error refreshing session:', error);
     return null;
+  }
+};
+
+export const signOut = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error signing out:', error);
+    throw error;
   }
 };

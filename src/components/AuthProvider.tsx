@@ -1,23 +1,57 @@
-import React, { useEffect } from 'react';
-import { useSession, SessionContextProvider } from '@supabase/auth-helpers-react';
+import React, { useEffect, useState } from 'react';
+import { SessionContextProvider, useSession } from '@supabase/auth-helpers-react';
 import { supabase } from '../lib/supabase';
 import { Auth } from './Auth';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const session = useSession();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Session check error:', error);
-        toast.error('Authentication error. Please sign in again.');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Session check error:', error);
+          toast.error('Authentication error. Please sign in again.');
+        }
+      } catch (error) {
+        console.error('Unexpected session error:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     checkSession();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN') {
+        setIsLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoading(false);
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-genesis-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!session) {
     return <Auth />;
@@ -28,7 +62,10 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <SessionContextProvider supabaseClient={supabase}>
+    <SessionContextProvider 
+      supabaseClient={supabase}
+      initialSession={null}
+    >
       <AuthContent>{children}</AuthContent>
     </SessionContextProvider>
   );

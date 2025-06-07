@@ -6,7 +6,7 @@ import { Chat } from './Chat';
 import { ColorSettings } from './ColorSettings';
 import { Brain, Activity, Cpu, LogOut, Search, ChevronDown, Bell, Settings, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useSession } from '@supabase/auth-helpers-react';
 import { useAtom } from 'jotai';
 import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';
@@ -28,7 +28,7 @@ const targetMetrics = {
 };
 
 export const Dashboard: React.FC = () => {
-  const user = useUser();
+  const session = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [notifications] = useState<string[]>([]);
@@ -75,64 +75,66 @@ export const Dashboard: React.FC = () => {
                 )}
               </button>
               
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 p-2 rounded-full hover:bg-opacity-10"
-                  style={{ 
-                    backgroundColor: `${colorScheme.secondary}22`
-                  }}
-                >
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center"
+              {session && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-2 p-2 rounded-full hover:bg-opacity-10"
                     style={{ 
-                      backgroundColor: colorScheme.accent,
-                      color: colorScheme.primary
+                      backgroundColor: `${colorScheme.secondary}22`
                     }}
                   >
-                    <span className="text-sm font-medium">
-                      {user?.email?.[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <ChevronDown className="w-4 h-4" style={{ color: colorScheme.text }} />
-                </button>
-
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border"
-                    style={{ 
-                      backgroundColor: colorScheme.primary,
-                      borderColor: colorScheme.border
-                    }}
-                  >
-                    <div className="px-4 py-2 border-b" style={{ borderColor: colorScheme.border }}>
-                      <p className="text-sm font-medium" style={{ color: colorScheme.text }}>
-                        {user?.email}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowSettings(true);
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm hover:bg-opacity-10 flex items-center"
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center"
                       style={{ 
-                        color: colorScheme.text,
-                        backgroundColor: `${colorScheme.secondary}22`
+                        backgroundColor: colorScheme.accent,
+                        color: colorScheme.primary
                       }}
                     >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Settings
-                    </button>
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-opacity-10 flex items-center"
-                      style={{ backgroundColor: `${colorScheme.secondary}22` }}
+                      <span className="text-sm font-medium">
+                        {session.user?.email?.[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <ChevronDown className="w-4 h-4" style={{ color: colorScheme.text }} />
+                  </button>
+
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border"
+                      style={{ 
+                        backgroundColor: colorScheme.primary,
+                        borderColor: colorScheme.border
+                      }}
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
+                      <div className="px-4 py-2 border-b" style={{ borderColor: colorScheme.border }}>
+                        <p className="text-sm font-medium" style={{ color: colorScheme.text }}>
+                          {session.user?.email}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-opacity-10 flex items-center"
+                        style={{ 
+                          color: colorScheme.text,
+                          backgroundColor: `${colorScheme.secondary}22`
+                        }}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                      </button>
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-opacity-10 flex items-center"
+                        style={{ backgroundColor: `${colorScheme.secondary}22` }}
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -189,7 +191,7 @@ export const Dashboard: React.FC = () => {
               targetMetrics={targetMetrics}
             />
             <Chat
-              userName={user?.email?.split('@')[0] || 'User'}
+              userName={session?.user?.email?.split('@')[0] || 'User'}
               ancestry="Sample ancestry data"
               businessGoals="Sample business goals"
             />

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { LogIn, UserPlus, Loader2, Brain } from 'lucide-react';
+import { LogIn, UserPlus, Loader2, Brain, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ type AuthForm = z.infer<typeof authSchema>;
 export const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const {
     register,
@@ -38,7 +39,7 @@ export const Auth: React.FC = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
@@ -47,7 +48,7 @@ export const Auth: React.FC = () => {
       });
 
       if (error) throw error;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google sign in error:', error);
       toast.error('Failed to sign in with Google. Please try again.');
     } finally {
@@ -59,18 +60,22 @@ export const Auth: React.FC = () => {
     setIsLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
         });
 
         if (error) throw error;
+        
+        if (authData?.user) {
+          toast.success('Successfully signed in!');
+        }
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data: authData, error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${window.location.origin}`,
             data: {
               email_confirmed: false
             }
@@ -78,11 +83,17 @@ export const Auth: React.FC = () => {
         });
 
         if (error) throw error;
-        toast.success('Please check your email to verify your account');
+        
+        if (authData?.user && !authData?.user?.identities?.length) {
+          toast.success('Please check your email to verify your account');
+        } else if (authData?.user) {
+          toast.success('Account created successfully!');
+        }
         reset();
       }
     } catch (error: any) {
       console.error('Auth error:', error);
+      
       if (error.message.includes('Invalid login credentials')) {
         toast.error('Invalid email or password');
         resetField('password');
@@ -91,8 +102,10 @@ export const Auth: React.FC = () => {
       } else if (error.message.includes('already registered')) {
         toast.error('This email is already registered');
         setIsLogin(true);
+      } else if (error.message.includes('Password should be at least 6 characters')) {
+        toast.error('Password must be at least 6 characters long');
       } else {
-        toast.error('Authentication failed. Please try again.');
+        toast.error(error.message || 'Authentication failed. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -121,7 +134,7 @@ export const Auth: React.FC = () => {
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Start your journey'}
+            {isLogin ? 'Sign in to your account' : 'Start your journey with Genesis Heritage'}
           </p>
         </div>
 
@@ -134,7 +147,8 @@ export const Auth: React.FC = () => {
               <input
                 {...register('email')}
                 type="email"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-genesis-500 focus:border-genesis-500"
+                autoComplete="email"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-genesis-500 focus:border-genesis-500 sm:text-sm"
                 placeholder="you@example.com"
               />
               {errors.email && (
@@ -146,12 +160,26 @@ export const Auth: React.FC = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <input
-                {...register('password')}
-                type="password"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-genesis-500 focus:border-genesis-500"
-                placeholder="••••••••"
-              />
+              <div className="mt-1 relative">
+                <input
+                  {...register('password')}
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
+                  className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-genesis-500 focus:border-genesis-500 sm:text-sm"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
               )}
@@ -193,7 +221,7 @@ export const Auth: React.FC = () => {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-genesis-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-genesis-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <img 
                   src="https://www.google.com/favicon.ico"
@@ -213,7 +241,7 @@ export const Auth: React.FC = () => {
               setIsLogin(!isLogin);
               reset();
             }}
-            className="text-sm text-genesis-600 hover:text-genesis-500"
+            className="text-sm text-genesis-600 hover:text-genesis-500 transition-colors"
           >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
