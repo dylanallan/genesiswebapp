@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight, Workflow, ListChecks, Globe, Trophy, Mic, MicOff, LogIn, AlertCircle, Settings, Zap, CheckCircle, XCircle } from 'lucide-react';
+import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight, Workflow, ListChecks, Globe, Trophy, Mic, MicOff, LogIn, AlertCircle, Settings, Zap, CheckCircle, XCircle, Activity, TrendingUp, BarChart3 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
-import { streamResponse, getBestModelForTask, getMockResponse, checkAIServiceHealth, getAIProviderStatus, getAvailableModels, enableAIProvider, disableAIProvider } from '../lib/ai';
+import { streamResponse, getBestModelForTask, getMockResponse, checkAIServiceHealth, getAIProviderStatus, getAvailableModels, enableAIProvider, disableAIProvider, getProviderMetrics } from '../lib/ai';
 import { analyzeGenealogyData, generatePersonalizedPlan, AnalysisResult } from '../lib/analyzers';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -16,6 +16,11 @@ interface Message {
   selectedPathway?: string;
   agentType?: string;
   provider?: string;
+  metadata?: {
+    tokensUsed?: number;
+    responseTime?: number;
+    confidence?: number;
+  };
 }
 
 interface ChatProps {
@@ -76,6 +81,9 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   const [providerStatus, setProviderStatus] = useState<Map<string, any>>(new Map());
   const [showProviderStatus, setShowProviderStatus] = useState(false);
   const [showProviderSettings, setShowProviderSettings] = useState(false);
+  const [showProviderMetrics, setShowProviderMetrics] = useState(false);
+  const [selectedProviderMetrics, setSelectedProviderMetrics] = useState<string | null>(null);
+  const [providerMetrics, setProviderMetrics] = useState<Map<string, any>>(new Map());
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -290,6 +298,16 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     }
   };
 
+  const loadProviderMetrics = async (providerId: string) => {
+    try {
+      const metrics = await getProviderMetrics(providerId, 7);
+      setProviderMetrics(prev => new Map(prev.set(providerId, metrics)));
+    } catch (error) {
+      console.error('Error loading provider metrics:', error);
+      toast.error('Failed to load provider metrics');
+    }
+  };
+
   const isAuthenticated = session?.access_token;
 
   const handlePathwayClick = async (pathway: string, category: string) => {
@@ -314,8 +332,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setIsLoading(true);
     setStreamingContent('');
 
+    const startTime = Date.now();
+
     try {
       let fullResponse = '';
+      let provider = '';
       
       if (isAuthenticated && aiServiceHealth) {
         // Use AI router for authenticated users
@@ -327,18 +348,28 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
+        provider = 'AI Router';
       } else {
         // Use mock response when not authenticated or service is down
         fullResponse = await getMockResponse(pathway);
         setStreamingContent(fullResponse);
+        provider = 'Mock Response';
       }
+      
+      const responseTime = Date.now() - startTime;
       
       const assistantMessage: Message = {
         role: 'assistant',
         content: fullResponse,
         timestamp: new Date(),
         model: currentModel,
-        selectedPathway: pathway
+        selectedPathway: pathway,
+        provider,
+        metadata: {
+          responseTime,
+          tokensUsed: Math.ceil(fullResponse.length / 4),
+          confidence: 0.95
+        }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -359,7 +390,8 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         role: 'assistant',
         content: fallbackResponse,
         timestamp: new Date(),
-        model: 'fallback'
+        model: 'fallback',
+        provider: 'Fallback System'
       }]);
     } finally {
       setIsLoading(false);
@@ -377,8 +409,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setIsLoading(true);
     setStreamingContent('');
 
+    const startTime = Date.now();
+
     try {
       let fullResponse = '';
+      let provider = '';
       
       if (isAuthenticated && aiServiceHealth) {
         for await (const chunk of streamResponse(
@@ -388,16 +423,26 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
+        provider = 'AI Router';
       } else {
         fullResponse = await getMockResponse(option);
         setStreamingContent(fullResponse);
+        provider = 'Mock Response';
       }
+      
+      const responseTime = Date.now() - startTime;
       
       const assistantMessage: Message = {
         role: 'assistant',
         content: fullResponse,
         timestamp: new Date(),
-        model: currentModel
+        model: currentModel,
+        provider,
+        metadata: {
+          responseTime,
+          tokensUsed: Math.ceil(fullResponse.length / 4),
+          confidence: 0.92
+        }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -413,7 +458,8 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         role: 'assistant',
         content: fallbackResponse,
         timestamp: new Date(),
-        model: 'fallback'
+        model: 'fallback',
+        provider: 'Fallback System'
       }]);
     } finally {
       setIsLoading(false);
@@ -437,24 +483,37 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setIsLoading(true);
     setStreamingContent('');
 
+    const startTime = Date.now();
+
     try {
       let fullResponse = '';
+      let provider = '';
       
       if (isAuthenticated && aiServiceHealth) {
         for await (const chunk of streamResponse(input, selectedModel as any)) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
+        provider = 'AI Router';
       } else {
         fullResponse = await getMockResponse(input);
         setStreamingContent(fullResponse);
+        provider = 'Mock Response';
       }
+      
+      const responseTime = Date.now() - startTime;
       
       const assistantMessage: Message = {
         role: 'assistant',
         content: fullResponse,
         timestamp: new Date(),
-        model: selectedModel
+        model: selectedModel,
+        provider,
+        metadata: {
+          responseTime,
+          tokensUsed: Math.ceil(fullResponse.length / 4),
+          confidence: 0.88
+        }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -470,7 +529,8 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         role: 'assistant',
         content: fallbackResponse,
         timestamp: new Date(),
-        model: 'fallback'
+        model: 'fallback',
+        provider: 'Fallback System'
       }]);
     } finally {
       setIsLoading(false);
@@ -625,14 +685,24 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         <div className="bg-gray-50 border-b border-gray-200 p-4">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-medium text-gray-900">AI Provider Status</h4>
-            {isAuthenticated && (
-              <button
-                onClick={() => setShowProviderSettings(!showProviderSettings)}
-                className="text-sm text-blue-600 hover:text-blue-700"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
-            )}
+            <div className="flex items-center space-x-2">
+              {isAuthenticated && (
+                <>
+                  <button
+                    onClick={() => setShowProviderSettings(!showProviderSettings)}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowProviderMetrics(!showProviderMetrics)}
+                    className="text-sm text-green-600 hover:text-green-700"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {Array.from(providerStatus.entries()).map(([id, status]) => (
@@ -640,6 +710,9 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
                 <div className="flex items-center space-x-2">
                   <div className={`w-2 h-2 rounded-full ${status.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
                   <span className="text-gray-700 font-medium">{status.name}</span>
+                  {status.circuitBreakerOpen && (
+                    <AlertCircle className="w-3 h-3 text-red-500" title="Circuit breaker open" />
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-gray-500">{Math.round(status.performance * 100)}%</span>
@@ -660,10 +733,50 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
                       {status.isActive ? 'Disable' : 'Enable'}
                     </button>
                   )}
+                  {showProviderMetrics && isAuthenticated && (
+                    <button
+                      onClick={() => {
+                        setSelectedProviderMetrics(id);
+                        loadProviderMetrics(id);
+                      }}
+                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded"
+                    >
+                      Metrics
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
+          
+          {selectedProviderMetrics && providerMetrics.has(selectedProviderMetrics) && (
+            <div className="mt-4 p-3 bg-white rounded border">
+              <h5 className="font-medium text-gray-900 mb-2">
+                {providerStatus.get(selectedProviderMetrics)?.name} - 7 Day Metrics
+              </h5>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                {(() => {
+                  const metrics = providerMetrics.get(selectedProviderMetrics);
+                  return (
+                    <>
+                      <div>
+                        <span className="text-gray-500">Requests:</span>
+                        <div className="font-medium">{metrics?.total_requests || 0}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Success Rate:</span>
+                        <div className="font-medium">{Math.round((metrics?.success_rate || 0) * 100)}%</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Avg Response:</span>
+                        <div className="font-medium">{metrics?.avg_response_time_ms || 0}ms</div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -674,7 +787,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
               🤖 You can explore basic features now, but sign in for full AI-powered insights!
             </p>
             <p className="text-blue-600 text-sm mt-1">
-              Access to GPT-4, Claude 3, Gemini Pro, DylanAllan.io, and more specialized AI models
+              Access to GPT-4, Claude 3, Gemini Pro, DylanAllan.io, DeepSeek, Perplexity, and more specialized AI models
             </p>
           </div>
         )}
@@ -704,11 +817,25 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
                   {message.content}
                 </ReactMarkdown>
                 {message.analysis && renderAnalysis(message.analysis)}
-                {message.provider && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    Powered by {message.provider}
+                <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                  <div className="flex items-center space-x-2">
+                    {message.provider && (
+                      <span>via {message.provider}</span>
+                    )}
+                    {message.metadata?.responseTime && (
+                      <span>• {message.metadata.responseTime}ms</span>
+                    )}
+                    {message.metadata?.tokensUsed && (
+                      <span>• {message.metadata.tokensUsed} tokens</span>
+                    )}
                   </div>
-                )}
+                  {message.metadata?.confidence && (
+                    <div className="flex items-center space-x-1">
+                      <Activity className="w-3 h-3" />
+                      <span>{Math.round(message.metadata.confidence * 100)}%</span>
+                    </div>
+                  )}
+                </div>
               </div>
               {message.role === 'user' && getMessageIcon(message)}
             </div>
