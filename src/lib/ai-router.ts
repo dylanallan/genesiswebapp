@@ -1,37 +1,47 @@
-import { LangChain } from 'langchain';
-import * as tf from '@tensorflow/tfjs';
 import { supabase } from './supabase';
 import { toast } from 'sonner';
 
-interface LLMConfig {
-  name: string;
-  version: string;
-  capabilities: string[];
-  contextWindow: number;
-  apiEndpoint: string;
-  apiKey?: string;
-}
-
-interface KnowledgeSource {
+export interface AIProvider {
   id: string;
   name: string;
-  type: 'api' | 'database' | 'webscrape' | 'document';
-  lastUpdated: Date;
-  reliability: number;
-  url?: string;
+  type: 'openai' | 'anthropic' | 'google' | 'custom' | 'dylanallan';
+  endpoint: string;
+  apiKey?: string;
+  models: string[];
+  capabilities: string[];
+  costPerToken: number;
+  maxTokens: number;
+  isActive: boolean;
+  priority: number;
+}
+
+export interface AIRequest {
+  prompt: string;
+  context?: string;
+  type?: 'chat' | 'analysis' | 'generation' | 'coding' | 'business' | 'cultural';
+  maxTokens?: number;
+  temperature?: number;
+  userId?: string;
+}
+
+export interface AIResponse {
+  content: string;
+  provider: string;
+  model: string;
+  tokensUsed: number;
+  cost: number;
+  responseTime: number;
+  confidence: number;
 }
 
 class AIRouter {
   private static instance: AIRouter;
-  private availableModels: Map<string, LLMConfig> = new Map();
-  private knowledgeSources: Map<string, KnowledgeSource> = new Map();
-  private modelPerformanceMetrics: Map<string, number> = new Map();
-  private lastModelUpdate: Date = new Date();
+  private providers: Map<string, AIProvider> = new Map();
+  private requestHistory: Map<string, AIResponse[]> = new Map();
+  private performanceMetrics: Map<string, number> = new Map();
 
   private constructor() {
-    this.initializeModels();
-    this.initializeKnowledgeSources();
-    this.startAutomaticUpdates();
+    this.initializeProviders();
   }
 
   static getInstance(): AIRouter {
@@ -41,314 +51,458 @@ class AIRouter {
     return AIRouter.instance;
   }
 
-  private async initializeModels() {
-    try {
-      const { data: models, error } = await supabase
-        .from('ai_models')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      models?.forEach(model => {
-        this.availableModels.set(model.name, {
-          name: model.name,
-          version: model.version,
-          capabilities: model.capabilities,
-          contextWindow: model.context_window,
-          apiEndpoint: model.api_endpoint
-        });
-      });
-    } catch (error) {
-      console.error('Error initializing models:', error);
-      toast.error('Failed to initialize AI models');
-    }
-  }
-
-  private async initializeKnowledgeSources() {
-    try {
-      const { data: sources, error } = await supabase
-        .from('knowledge_sources')
-        .select('*')
-        .order('reliability', { ascending: false });
-
-      if (error) throw error;
-
-      sources?.forEach(source => {
-        this.knowledgeSources.set(source.id, {
-          id: source.id,
-          name: source.name,
-          type: source.type,
-          lastUpdated: new Date(source.last_updated),
-          reliability: source.reliability,
-          url: source.url
-        });
-      });
-    } catch (error) {
-      console.error('Error initializing knowledge sources:', error);
-      toast.error('Failed to initialize knowledge sources');
-    }
-  }
-
-  private startAutomaticUpdates() {
-    setInterval(async () => {
-      await this.updateModels();
-      await this.updateKnowledgeSources();
-      this.optimizeModelSelection();
-    }, 1000 * 60 * 60); // Check for updates every hour
-  }
-
-  private async updateModels() {
-    try {
-      const { data: newModels, error } = await supabase
-        .from('ai_models')
-        .select('*')
-        .gt('created_at', this.lastModelUpdate.toISOString());
-
-      if (error) throw error;
-
-      if (newModels && newModels.length > 0) {
-        newModels.forEach(model => {
-          this.availableModels.set(model.name, {
-            name: model.name,
-            version: model.version,
-            capabilities: model.capabilities,
-            contextWindow: model.context_window,
-            apiEndpoint: model.api_endpoint
-          });
-        });
-        this.lastModelUpdate = new Date();
-        toast.success('New AI models available');
+  private async initializeProviders() {
+    // Initialize default providers
+    const defaultProviders: AIProvider[] = [
+      {
+        id: 'openai-gpt4',
+        name: 'OpenAI GPT-4',
+        type: 'openai',
+        endpoint: 'https://api.openai.com/v1/chat/completions',
+        models: ['gpt-4', 'gpt-4-turbo-preview'],
+        capabilities: ['chat', 'analysis', 'generation', 'coding', 'business'],
+        costPerToken: 0.00003,
+        maxTokens: 8192,
+        isActive: true,
+        priority: 1
+      },
+      {
+        id: 'anthropic-claude',
+        name: 'Anthropic Claude',
+        type: 'anthropic',
+        endpoint: 'https://api.anthropic.com/v1/messages',
+        models: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229'],
+        capabilities: ['chat', 'analysis', 'generation', 'business', 'cultural'],
+        costPerToken: 0.000015,
+        maxTokens: 4096,
+        isActive: true,
+        priority: 2
+      },
+      {
+        id: 'google-gemini',
+        name: 'Google Gemini',
+        type: 'google',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        models: ['gemini-pro', 'gemini-pro-vision'],
+        capabilities: ['chat', 'analysis', 'generation', 'cultural'],
+        costPerToken: 0.0000005,
+        maxTokens: 2048,
+        isActive: true,
+        priority: 3
+      },
+      {
+        id: 'dylanallan-assistant',
+        name: 'DylanAllan.io Assistant',
+        type: 'dylanallan',
+        endpoint: 'https://dylanallan.io/api/chat',
+        models: ['dylanallan-v1'],
+        capabilities: ['business', 'automation', 'consulting', 'strategy'],
+        costPerToken: 0.00001,
+        maxTokens: 4096,
+        isActive: true,
+        priority: 4
       }
-    } catch (error) {
-      console.error('Error updating models:', error);
-    }
-  }
+    ];
 
-  private async updateKnowledgeSources() {
+    // Load providers from database
     try {
-      // Update existing knowledge sources
-      for (const source of this.knowledgeSources.values()) {
-        if (source.type === 'api' || source.type === 'webscrape') {
-          const updatedData = await this.fetchLatestData(source);
-          if (updatedData) {
-            await this.updateKnowledgeBase(source.id, updatedData);
-            source.lastUpdated = new Date();
-          }
+      const { data: dbProviders, error } = await supabase
+        .from('ai_service_config')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      // Merge database providers with defaults
+      defaultProviders.forEach(provider => {
+        const dbProvider = dbProviders?.find(p => p.service_name === provider.id);
+        if (dbProvider) {
+          provider.apiKey = dbProvider.api_key;
+          provider.isActive = dbProvider.is_active;
         }
-      }
+        this.providers.set(provider.id, provider);
+      });
 
-      // Look for new knowledge sources
-      const { data: newSources, error } = await supabase
-        .from('knowledge_sources')
-        .select('*')
-        .gt('created_at', this.lastModelUpdate.toISOString());
-
-      if (error) throw error;
-
-      if (newSources) {
-        newSources.forEach(source => {
-          this.knowledgeSources.set(source.id, {
-            id: source.id,
-            name: source.name,
-            type: source.type,
-            lastUpdated: new Date(source.last_updated),
-            reliability: source.reliability,
-            url: source.url
-          });
-        });
-      }
     } catch (error) {
-      console.error('Error updating knowledge sources:', error);
+      console.error('Error loading AI providers:', error);
+      // Use default providers if database fails
+      defaultProviders.forEach(provider => {
+        this.providers.set(provider.id, provider);
+      });
     }
   }
 
-  private async fetchLatestData(source: KnowledgeSource): Promise<any> {
-    try {
-      if (source.type === 'api' && source.url) {
-        const response = await fetch(source.url);
-        return await response.json();
-      } else if (source.type === 'webscrape' && source.url) {
-        // Implement web scraping logic
-        return null;
-      }
-    } catch (error) {
-      console.error(`Error fetching data from ${source.name}:`, error);
+  async routeRequest(request: AIRequest): Promise<AsyncGenerator<string>> {
+    const bestProvider = await this.selectBestProvider(request);
+    
+    if (!bestProvider) {
+      throw new Error('No suitable AI provider available');
+    }
+
+    return this.executeRequest(bestProvider, request);
+  }
+
+  private async selectBestProvider(request: AIRequest): Promise<AIProvider | null> {
+    const availableProviders = Array.from(this.providers.values())
+      .filter(p => p.isActive)
+      .filter(p => this.canHandleRequest(p, request));
+
+    if (availableProviders.length === 0) {
       return null;
     }
+
+    // Score providers based on multiple factors
+    const scoredProviders = availableProviders.map(provider => ({
+      provider,
+      score: this.calculateProviderScore(provider, request)
+    }));
+
+    // Sort by score (highest first)
+    scoredProviders.sort((a, b) => b.score - a.score);
+
+    return scoredProviders[0].provider;
   }
 
-  private async updateKnowledgeBase(sourceId: string, data: any) {
-    try {
-      const { error } = await supabase
-        .from('knowledge_base')
-        .upsert({
-          source_id: sourceId,
-          content: data,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error updating knowledge base:', error);
-    }
-  }
-
-  private optimizeModelSelection() {
-    // Use TensorFlow.js to analyze model performance
-    const modelMetrics = Array.from(this.modelPerformanceMetrics.entries());
-    if (modelMetrics.length > 0) {
-      const tensor = tf.tensor2d(modelMetrics.map(([_, value]) => [value]));
-      const normalized = tf.div(tensor, tf.max(tensor));
-      
-      normalized.array().then(array => {
-        array.forEach((value, index) => {
-          const modelName = modelMetrics[index][0];
-          this.modelPerformanceMetrics.set(modelName, value[0]);
-        });
-      });
-    }
-  }
-
-  async routeRequest(prompt: string, context?: any): Promise<any> {
-    try {
-      // Analyze prompt to determine best model
-      const bestModel = await this.selectBestModel(prompt, context);
-      
-      // Get relevant knowledge
-      const knowledge = await this.getRelevantKnowledge(prompt);
-      
-      // Enhance prompt with knowledge
-      const enhancedPrompt = this.enhancePrompt(prompt, knowledge);
-      
-      // Route to selected model
-      return await this.executeRequest(bestModel, enhancedPrompt, context);
-    } catch (error) {
-      console.error('Error routing request:', error);
-      throw error;
-    }
-  }
-
-  private async selectBestModel(prompt: string, context?: any): Promise<LLMConfig> {
-    const promptEmbedding = await this.generateEmbedding(prompt);
-    let bestScore = -1;
-    let bestModel: LLMConfig | null = null;
-
-    for (const model of this.availableModels.values()) {
-      const score = await this.calculateModelScore(model, promptEmbedding, context);
-      if (score > bestScore) {
-        bestScore = score;
-        bestModel = model;
-      }
+  private canHandleRequest(provider: AIProvider, request: AIRequest): boolean {
+    // Check if provider supports the request type
+    if (request.type && !provider.capabilities.includes(request.type)) {
+      return false;
     }
 
-    if (!bestModel) {
-      throw new Error('No suitable model found');
+    // Check token limits
+    const estimatedTokens = this.estimateTokens(request.prompt);
+    if (estimatedTokens > provider.maxTokens) {
+      return false;
     }
 
-    return bestModel;
+    // Check if API key is available (except for dylanallan which might be public)
+    if (provider.type !== 'dylanallan' && !provider.apiKey) {
+      return false;
+    }
+
+    return true;
   }
 
-  private async generateEmbedding(text: string): Promise<number[]> {
-    // Use TensorFlow.js for embedding generation
-    const encoder = await tf.loadLayersModel('path/to/encoder/model');
-    const embedding = encoder.predict(tf.tensor([text])) as tf.Tensor;
-    return Array.from(await embedding.data());
-  }
-
-  private async calculateModelScore(
-    model: LLMConfig,
-    promptEmbedding: number[],
-    context?: any
-  ): Promise<number> {
+  private calculateProviderScore(provider: AIProvider, request: AIRequest): number {
     let score = 0;
 
-    // Consider model capabilities
-    score += model.capabilities.length * 0.1;
+    // Base priority score
+    score += (10 - provider.priority) * 10;
 
-    // Consider context window if context is provided
-    if (context) {
-      const contextSize = JSON.stringify(context).length;
-      score += contextSize <= model.contextWindow ? 0.3 : -0.3;
+    // Capability match bonus
+    if (request.type && provider.capabilities.includes(request.type)) {
+      score += 20;
     }
 
-    // Consider historical performance
-    const performanceScore = this.modelPerformanceMetrics.get(model.name) || 0.5;
-    score += performanceScore;
+    // Cost efficiency (lower cost = higher score)
+    score += (1 / provider.costPerToken) * 0.001;
+
+    // Performance history
+    const performanceScore = this.performanceMetrics.get(provider.id) || 0.5;
+    score += performanceScore * 30;
+
+    // Special bonuses for specific request types
+    if (request.type === 'business' && provider.id === 'dylanallan-assistant') {
+      score += 50; // Prefer dylanallan for business requests
+    }
+
+    if (request.type === 'cultural' && provider.id === 'anthropic-claude') {
+      score += 30; // Prefer Claude for cultural analysis
+    }
+
+    if (request.type === 'coding' && provider.id === 'openai-gpt4') {
+      score += 40; // Prefer GPT-4 for coding
+    }
 
     return score;
   }
 
-  private async getRelevantKnowledge(prompt: string): Promise<any[]> {
-    try {
-      const { data, error } = await supabase
-        .rpc('search_knowledge_base', {
-          query_text: prompt,
-          similarity_threshold: 0.7,
-          max_results: 5
-        });
+  private estimateTokens(text: string): number {
+    // Rough estimation: 1 token ≈ 4 characters
+    return Math.ceil(text.length / 4);
+  }
 
-      if (error) throw error;
-      return data || [];
+  private async* executeRequest(provider: AIProvider, request: AIRequest): AsyncGenerator<string> {
+    const startTime = Date.now();
+    let tokensUsed = 0;
+    let fullResponse = '';
+
+    try {
+      switch (provider.type) {
+        case 'openai':
+          yield* this.executeOpenAIRequest(provider, request);
+          break;
+        case 'anthropic':
+          yield* this.executeAnthropicRequest(provider, request);
+          break;
+        case 'google':
+          yield* this.executeGoogleRequest(provider, request);
+          break;
+        case 'dylanallan':
+          yield* this.executeDylanAllanRequest(provider, request);
+          break;
+        default:
+          throw new Error(`Unsupported provider type: ${provider.type}`);
+      }
+
+      // Update performance metrics
+      const responseTime = Date.now() - startTime;
+      this.updatePerformanceMetrics(provider.id, responseTime, true);
+
     } catch (error) {
-      console.error('Error fetching relevant knowledge:', error);
-      return [];
+      console.error(`Error with provider ${provider.id}:`, error);
+      this.updatePerformanceMetrics(provider.id, Date.now() - startTime, false);
+      
+      // Try fallback provider
+      const fallbackProvider = await this.getFallbackProvider(provider, request);
+      if (fallbackProvider) {
+        yield* this.executeRequest(fallbackProvider, request);
+      } else {
+        throw error;
+      }
     }
   }
 
-  private enhancePrompt(prompt: string, knowledge: any[]): string {
-    let enhancedPrompt = prompt;
+  private async* executeOpenAIRequest(provider: AIProvider, request: AIRequest): AsyncGenerator<string> {
+    const response = await fetch(provider.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`
+      },
+      body: JSON.stringify({
+        model: provider.models[0],
+        messages: [
+          { role: 'system', content: 'You are a helpful AI assistant.' },
+          { role: 'user', content: request.prompt }
+        ],
+        stream: true,
+        max_tokens: request.maxTokens || 1000,
+        temperature: request.temperature || 0.7
+      })
+    });
 
-    if (knowledge.length > 0) {
-      const contextStr = knowledge
-        .map(k => `Context: ${k.content}`)
-        .join('\n\n');
-      enhancedPrompt = `${contextStr}\n\nQuestion: ${prompt}`;
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
     }
 
-    return enhancedPrompt;
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(line => line.trim());
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') return;
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              yield content;
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
   }
 
-  private async executeRequest(
-    model: LLMConfig,
-    prompt: string,
-    context?: any
-  ): Promise<any> {
+  private async* executeAnthropicRequest(provider: AIProvider, request: AIRequest): AsyncGenerator<string> {
+    const response = await fetch(provider.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': provider.apiKey!,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: provider.models[0],
+        max_tokens: request.maxTokens || 1000,
+        messages: [{ role: 'user', content: request.prompt }],
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Anthropic API error: ${response.statusText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(line => line.trim());
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') return;
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.delta?.text;
+            if (content) {
+              yield content;
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  }
+
+  private async* executeGoogleRequest(provider: AIProvider, request: AIRequest): AsyncGenerator<string> {
+    const response = await fetch(`${provider.endpoint}?key=${provider.apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: request.prompt }]
+        }],
+        generationConfig: {
+          maxOutputTokens: request.maxTokens || 1000,
+          temperature: request.temperature || 0.7
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    // Simulate streaming for Google API
+    const words = content.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      yield words[i] + (i < words.length - 1 ? ' ' : '');
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
+
+  private async* executeDylanAllanRequest(provider: AIProvider, request: AIRequest): AsyncGenerator<string> {
     try {
-      const response = await fetch(model.apiEndpoint, {
+      const response = await fetch(provider.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(model.apiKey && { 'Authorization': `Bearer ${model.apiKey}` })
+          'User-Agent': 'Genesis-Heritage-AI-Router/1.0'
         },
         body: JSON.stringify({
-          prompt,
-          context,
-          model: model.name,
-          version: model.version
+          message: request.prompt,
+          context: request.context || 'business_automation',
+          user_id: request.userId,
+          stream: true
         })
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+        throw new Error(`DylanAllan API error: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
       
-      // Update performance metrics
-      this.updateModelPerformance(model.name, result.quality || 0.5);
-      
-      return result;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        yield chunk;
+      }
     } catch (error) {
-      console.error(`Error executing request with ${model.name}:`, error);
-      throw error;
+      console.error('DylanAllan API error:', error);
+      // Fallback to a business-focused response
+      const fallbackResponse = `I understand you're looking for business automation guidance. While I'm currently unable to connect to the specialized business consultant, I can provide general automation recommendations. For detailed business strategy and automation consulting, please visit dylanallan.io directly.`;
+      
+      const words = fallbackResponse.split(' ');
+      for (const word of words) {
+        yield word + ' ';
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
     }
   }
 
-  private updateModelPerformance(modelName: string, quality: number) {
-    const currentScore = this.modelPerformanceMetrics.get(modelName) || 0.5;
-    const newScore = (currentScore * 0.9) + (quality * 0.1); // Exponential moving average
-    this.modelPerformanceMetrics.set(modelName, newScore);
+  private async getFallbackProvider(failedProvider: AIProvider, request: AIRequest): Promise<AIProvider | null> {
+    const availableProviders = Array.from(this.providers.values())
+      .filter(p => p.isActive && p.id !== failedProvider.id)
+      .filter(p => this.canHandleRequest(p, request))
+      .sort((a, b) => a.priority - b.priority);
+
+    return availableProviders[0] || null;
+  }
+
+  private updatePerformanceMetrics(providerId: string, responseTime: number, success: boolean) {
+    const currentScore = this.performanceMetrics.get(providerId) || 0.5;
+    const timeScore = Math.max(0, 1 - (responseTime / 10000)); // Penalize slow responses
+    const successScore = success ? 1 : 0;
+    const newScore = (currentScore * 0.8) + ((timeScore + successScore) / 2 * 0.2);
+    
+    this.performanceMetrics.set(providerId, newScore);
+  }
+
+  async getProviderStatus(): Promise<Map<string, any>> {
+    const status = new Map();
+    
+    for (const [id, provider] of this.providers) {
+      status.set(id, {
+        name: provider.name,
+        isActive: provider.isActive,
+        performance: this.performanceMetrics.get(id) || 0.5,
+        capabilities: provider.capabilities,
+        priority: provider.priority
+      });
+    }
+    
+    return status;
+  }
+
+  async updateProviderConfig(providerId: string, config: Partial<AIProvider>) {
+    const provider = this.providers.get(providerId);
+    if (provider) {
+      Object.assign(provider, config);
+      this.providers.set(providerId, provider);
+      
+      // Update database
+      try {
+        await supabase
+          .from('ai_service_config')
+          .upsert({
+            service_name: providerId,
+            api_key: provider.apiKey,
+            is_active: provider.isActive,
+            config: {
+              capabilities: provider.capabilities,
+              priority: provider.priority,
+              maxTokens: provider.maxTokens
+            }
+          });
+      } catch (error) {
+        console.error('Error updating provider config:', error);
+      }
+    }
   }
 }
 

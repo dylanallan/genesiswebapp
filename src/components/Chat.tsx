@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight, Workflow, ListChecks, Globe, Trophy, Mic, MicOff, LogIn } from 'lucide-react';
+import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight, Workflow, ListChecks, Globe, Trophy, Mic, MicOff, LogIn, AlertCircle, Settings, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
-import { streamResponse, AIModel, getBestModelForTask } from '../lib/ai';
+import { streamResponse, getBestModelForTask, getMockResponse, checkAIServiceHealth, getAIProviderStatus } from '../lib/ai';
 import { analyzeGenealogyData, generatePersonalizedPlan, AnalysisResult } from '../lib/analyzers';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -11,10 +11,11 @@ interface Message {
   role: 'assistant' | 'user' | 'system' | 'agent';
   content: string;
   timestamp: Date;
-  model?: AIModel;
+  model?: string;
   analysis?: AnalysisResult[];
   selectedPathway?: string;
   agentType?: string;
+  provider?: string;
 }
 
 interface ChatProps {
@@ -33,22 +34,22 @@ interface ContactFormData {
 
 const agentPrompts = {
   'Workflow Automation': (ancestry: string, businessGoals: string) => 
-    `As a Workflow Automation Specialist, considering the cultural background (${ancestry}) and business context (${businessGoals}), I'll help optimize your workflows. Let's start by identifying key processes that can be automated while respecting traditional practices.`,
+    `As a Workflow Automation Specialist with expertise in business process optimization, considering your cultural background (${ancestry}) and business context (${businessGoals}), I'll help you create efficient automated workflows that respect traditional practices while maximizing productivity. Let's identify key processes that can be streamlined.`,
   
   'Task Management Optimization': (ancestry: string, businessGoals: string) =>
-    `As a Task Management Expert with cultural sensitivity, I understand your background (${ancestry}) and business needs (${businessGoals}). Let's create a personalized task management system that aligns with your values and goals.`,
+    `As a Task Management Expert specializing in culturally-sensitive productivity systems, I understand your background (${ancestry}) and business needs (${businessGoals}). Let's create a personalized task management system that aligns with your values and maximizes efficiency.`,
   
   'Meeting Efficiency': (ancestry: string, businessGoals: string) =>
-    `As a Meeting Optimization Specialist familiar with diverse business practices, I'll help you create meeting protocols that respect your cultural background (${ancestry}) while achieving your business objectives (${businessGoals}).`,
+    `As a Meeting Optimization Specialist with experience in diverse business cultures, I'll help you create meeting protocols that respect your cultural background (${ancestry}) while achieving your business objectives (${businessGoals}) efficiently.`,
   
   'Cultural Identity Exploration': (ancestry: string, businessGoals: string) =>
-    `As a Cultural Identity Guide, I'll help you explore and integrate your rich heritage (${ancestry}) into your business practices (${businessGoals}), creating authentic connections with your roots.`,
+    `As a Cultural Identity Guide with deep knowledge of heritage integration, I'll help you explore and integrate your rich heritage (${ancestry}) into your business practices (${businessGoals}), creating authentic connections with your roots.`,
   
   'Leadership Development': (ancestry: string, businessGoals: string) =>
-    `As a Leadership Development Coach with cultural expertise, I'll help you develop leadership skills that honor your heritage (${ancestry}) while advancing your business goals (${businessGoals}).`,
+    `As a Leadership Development Coach with cultural expertise, I'll help you develop leadership skills that honor your heritage (${ancestry}) while advancing your business goals (${businessGoals}) using proven methodologies.`,
   
   'Traditional Wisdom Integration': (ancestry: string, businessGoals: string) =>
-    `As a Traditional Wisdom Integration Specialist, I'll help you incorporate ancestral knowledge (${ancestry}) into modern business practices (${businessGoals}), creating a unique competitive advantage.`
+    `As a Traditional Wisdom Integration Specialist, I'll help you incorporate ancestral knowledge (${ancestry}) into modern business practices (${businessGoals}), creating a unique competitive advantage through cultural wisdom.`
 };
 
 const automationPathways = ['Workflow Automation', 'Task Management Optimization', 'Meeting Efficiency'];
@@ -57,9 +58,8 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentModel, setCurrentModel] = useState<AIModel>('gpt-4');
+  const [currentModel, setCurrentModel] = useState<string>('auto');
   const [streamingContent, setStreamingContent] = useState('');
-  const [isAutoModel, setIsAutoModel] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactData, setContactData] = useState<ContactFormData>({
@@ -72,6 +72,9 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [session, setSession] = useState<any>(null);
+  const [aiServiceHealth, setAiServiceHealth] = useState<boolean>(true);
+  const [providerStatus, setProviderStatus] = useState<Map<string, any>>(new Map());
+  const [showProviderStatus, setShowProviderStatus] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -91,6 +94,24 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    // Check AI service health and provider status periodically
+    const checkHealth = async () => {
+      if (session) {
+        const isHealthy = await checkAIServiceHealth();
+        setAiServiceHealth(isHealthy);
+        
+        const status = await getAIProviderStatus();
+        setProviderStatus(status);
+      }
+    };
+
+    checkHealth();
+    const healthInterval = setInterval(checkHealth, 60000); // Check every minute
+
+    return () => clearInterval(healthInterval);
+  }, [session]);
 
   useEffect(() => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -130,7 +151,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     const initialAnalysis = generatePersonalizedPlan(ancestry, businessGoals);
     const initialMessage: Message = {
       role: 'system',
-      content: 'Based on your information, I\'ve prepared some initial insights and recommendations:',
+      content: 'Welcome to Genesis Heritage! I\'ve prepared some personalized insights based on your profile:',
       timestamp: new Date(),
       analysis: initialAnalysis
     };
@@ -168,14 +189,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setIsLoading(true);
 
     try {
-      // Here you would typically send this to your backend
-      // For now, we'll simulate a successful submission
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success('Thank you for your interest! Our team will contact you shortly.');
       setShowContactForm(false);
       
-      // Add a confirmation message to the chat
       setMessages(prev => [...prev, {
         role: 'system',
         content: `Thank you for your interest in our automation services! We've received your request and will contact you at ${contactData.email} shortly with a customized proposal.`,
@@ -230,7 +248,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   const handleAuthError = async (error: any) => {
     if (error.message === 'Authentication required') {
       toast.error('Your session has expired. Please sign in again.');
-      // Sign out the user and clear their session
       await supabase.auth.signOut();
       return true;
     }
@@ -253,14 +270,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   };
 
   const isAuthenticated = session?.access_token;
-
-  // Mock AI response function for when not authenticated
-  const generateMockResponse = async (prompt: string): Promise<string> => {
-    // Simulate AI thinking time
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return `I understand you're interested in "${prompt}". To provide you with personalized AI-powered insights and recommendations, please sign in to access the full functionality. Once signed in, I can offer detailed guidance tailored to your specific needs and cultural background.`;
-  };
 
   const handlePathwayClick = async (pathway: string, category: string) => {
     const agentPrompt = agentPrompts[pathway as keyof typeof agentPrompts];
@@ -287,18 +296,19 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     try {
       let fullResponse = '';
       
-      if (isAuthenticated) {
-        // Use real AI when authenticated
+      if (isAuthenticated && aiServiceHealth) {
+        // Use AI router for authenticated users
         for await (const chunk of streamResponse(
           agentPrompt(ancestry, businessGoals),
-          currentModel
+          getBestModelForTask(pathway) as any,
+          `pathway:${pathway}`
         )) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
       } else {
-        // Use mock response when not authenticated
-        fullResponse = await generateMockResponse(pathway);
+        // Use mock response when not authenticated or service is down
+        fullResponse = await getMockResponse(pathway);
         setStreamingContent(fullResponse);
       }
       
@@ -320,13 +330,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     } catch (error: any) {
       console.error('Error:', error);
       if (isAuthenticated && await handleAuthError(error)) {
-        return; // Stop execution if authentication error is handled
+        return;
       }
+      
+      const fallbackResponse = await getMockResponse(pathway);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
+        content: fallbackResponse,
         timestamp: new Date(),
-        model: currentModel
+        model: 'fallback'
       }]);
     } finally {
       setIsLoading(false);
@@ -347,15 +359,16 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     try {
       let fullResponse = '';
       
-      if (isAuthenticated) {
-        // Use real AI when authenticated
-        for await (const chunk of streamResponse(option, currentModel)) {
+      if (isAuthenticated && aiServiceHealth) {
+        for await (const chunk of streamResponse(
+          option, 
+          getBestModelForTask(option) as any
+        )) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
       } else {
-        // Use mock response when not authenticated
-        fullResponse = await generateMockResponse(option);
+        fullResponse = await getMockResponse(option);
         setStreamingContent(fullResponse);
       }
       
@@ -371,13 +384,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     } catch (error: any) {
       console.error('Error:', error);
       if (isAuthenticated && await handleAuthError(error)) {
-        return; // Stop execution if authentication error is handled
+        return;
       }
+      
+      const fallbackResponse = await getMockResponse(option);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
+        content: fallbackResponse,
         timestamp: new Date(),
-        model: currentModel
+        model: 'fallback'
       }]);
     } finally {
       setIsLoading(false);
@@ -388,10 +403,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     e.preventDefault();
     if (!input.trim()) return;
 
-    const selectedModel = isAutoModel ? getBestModelForTask(input) : currentModel;
-    if (isAutoModel) {
-      setCurrentModel(selectedModel);
-    }
+    const selectedModel = currentModel === 'auto' ? getBestModelForTask(input) : currentModel;
 
     const userMessage: Message = {
       role: 'user',
@@ -407,15 +419,13 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     try {
       let fullResponse = '';
       
-      if (isAuthenticated) {
-        // Use real AI when authenticated
-        for await (const chunk of streamResponse(input, selectedModel)) {
+      if (isAuthenticated && aiServiceHealth) {
+        for await (const chunk of streamResponse(input, selectedModel as any)) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
       } else {
-        // Use mock response when not authenticated
-        fullResponse = await generateMockResponse(input);
+        fullResponse = await getMockResponse(input);
         setStreamingContent(fullResponse);
       }
       
@@ -431,13 +441,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     } catch (error: any) {
       console.error('Error:', error);
       if (isAuthenticated && await handleAuthError(error)) {
-        return; // Stop execution if authentication error is handled
+        return;
       }
+      
+      const fallbackResponse = await getMockResponse(input);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
+        content: fallbackResponse,
         timestamp: new Date(),
-        model: selectedModel
+        model: 'fallback'
       }]);
     } finally {
       setIsLoading(false);
@@ -541,7 +553,13 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       <div className="flex items-center justify-between p-4 border-b border-blue-100">
         <div className="flex items-center space-x-2">
           <Brain className="w-6 h-6 text-blue-500" />
-          <span className="font-semibold">Genesis Assistant</span>
+          <span className="font-semibold">Genesis AI Assistant</span>
+          {!aiServiceHealth && (
+            <div className="flex items-center space-x-1 text-amber-600">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-xs">Limited Mode</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-4">
           {!isAuthenticated && (
@@ -553,6 +571,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
               <span>Sign In for Full AI</span>
             </button>
           )}
+          
+          <button
+            onClick={() => setShowProviderStatus(!showProviderStatus)}
+            className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <Zap className="w-4 h-4" />
+            <span>AI Status</span>
+          </button>
+          
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center space-x-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
@@ -571,6 +598,23 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         />
       </div>
 
+      {showProviderStatus && (
+        <div className="bg-gray-50 border-b border-gray-200 p-4">
+          <h4 className="font-medium text-gray-900 mb-2">AI Provider Status</h4>
+          <div className="grid grid-cols-2 gap-2">
+            {Array.from(providerStatus.entries()).map(([id, status]) => (
+              <div key={id} className="flex items-center justify-between text-sm">
+                <span className="text-gray-700">{status.name}</span>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full ${status.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className="text-gray-500">{Math.round(status.performance * 100)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {!isAuthenticated && (
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 text-center">
@@ -582,6 +626,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
             </p>
           </div>
         )}
+        
+        {!aiServiceHealth && isAuthenticated && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4 text-center">
+            <p className="text-amber-800 font-medium">
+              ⚠️ AI services are temporarily limited. Basic responses are available.
+            </p>
+          </div>
+        )}
+        
         {messages.map((message, index) => (
           <div key={index}>
             <div className={cn(
@@ -599,6 +652,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
                   {message.content}
                 </ReactMarkdown>
                 {message.analysis && renderAnalysis(message.analysis)}
+                {message.provider && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    Powered by {message.provider}
+                  </div>
+                )}
               </div>
               {message.role === 'user' && getMessageIcon(message)}
             </div>
@@ -697,6 +755,19 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 border-t border-blue-100">
+        <div className="flex space-x-2 mb-2">
+          <select
+            value={currentModel}
+            onChange={(e) => setCurrentModel(e.target.value)}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+          >
+            <option value="auto">Auto-Select Best AI</option>
+            <option value="gpt-4">GPT-4 (Coding)</option>
+            <option value="claude-3">Claude 3 (Cultural)</option>
+            <option value="gemini-pro">Gemini Pro (Analysis)</option>
+            <option value="dylanallan">DylanAllan.io (Business)</option>
+          </select>
+        </div>
         <div className="flex space-x-2">
           <div className="relative flex-1">
             <input
