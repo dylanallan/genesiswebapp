@@ -254,12 +254,15 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
   const isAuthenticated = session?.access_token;
 
-  const handlePathwayClick = async (pathway: string, category: string) => {
-    if (!isAuthenticated) {
-      toast.error('Please sign in to continue');
-      return;
-    }
+  // Mock AI response function for when not authenticated
+  const generateMockResponse = async (prompt: string): Promise<string> => {
+    // Simulate AI thinking time
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return `I understand you're interested in "${prompt}". To provide you with personalized AI-powered insights and recommendations, please sign in to access the full functionality. Once signed in, I can offer detailed guidance tailored to your specific needs and cultural background.`;
+  };
 
+  const handlePathwayClick = async (pathway: string, category: string) => {
     const agentPrompt = agentPrompts[pathway as keyof typeof agentPrompts];
     if (!agentPrompt) return;
 
@@ -283,11 +286,19 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
     try {
       let fullResponse = '';
-      for await (const chunk of streamResponse(
-        agentPrompt(ancestry, businessGoals),
-        currentModel
-      )) {
-        fullResponse += chunk;
+      
+      if (isAuthenticated) {
+        // Use real AI when authenticated
+        for await (const chunk of streamResponse(
+          agentPrompt(ancestry, businessGoals),
+          currentModel
+        )) {
+          fullResponse += chunk;
+          setStreamingContent(fullResponse);
+        }
+      } else {
+        // Use mock response when not authenticated
+        fullResponse = await generateMockResponse(pathway);
         setStreamingContent(fullResponse);
       }
       
@@ -302,12 +313,13 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
 
+      // Show contact form for automation pathways
       if (automationPathways.includes(pathway)) {
         setShowContactForm(true);
       }
     } catch (error: any) {
       console.error('Error:', error);
-      if (handleAuthError(error)) {
+      if (isAuthenticated && await handleAuthError(error)) {
         return; // Stop execution if authentication error is handled
       }
       setMessages(prev => [...prev, {
@@ -322,11 +334,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   };
 
   const handleOptionClick = async (option: string) => {
-    if (!isAuthenticated) {
-      toast.error('Please sign in to continue');
-      return;
-    }
-
     const userMessage: Message = {
       role: 'user',
       content: option,
@@ -339,8 +346,16 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
     try {
       let fullResponse = '';
-      for await (const chunk of streamResponse(option, currentModel)) {
-        fullResponse += chunk;
+      
+      if (isAuthenticated) {
+        // Use real AI when authenticated
+        for await (const chunk of streamResponse(option, currentModel)) {
+          fullResponse += chunk;
+          setStreamingContent(fullResponse);
+        }
+      } else {
+        // Use mock response when not authenticated
+        fullResponse = await generateMockResponse(option);
         setStreamingContent(fullResponse);
       }
       
@@ -355,7 +370,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       setStreamingContent('');
     } catch (error: any) {
       console.error('Error:', error);
-      if (handleAuthError(error)) {
+      if (isAuthenticated && await handleAuthError(error)) {
         return; // Stop execution if authentication error is handled
       }
       setMessages(prev => [...prev, {
@@ -372,11 +387,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    if (!isAuthenticated) {
-      toast.error('Please sign in to continue');
-      return;
-    }
 
     const selectedModel = isAutoModel ? getBestModelForTask(input) : currentModel;
     if (isAutoModel) {
@@ -396,8 +406,16 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
     try {
       let fullResponse = '';
-      for await (const chunk of streamResponse(input, selectedModel)) {
-        fullResponse += chunk;
+      
+      if (isAuthenticated) {
+        // Use real AI when authenticated
+        for await (const chunk of streamResponse(input, selectedModel)) {
+          fullResponse += chunk;
+          setStreamingContent(fullResponse);
+        }
+      } else {
+        // Use mock response when not authenticated
+        fullResponse = await generateMockResponse(input);
         setStreamingContent(fullResponse);
       }
       
@@ -412,7 +430,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       setStreamingContent('');
     } catch (error: any) {
       console.error('Error:', error);
-      if (handleAuthError(error)) {
+      if (isAuthenticated && await handleAuthError(error)) {
         return; // Stop execution if authentication error is handled
       }
       setMessages(prev => [...prev, {
@@ -459,17 +477,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
                   {result.pathways.map((pathway, idx) => (
                     <button
                       key={idx}
-                      className={cn(
-                        "flex items-center space-x-2 px-3 py-2 text-sm rounded-md transition-colors",
-                        isAuthenticated
-                          ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                          : "bg-gray-50 text-gray-400 cursor-not-allowed"
-                      )}
+                      className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         handlePathwayClick(pathway, result.title);
                       }}
-                      disabled={!isAuthenticated}
                     >
                       <ArrowRight className="w-4 h-4" />
                       <span>{pathway}</span>
@@ -484,17 +496,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
               {result.recommendations.map((rec, idx) => (
                 <button
                   key={idx}
-                  className={cn(
-                    "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
-                    isAuthenticated
-                      ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                      : "bg-gray-50 text-gray-400 cursor-not-allowed"
-                  )}
+                  className="w-full text-left px-3 py-2 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleOptionClick(`Help me with: ${rec}`);
                   }}
-                  disabled={!isAuthenticated}
                 >
                   {rec}
                 </button>
@@ -544,18 +550,13 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
               className="flex items-center space-x-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <LogIn className="w-4 h-4" />
-              <span>Sign In</span>
+              <span>Sign In for Full AI</span>
             </button>
           )}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              "flex items-center space-x-2 px-4 py-2 text-sm rounded-lg transition-colors",
-              isAuthenticated
-                ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                : "bg-gray-50 text-gray-400 cursor-not-allowed"
-            )}
-            disabled={isLoading || !isAuthenticated}
+            className="flex items-center space-x-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+            disabled={isLoading}
           >
             <Upload className="w-4 h-4" />
             <span>Upload Family Tree (CSV)</span>
@@ -572,9 +573,12 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {!isAuthenticated && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-            <p className="text-yellow-800">
-              Please sign in to access the full chat functionality and AI features.
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 text-center">
+            <p className="text-blue-800 font-medium">
+              🤖 You can explore basic features now, but sign in for full AI-powered insights!
+            </p>
+            <p className="text-blue-600 text-sm mt-1">
+              Click any recommendation below to see how it works
             </p>
           </div>
         )}
@@ -699,46 +703,27 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={
-                !isAuthenticated 
-                  ? 'Please sign in to chat...' 
-                  : isListening 
-                    ? 'Listening...' 
-                    : 'Type or click the microphone to speak...'
-              }
-              className={cn(
-                "w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none",
-                isAuthenticated
-                  ? "border-blue-200 focus:ring-2 focus:ring-blue-500"
-                  : "border-gray-200 bg-gray-50 cursor-not-allowed"
-              )}
-              disabled={isLoading || !isAuthenticated}
+              placeholder={isListening ? 'Listening...' : 'Type or click the microphone to speak...'}
+              className="w-full px-4 py-2 pr-10 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
             />
             <button
               type="button"
               onClick={toggleListening}
               className={cn(
                 "absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-colors",
-                !isAuthenticated
-                  ? "text-gray-400 cursor-not-allowed"
-                  : isListening 
-                    ? "text-red-500 hover:text-red-600 bg-red-50" 
-                    : "text-blue-500 hover:text-blue-600 bg-blue-50"
+                isListening 
+                  ? "text-red-500 hover:text-red-600 bg-red-50" 
+                  : "text-blue-500 hover:text-blue-600 bg-blue-50"
               )}
-              disabled={!isAuthenticated}
             >
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
           </div>
           <button
             type="submit"
-            disabled={isLoading || (!input.trim() && !isListening) || !isAuthenticated}
-            className={cn(
-              "px-4 py-2 rounded-lg transition-colors",
-              isAuthenticated
-                ? "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            )}
+            disabled={isLoading || (!input.trim() && !isListening)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-5 h-5" />
           </button>
