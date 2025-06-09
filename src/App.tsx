@@ -1,14 +1,14 @@
 import React from 'react';
 import { AuthProvider } from './components/AuthProvider';
 import { Toaster } from 'sonner';
-import EliteHackathonApp from './components/EliteHackathonApp';
 import { ErrorBoundary } from './lib/error-boundary';
+import { MainApp } from './components/MainApp';
 
 function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <EliteHackathonApp />
+        <MainApp />
       </AuthProvider>
       <Toaster position="top-right" />
     </ErrorBoundary>

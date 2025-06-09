@@ -130,8 +130,8 @@ export const Auth: React.FC = () => {
 
   // For demo purposes, pre-fill the form
   const fillDemoCredentials = () => {
-    setValue('email', 'dylltoamill@gmail.com');
-    setValue('password', 'Latino@1992');
+    setValue('email', 'demo@genesisheritage.com');
+    setValue('password', 'Genesis@2025');
   };
 
   return (

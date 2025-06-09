@@ -4,12 +4,21 @@ import { AutomationFlow } from './AutomationFlow';
 import { MetricsCard } from './MetricsCard';
 import { Chat } from './Chat';
 import { ColorSettings } from './ColorSettings';
-import { Brain, Activity, Cpu, LogOut, Search, ChevronDown, Bell, Settings, X } from 'lucide-react';
+import { Brain, Activity, Cpu, LogOut, Search, ChevronDown, Bell, Settings, X, Zap, Globe, Users, BookOpen, ChefHat, Calendar, Dna, Camera, Mic } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
 import { useAtom } from 'jotai';
 import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';
+import { CulturalRecipeBook } from './CulturalRecipeBook';
+import { TimelineBuilder } from './TimelineBuilder';
+import { DNAInsights } from './DNAInsights';
+import { ARHeritageViewer } from './ARHeritageViewer';
+import { VoiceCloning } from './VoiceCloning';
+
+interface DashboardProps {
+  onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
+}
 
 const systemMetrics = {
   errorDetection: 0.999,
@@ -27,18 +36,64 @@ const targetMetrics = {
   qualityAssurance: 0.995,
 };
 
-export const Dashboard: React.FC = () => {
+const features = [
+  { id: 'dashboard', name: 'AI Dashboard', icon: Brain },
+  { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat },
+  { id: 'timeline', name: 'Family Timeline', icon: Calendar },
+  { id: 'dna', name: 'DNA Analysis', icon: Dna },
+  { id: 'ar', name: 'AR Heritage', icon: Camera },
+  { id: 'voice', name: 'Voice Preservation', icon: Mic },
+];
+
+export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const session = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
+  const [activeFeature, setActiveFeature] = useState('dashboard');
   
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
 
   const { colorScheme } = preferences;
+
+  const renderFeature = () => {
+    switch (activeFeature) {
+      case 'recipes':
+        return <CulturalRecipeBook />;
+      case 'timeline':
+        return <TimelineBuilder />;
+      case 'dna':
+        return <DNAInsights />;
+      case 'ar':
+        return <ARHeritageViewer />;
+      case 'voice':
+        return <VoiceCloning />;
+      case 'dashboard':
+      default:
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <AutomationFlow />
+            </div>
+            <div className="space-y-6">
+              <MetricsCard
+                title="System Performance"
+                metrics={systemMetrics}
+                targetMetrics={targetMetrics}
+              />
+              <Chat
+                userName={session?.user?.email?.split('@')[0] || 'User'}
+                ancestry="Sample ancestry data"
+                businessGoals="Sample business goals"
+              />
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colorScheme.background }}>
@@ -48,7 +103,7 @@ export const Dashboard: React.FC = () => {
         borderColor: colorScheme.border
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
+          <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Brain className="w-6 h-6" style={{ color: colorScheme.accent }} />
@@ -61,7 +116,16 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <button
+                  onClick={() => onViewModeChange('enterprise')}
+                  className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  Switch to Enterprise
+                </button>
+              </div>
+
               <button 
                 className="relative p-2 rounded-full hover:bg-opacity-10"
                 style={{ 
@@ -124,6 +188,17 @@ export const Dashboard: React.FC = () => {
                         Settings
                       </button>
                       <button
+                        onClick={() => onViewModeChange('hackathon')}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-opacity-10 flex items-center"
+                        style={{ 
+                          color: colorScheme.text,
+                          backgroundColor: `${colorScheme.secondary}22`
+                        }}
+                      >
+                        <Zap className="w-4 h-4 mr-2" />
+                        Hackathon Demo
+                      </button>
+                      <button
                         onClick={handleSignOut}
                         className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-opacity-10 flex items-center"
                         style={{ backgroundColor: `${colorScheme.secondary}22` }}
@@ -155,6 +230,42 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Feature Navigation */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+            {features.map(feature => {
+              const Icon = feature.icon;
+              return (
+                <motion.button
+                  key={feature.id}
+                  onClick={() => setActiveFeature(feature.id)}
+                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    activeFeature === feature.id
+                      ? 'bg-gradient-to-r from-genesis-50 to-spiritual-50 text-genesis-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Icon className={`w-4 h-4 ${activeFeature === feature.id ? 'text-genesis-600' : ''}`} />
+                  <span className="text-sm font-medium">{feature.name}</span>
+                  {activeFeature === feature.id && (
+                    <motion.div
+                      layoutId="activeFeatureIndicator"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-genesis-500 to-spiritual-500"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-6">
@@ -179,25 +290,57 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <AutomationFlow />
-          </div>
+        {renderFeature()}
+      </main>
+
+      {/* Enhanced Floating Action Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="relative group">
+          <motion.button 
+            className="w-14 h-14 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Zap className="w-6 h-6" />
+          </motion.button>
           
-          <div className="space-y-6">
-            <MetricsCard
-              title="System Performance"
-              metrics={systemMetrics}
-              targetMetrics={targetMetrics}
-            />
-            <Chat
-              userName={session?.user?.email?.split('@')[0] || 'User'}
-              ancestry="Sample ancestry data"
-              businessGoals="Sample business goals"
-            />
+          <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
+              <h3 className="font-semibold text-gray-900 mb-2">System Status</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>AI Router</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Optimal</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Database</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Optimal</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Automation</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Active</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Analytics</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-blue-600">Running</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
