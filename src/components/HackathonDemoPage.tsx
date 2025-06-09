@@ -8,15 +8,7 @@ import { AutomationFlow } from './AutomationFlow';
 import { FlowBuilder } from './FlowBuilder';
 import { AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
 import { Chat } from './Chat';
-import { 
-  Brain, 
-  BarChart3, 
-  TrendingUp,
-  Workflow,
-  Calculator,
-  PresentationScreen,
-  Home
-} from 'lucide-react';
+import { Brain, BarChart3, TrendingUp, Workflow, Calculator, Presentation as PresentationScreen, Home } from 'lucide-react';
 
 const features = [
   {

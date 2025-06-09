@@ -12,25 +12,7 @@ import { AutomationFlow } from './AutomationFlow';
 import { FlowBuilder } from './FlowBuilder';
 import { AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
 import { Chat } from './Chat';
-import { 
-  Brain, 
-  Activity, 
-  BarChart3, 
-  Users, 
-  Globe, 
-  TrendingUp,
-  Cpu,
-  Zap,
-  Workflow,
-  ChefHat,
-  Calendar,
-  Dna,
-  Mic,
-  Camera,
-  DollarSign,
-  Calculator,
-  PresentationScreen
-} from 'lucide-react';
+import { Brain, Activity, BarChart3, Users, Globe, TrendingUp, Cpu, Zap, Workflow, ChefHat, Calendar, Dna, Mic, Camera, DollarSign, Calculator, Presentation as PresentationScreen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
