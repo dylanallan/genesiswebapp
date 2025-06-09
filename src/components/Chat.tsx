@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight, Workflow, ListChecks, Globe, Trophy, Mic, MicOff, LogIn, AlertCircle, Settings, Zap, CheckCircle, XCircle, Activity, TrendingUp, BarChart3 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
-import { streamResponse, getBestModelForTask, getMockResponse, checkAIServiceHealth, getAIProviderStatus, getAvailableModels, enableAIProvider, disableAIProvider, getProviderMetrics } from '../lib/ai';
+import { streamResponse, getBestModelForTask, getMockResponse, checkAIServiceHealth, getAIProviderStatus, getAvailableModels, enableAIProvider, disableAIProvider, getProviderMetrics } from '../lib/production-ai';
 import { analyzeGenealogyData, generatePersonalizedPlan, AnalysisResult } from '../lib/analyzers';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -89,12 +89,10 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -105,7 +103,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
   }, []);
 
   useEffect(() => {
-    // Check AI service health and provider status periodically
     const checkHealth = async () => {
       if (session) {
         const isHealthy = await checkAIServiceHealth();
@@ -117,7 +114,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     };
 
     checkHealth();
-    const healthInterval = setInterval(checkHealth, 60000); // Check every minute
+    const healthInterval = setInterval(checkHealth, 60000);
 
     return () => clearInterval(healthInterval);
   }, [session]);
@@ -160,7 +157,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     const initialAnalysis = generatePersonalizedPlan(ancestry, businessGoals);
     const initialMessage: Message = {
       role: 'system',
-      content: 'Welcome to Genesis Heritage! I\'ve prepared some personalized insights based on your profile:',
+      content: 'Welcome to Genesis Heritage Pro! I\'ve prepared some personalized insights based on your profile:',
       timestamp: new Date(),
       analysis: initialAnalysis
     };
@@ -289,7 +286,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         await disableAIProvider(providerId);
       }
       
-      // Refresh provider status
       const status = await getAIProviderStatus();
       setProviderStatus(status);
     } catch (error) {
@@ -339,7 +335,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       let provider = '';
       
       if (isAuthenticated && aiServiceHealth) {
-        // Use AI router for authenticated users
         for await (const chunk of streamResponse(
           agentPrompt(ancestry, businessGoals),
           getBestModelForTask(pathway) as any,
@@ -350,7 +345,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         }
         provider = 'AI Router';
       } else {
-        // Use mock response when not authenticated or service is down
         fullResponse = await getMockResponse(pathway);
         setStreamingContent(fullResponse);
         provider = 'Mock Response';
@@ -375,7 +369,6 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
 
-      // Show contact form for automation pathways
       if (automationPathways.includes(pathway)) {
         setShowContactForm(true);
       }
@@ -636,7 +629,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       <div className="flex items-center justify-between p-4 border-b border-blue-100">
         <div className="flex items-center space-x-2">
           <Brain className="w-6 h-6 text-blue-500" />
-          <span className="font-semibold">Genesis AI Assistant</span>
+          <span className="font-semibold">Genesis AI Assistant Pro</span>
           {!aiServiceHealth && (
             <div className="flex items-center space-x-1 text-amber-600">
               <AlertCircle className="w-4 h-4" />
