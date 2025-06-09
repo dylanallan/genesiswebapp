@@ -1,6 +1,6 @@
 import React from 'react';
 import { AuthProvider } from './components/AuthProvider';
-import { SuperchargedDashboard } from './components/SuperchargedDashboard';
+import { HackathonDemoPage } from './components/HackathonDemoPage';
 import { SystemHealthMonitor } from './components/SystemHealthMonitor';
 import { ErrorBoundary } from './lib/error-boundary';
 import { Toaster } from 'sonner';
@@ -10,7 +10,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
-          <SuperchargedDashboard />
+          <HackathonDemoPage />
           
           {/* System Health Monitor - Only show in development or when needed */}
           {process.env.NODE_ENV === 'development' && (
