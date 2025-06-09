@@ -6,6 +6,7 @@ interface PerformanceMetrics {
   networkLatency: number;
   errorRate: number;
   componentCount: number;
+  fps: number;
 }
 
 class PerformanceMonitor {
@@ -15,10 +16,14 @@ class PerformanceMonitor {
     renderTime: 0,
     networkLatency: 0,
     errorRate: 0,
-    componentCount: 0
+    componentCount: 0,
+    fps: 60
   };
   private observers: PerformanceObserver[] = [];
   private isMonitoring = false;
+  private frameCount = 0;
+  private lastFrameTime = performance.now();
+  private fpsHistory: number[] = [];
 
   private constructor() {
     this.startMonitoring();
@@ -46,6 +51,9 @@ class PerformanceMonitor {
     
     // Monitor component lifecycle
     this.monitorComponentLifecycle();
+
+    // Monitor FPS
+    this.monitorFPS();
 
     // Start periodic checks
     setInterval(() => {
@@ -121,6 +129,30 @@ class PerformanceMonitor {
     }
   }
 
+  private monitorFPS() {
+    const updateFPS = () => {
+      this.frameCount++;
+      const now = performance.now();
+      
+      if (now - this.lastFrameTime >= 1000) {
+        const fps = Math.round((this.frameCount * 1000) / (now - this.lastFrameTime));
+        this.fpsHistory.push(fps);
+        
+        if (this.fpsHistory.length > 60) {
+          this.fpsHistory.shift();
+        }
+        
+        this.metrics.fps = fps;
+        this.frameCount = 0;
+        this.lastFrameTime = now;
+      }
+      
+      requestAnimationFrame(updateFPS);
+    };
+    
+    updateFPS();
+  }
+
   private countComponents(fiber: any): number {
     let count = 0;
     
@@ -149,6 +181,10 @@ class PerformanceMonitor {
     
     if (this.metrics.componentCount > 500) {
       issues.push(`High component count: ${this.metrics.componentCount}`);
+    }
+    
+    if (this.metrics.fps < 30) {
+      issues.push(`Low framerate: ${this.metrics.fps} FPS`);
     }
     
     if (issues.length > 0) {
@@ -241,5 +277,15 @@ class PerformanceMonitor {
 
 // Extend the function to include timeout property
 (PerformanceMonitor.prototype.optimizePerformance as any).timeout = null;
+
+// Add missing types for window
+declare global {
+  interface Window {
+    gc?: () => void;
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: any;
+    __LARGE_CACHE__?: Record<string, any>;
+    __APP_STATE__?: Record<string, any>;
+  }
+}
 
 export const performanceMonitor = PerformanceMonitor.getInstance();

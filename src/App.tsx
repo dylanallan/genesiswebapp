@@ -1,24 +1,14 @@
 import React from 'react';
 import { AuthProvider } from './components/AuthProvider';
-import { HackathonDemoPage } from './components/HackathonDemoPage';
-import { SystemHealthMonitor } from './components/SystemHealthMonitor';
-import { ErrorBoundary } from './lib/error-boundary';
 import { Toaster } from 'sonner';
+import EliteHackathonApp from './components/EliteHackathonApp';
+import { ErrorBoundary } from './lib/error-boundary';
 
 function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
-          <HackathonDemoPage />
-          
-          {/* System Health Monitor - Only show in development or when needed */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="fixed bottom-4 right-4 w-96 z-50">
-              <SystemHealthMonitor />
-            </div>
-          )}
-        </div>
+        <EliteHackathonApp />
       </AuthProvider>
       <Toaster position="top-right" />
     </ErrorBoundary>
