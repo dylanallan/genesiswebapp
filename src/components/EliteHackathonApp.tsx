@@ -260,6 +260,20 @@ const EliteHackathonApp = () => {
                 change={2.1}
                 color="orange"
               />
+              <MetricCard
+                title="Risk Alerts Prevented"
+                value="127"
+                icon={Activity}
+                change={5.3}
+                color="purple"
+              />
+              <MetricCard
+                title="Security Score"
+                value="99.9%"
+                icon={Shield}
+                change={0.5}
+                color="orange"
+              />
             </div>
 
             {/* AI-Powered Insights */}
@@ -470,16 +484,6 @@ const EliteHackathonApp = () => {
                   <Target className="w-12 h-12 text-green-600 mx-auto mb-4" />
                   <div className="text-3xl font-bold text-green-600">$2.3M</div>
                   <div className="text-gray-600">Revenue Predicted</div>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
-                  <Activity className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-                  <div className="text-3xl font-bold text-purple-600">127</div>
-                  <div className="text-gray-600">Risk Alerts Prevented</div>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl">
-                  <Shield className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-                  <div className="text-3xl font-bold text-orange-600">99.9%</div>
-                  <div className="text-gray-600">Security Score</div>
                 </div>
               </div>
             </div>
