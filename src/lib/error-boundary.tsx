@@ -37,6 +37,9 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-gray-600 mb-4">
               We apologize for the inconvenience. Please try refreshing the page or contact support if the problem persists.
             </p>
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 overflow-auto max-h-32">
+              <code className="text-sm text-red-600">{this.state.error?.message}</code>
+            </div>
             <button
               onClick={() => window.location.reload()}
               className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"

@@ -8,11 +8,11 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase configuration');
-  throw new Error('Missing Supabase environment variables');
+  toast.error('Missing Supabase configuration. Please check your environment variables.');
 }
 
 // Create and export the Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     autoRefreshToken: true,
     persistSession: true,

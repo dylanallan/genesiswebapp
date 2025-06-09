@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, Image, FileText, Music, Video, Search, Filter, Plus, Info, ExternalLink, Tag } from 'lucide-react';
+import { Globe, Image, FileText, Music, Video, Search, Filter, Plus, Info, ExternalLink, Tag, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Modal } from './ui/Modal';
+import { Card, CardBody } from './ui/Card';
+import { CulturalArtifactForm } from './CulturalArtifactForm';
+import { EmptyState } from './EmptyState';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface CulturalArtifact {
   id: string;
@@ -22,6 +29,7 @@ export const CulturalArtifactGallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<CulturalArtifact | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   useEffect(() => {
     fetchArtifacts();
@@ -48,6 +56,26 @@ export const CulturalArtifactGallery: React.FC = () => {
       toast.error('Failed to load cultural artifacts');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteArtifact = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this artifact?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('cultural_artifacts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast.success('Artifact deleted successfully');
+      setArtifacts(artifacts.filter(artifact => artifact.id !== id));
+      setSelectedArtifact(null);
+    } catch (error) {
+      console.error('Error deleting artifact:', error);
+      toast.error('Failed to delete artifact');
     }
   };
 
@@ -121,13 +149,12 @@ export const CulturalArtifactGallery: React.FC = () => {
           <Globe className="w-6 h-6 text-blue-500" />
           <h2 className="text-xl font-semibold text-gray-900">Cultural Artifacts</h2>
         </div>
-        <button
+        <Button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          leftIcon={<Plus className="w-5 h-5" />}
         >
-          <Plus className="w-5 h-5" />
-          <span>Add Artifact</span>
-        </button>
+          Add Artifact
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
@@ -168,27 +195,24 @@ export const CulturalArtifactGallery: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <LoadingSpinner size="lg" text="Loading artifacts..." />
         </div>
       ) : filteredArtifacts.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No artifacts found</h3>
-          <p className="text-gray-500 mb-4">
-            {searchTerm 
+        <EmptyState
+          icon={<Globe className="w-8 h-8" />}
+          title="No artifacts found"
+          description={
+            searchTerm 
               ? `No results for "${searchTerm}"` 
               : selectedCategory 
                 ? `No ${selectedCategory} artifacts found` 
-                : 'Start by adding your first cultural artifact'}
-          </p>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Artifact
-          </button>
-        </div>
+                : 'Start by adding your first cultural artifact'
+          }
+          action={{
+            label: "Add Artifact",
+            onClick: () => setShowAddForm(true)
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredArtifacts.map((artifact) => (
@@ -226,214 +250,135 @@ export const CulturalArtifactGallery: React.FC = () => {
       )}
 
       {/* Artifact Detail Modal */}
-      {selectedArtifact && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  {getCategoryIcon(selectedArtifact.category)}
-                  <h3 className="text-xl font-semibold text-gray-900">{selectedArtifact.title}</h3>
-                </div>
-                <button
-                  onClick={() => setSelectedArtifact(null)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+      <Modal
+        isOpen={!!selectedArtifact}
+        onClose={() => setSelectedArtifact(null)}
+        title={selectedArtifact?.title || ''}
+        size="lg"
+      >
+        {selectedArtifact && (
+          <div className="space-y-6">
+            {selectedArtifact.media_url && selectedArtifact.media_type === 'image' && (
+              <div className="mb-6">
+                <img 
+                  src={selectedArtifact.media_url} 
+                  alt={selectedArtifact.title} 
+                  className="w-full h-auto rounded-lg"
+                />
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
+                <p className="text-gray-900">{selectedArtifact.description}</p>
               </div>
 
-              {selectedArtifact.media_url && selectedArtifact.media_type === 'image' && (
-                <div className="mb-6">
-                  <img 
-                    src={selectedArtifact.media_url} 
-                    alt={selectedArtifact.title} 
-                    className="w-full h-auto rounded-lg"
-                  />
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Category</h4>
+                <div className="flex items-center space-x-2">
+                  {getCategoryIcon(selectedArtifact.category)}
+                  <span className="text-gray-900 capitalize">{selectedArtifact.category}</span>
+                </div>
+              </div>
+
+              {selectedArtifact.tags && selectedArtifact.tags.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Tags</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedArtifact.tags.map((tag, index) => (
+                      <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
-                  <p className="text-gray-900">{selectedArtifact.description}</p>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Category</h4>
-                  <div className="flex items-center space-x-2">
-                    {getCategoryIcon(selectedArtifact.category)}
-                    <span className="text-gray-900 capitalize">{selectedArtifact.category}</span>
-                  </div>
-                </div>
-
-                {selectedArtifact.tags && selectedArtifact.tags.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Tags</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedArtifact.tags.map((tag, index) => (
-                        <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Added</h4>
-                  <p className="text-gray-900">
-                    {new Date(selectedArtifact.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-
-                {selectedArtifact.media_url && selectedArtifact.media_type !== 'image' && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Media</h4>
-                    <a 
-                      href={selectedArtifact.media_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-blue-600 hover:text-blue-800"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>View {selectedArtifact.media_type}</span>
-                    </a>
-                  </div>
-                )}
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Added</h4>
+                <p className="text-gray-900">
+                  {new Date(selectedArtifact.created_at).toLocaleDateString()}
+                </p>
               </div>
 
-              <div className="mt-6 flex space-x-3">
-                <button
-                  onClick={() => setSelectedArtifact(null)}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Edit Artifact
-                </button>
-              </div>
+              {selectedArtifact.media_url && selectedArtifact.media_type !== 'image' && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Media</h4>
+                  <a 
+                    href={selectedArtifact.media_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 text-blue-600 hover:text-blue-800"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>View {selectedArtifact.media_type}</span>
+                  </a>
+                </div>
+              )}
             </div>
-          </motion.div>
-        </div>
-      )}
+
+            <div className="flex space-x-3 pt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setSelectedArtifact(null)}
+              >
+                Close
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  setShowEditForm(true);
+                }}
+              >
+                Edit Artifact
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  handleDeleteArtifact(selectedArtifact.id);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Add Artifact Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl max-w-2xl w-full"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Add Cultural Artifact</h3>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+      <Modal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        title="Add Cultural Artifact"
+        size="lg"
+      >
+        <CulturalArtifactForm
+          onClose={() => setShowAddForm(false)}
+          onSuccess={fetchArtifacts}
+        />
+      </Modal>
 
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter artifact title"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={3}
-                    placeholder="Describe the cultural significance of this artifact"
-                  ></textarea>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                      <option value="">Select a category</option>
-                      <option value="image">Image</option>
-                      <option value="document">Document</option>
-                      <option value="audio">Audio</option>
-                      <option value="video">Video</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Media URL (optional)
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="https://example.com/media.jpg"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tags (comma separated)
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="family, history, tradition, etc."
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Info className="w-4 h-4" />
-                  <span>Artifacts are searchable and can be linked to celebrations, traditions, and stories.</span>
-                </div>
-
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    onClick={() => {
-                      toast.success('Artifact added successfully!');
-                      setShowAddForm(false);
-                    }}
-                  >
-                    Save Artifact
-                  </button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* Edit Artifact Form Modal */}
+      <Modal
+        isOpen={showEditForm && !!selectedArtifact}
+        onClose={() => setShowEditForm(false)}
+        title="Edit Cultural Artifact"
+        size="lg"
+      >
+        {selectedArtifact && (
+          <CulturalArtifactForm
+            onClose={() => setShowEditForm(false)}
+            onSuccess={() => {
+              fetchArtifacts();
+              setSelectedArtifact(null);
+            }}
+            initialData={selectedArtifact}
+            isEditing
+          />
+        )}
+      </Modal>
     </div>
   );
 };

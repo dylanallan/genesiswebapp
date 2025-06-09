@@ -1,48 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AutomationFlow } from './AutomationFlow';
-import { MetricsCard } from './MetricsCard';
-import { Chat } from './Chat';
-import { ColorSettings } from './ColorSettings';
-import { Brain, Activity, Cpu, LogOut, Search, ChevronDown, Bell, Settings, X, Zap, Globe, Users, BookOpen, ChefHat, Calendar, Dna, Camera, Mic } from 'lucide-react';
+import { 
+  Brain, 
+  Activity, 
+  Cpu, 
+  LogOut, 
+  Search, 
+  ChevronDown, 
+  Bell, 
+  Settings, 
+  X, 
+  Zap, 
+  Globe, 
+  Users, 
+  BookOpen, 
+  ChefHat, 
+  Calendar, 
+  Dna, 
+  Camera, 
+  Mic 
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
 import { useAtom } from 'jotai';
 import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';
+import { CulturalArtifactGallery } from './CulturalArtifactGallery';
+import { TraditionsManager } from './TraditionsManager';
+import { FamilyContactManager } from './FamilyContactManager';
+import { CelebrationManager } from './CelebrationManager';
+import { CulturalStoryLibrary } from './CulturalStoryLibrary';
 import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
-import { DNAInsights } from './DNAInsights';
-import { ARHeritageViewer } from './ARHeritageViewer';
-import { VoiceCloning } from './VoiceCloning';
+import { Button } from './ui/Button';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
 }
 
-const systemMetrics = {
-  errorDetection: 0.999,
-  errorCorrection: 0.99,
-  systemValidation: 0.999,
-  performanceMonitoring: 0.999,
-  qualityAssurance: 0.999,
-};
-
-const targetMetrics = {
-  errorDetection: 0.995,
-  errorCorrection: 0.98,
-  systemValidation: 0.995,
-  performanceMonitoring: 0.995,
-  qualityAssurance: 0.995,
-};
-
 const features = [
-  { id: 'dashboard', name: 'AI Dashboard', icon: Brain },
-  { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat },
-  { id: 'timeline', name: 'Family Timeline', icon: Calendar },
-  { id: 'dna', name: 'DNA Analysis', icon: Dna },
-  { id: 'ar', name: 'AR Heritage', icon: Camera },
-  { id: 'voice', name: 'Voice Preservation', icon: Mic },
+  { id: 'artifacts', name: 'Cultural Artifacts', icon: Globe, component: CulturalArtifactGallery },
+  { id: 'traditions', name: 'Traditions', icon: BookOpen, component: TraditionsManager },
+  { id: 'contacts', name: 'Family Contacts', icon: Users, component: FamilyContactManager },
+  { id: 'celebrations', name: 'Celebrations', icon: Calendar, component: CelebrationManager },
+  { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
+  { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
+  { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
@@ -51,67 +55,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
-  const [activeFeature, setActiveFeature] = useState('dashboard');
+  const [activeFeature, setActiveFeature] = useState('artifacts');
+  const [isLoading, setIsLoading] = useState(false);
   
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      setIsLoading(true);
+      await supabase.auth.signOut();
+      toast.success('Signed out successfully');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const { colorScheme } = preferences;
 
-  const renderFeature = () => {
-    switch (activeFeature) {
-      case 'recipes':
-        return <CulturalRecipeBook />;
-      case 'timeline':
-        return <TimelineBuilder />;
-      case 'dna':
-        return <DNAInsights />;
-      case 'ar':
-        return <ARHeritageViewer />;
-      case 'voice':
-        return <VoiceCloning />;
-      case 'dashboard':
-      default:
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <AutomationFlow />
-            </div>
-            <div className="space-y-6">
-              <MetricsCard
-                title="System Performance"
-                metrics={systemMetrics}
-                targetMetrics={targetMetrics}
-              />
-              <Chat
-                userName={session?.user?.email?.split('@')[0] || 'User'}
-                ancestry="Sample ancestry data"
-                businessGoals="Sample business goals"
-              />
-            </div>
-          </div>
-        );
-    }
-  };
+  const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: colorScheme.background }}>
+    <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
       {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b" style={{ 
-        backgroundColor: colorScheme.primary,
+      <nav className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur-sm" style={{ 
         borderColor: colorScheme.border
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <Brain className="w-6 h-6" style={{ color: colorScheme.accent }} />
-                <h1 className="text-lg font-medium" style={{ color: colorScheme.text }}>
+                <Brain className="w-6 h-6 text-genesis-600" />
+                <h1 className="text-lg font-medium text-gray-900">
                   Genesis Heritage
                 </h1>
               </div>
-              <p className="text-sm hidden sm:block" style={{ color: colorScheme.text }}>
+              <p className="text-sm hidden sm:block text-gray-600">
                 Automate your business and unlock your roots
               </p>
             </div>
@@ -127,13 +106,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               </div>
 
               <button 
-                className="relative p-2 rounded-full hover:bg-opacity-10"
-                style={{ 
-                  color: colorScheme.text,
-                  backgroundColor: `${colorScheme.secondary}22`
-                }}
+                className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-5 h-5 text-gray-600" />
                 {notifications.length > 0 && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
                 )}
@@ -143,33 +118,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-2 p-2 rounded-full hover:bg-opacity-10"
-                    style={{ 
-                      backgroundColor: `${colorScheme.secondary}22`
-                    }}
+                    className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ 
-                        backgroundColor: colorScheme.accent,
-                        color: colorScheme.primary
-                      }}
-                    >
-                      <span className="text-sm font-medium">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-genesis-500 to-spiritual-500 flex items-center justify-center">
+                      <span className="text-sm font-medium text-white">
                         {session.user?.email?.[0].toUpperCase()}
                       </span>
                     </div>
-                    <ChevronDown className="w-4 h-4" style={{ color: colorScheme.text }} />
+                    <ChevronDown className="w-4 h-4 text-gray-600" />
                   </button>
 
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border"
-                      style={{ 
-                        backgroundColor: colorScheme.primary,
-                        borderColor: colorScheme.border
-                      }}
-                    >
-                      <div className="px-4 py-2 border-b" style={{ borderColor: colorScheme.border }}>
-                        <p className="text-sm font-medium" style={{ color: colorScheme.text }}>
+                    <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border bg-white">
+                      <div className="px-4 py-2 border-b">
+                        <p className="text-sm font-medium text-gray-900">
                           {session.user?.email}
                         </p>
                       </div>
@@ -178,30 +140,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                           setShowSettings(true);
                           setShowUserMenu(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-opacity-10 flex items-center"
-                        style={{ 
-                          color: colorScheme.text,
-                          backgroundColor: `${colorScheme.secondary}22`
-                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
                       >
                         <Settings className="w-4 h-4 mr-2" />
                         Settings
                       </button>
                       <button
                         onClick={() => onViewModeChange('hackathon')}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-opacity-10 flex items-center"
-                        style={{ 
-                          color: colorScheme.text,
-                          backgroundColor: `${colorScheme.secondary}22`
-                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
                       >
                         <Zap className="w-4 h-4 mr-2" />
                         Hackathon Demo
                       </button>
                       <button
                         onClick={handleSignOut}
-                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-opacity-10 flex items-center"
-                        style={{ backgroundColor: `${colorScheme.secondary}22` }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 flex items-center"
                       >
                         <LogOut className="w-4 h-4 mr-2" />
                         Sign out
@@ -214,21 +167,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           </div>
         </div>
       </nav>
-
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="relative max-w-lg w-full mx-4">
-            <button
-              onClick={() => setShowSettings(false)}
-              className="absolute -top-2 -right-2 p-2 rounded-full bg-gray-800 text-gray-300 hover:bg-gray-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <ColorSettings />
-          </div>
-        </div>
-      )}
 
       {/* Feature Navigation */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
@@ -290,7 +228,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           </div>
         </div>
 
-        {renderFeature()}
+        <ActiveComponent />
       </main>
 
       {/* Enhanced Floating Action Button */}
@@ -341,6 +279,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           </div>
         </div>
       </div>
+
+      {/* Loading Overlay */}
+      {isLoading && <LoadingSpinner fullScreen text="Processing..." />}
     </div>
   );
 };

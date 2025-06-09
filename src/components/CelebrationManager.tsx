@@ -3,6 +3,13 @@ import { motion } from 'framer-motion';
 import { Calendar, Search, Plus, Edit, Trash, MapPin, Users, Info, X, CalendarDays } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Modal } from './ui/Modal';
+import { Card, CardBody } from './ui/Card';
+import { EmptyState } from './EmptyState';
+import { LoadingSpinner } from './LoadingSpinner';
+import { formatDate } from '../lib/utils';
 
 interface Celebration {
   id: string;
@@ -16,14 +23,23 @@ interface Celebration {
   updated_at: string;
 }
 
+interface CelebrationFormData {
+  name: string;
+  description: string;
+  date_or_season: string;
+  significance: string;
+  location: string;
+  participants: string[];
+}
+
 export const CelebrationManager: React.FC = () => {
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCelebration, setSelectedCelebration] = useState<Celebration | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<Celebration>>({
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [formData, setFormData] = useState<CelebrationFormData>({
     name: '',
     description: '',
     date_or_season: '',
@@ -31,6 +47,7 @@ export const CelebrationManager: React.FC = () => {
     location: '',
     participants: []
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchCelebrations();
@@ -56,9 +73,10 @@ export const CelebrationManager: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      if (isEditing && selectedCelebration) {
+      if (showEditForm && selectedCelebration) {
         // Update existing celebration
         const { error } = await supabase
           .from('celebrations')
@@ -78,36 +96,27 @@ export const CelebrationManager: React.FC = () => {
       }
 
       // Reset form and fetch updated celebrations
-      setFormData({
-        name: '',
-        description: '',
-        date_or_season: '',
-        significance: '',
-        location: '',
-        participants: []
-      });
-      setShowAddForm(false);
-      setIsEditing(false);
-      setSelectedCelebration(null);
+      resetForm();
       fetchCelebrations();
     } catch (error) {
       console.error('Error saving celebration:', error);
       toast.error('Failed to save celebration');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEdit = (celebration: Celebration) => {
     setFormData({
       name: celebration.name,
-      description: celebration.description,
-      date_or_season: celebration.date_or_season,
-      significance: celebration.significance,
-      location: celebration.location,
-      participants: celebration.participants
+      description: celebration.description || '',
+      date_or_season: celebration.date_or_season || '',
+      significance: celebration.significance || '',
+      location: celebration.location || '',
+      participants: celebration.participants || []
     });
     setSelectedCelebration(celebration);
-    setIsEditing(true);
-    setShowAddForm(true);
+    setShowEditForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -126,6 +135,20 @@ export const CelebrationManager: React.FC = () => {
       console.error('Error deleting celebration:', error);
       toast.error('Failed to delete celebration');
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      date_or_season: '',
+      significance: '',
+      location: '',
+      participants: []
+    });
+    setShowAddForm(false);
+    setShowEditForm(false);
+    setSelectedCelebration(null);
   };
 
   const filteredCelebrations = celebrations.filter(celebration => 
@@ -161,6 +184,88 @@ export const CelebrationManager: React.FC = () => {
     return groups;
   }, {} as Record<string, Celebration[]>);
 
+  const renderCelebrationForm = () => (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Input
+        label="Name *"
+        value={formData.name}
+        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        placeholder="Enter celebration name"
+        required
+      />
+
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
+        <textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          rows={3}
+          placeholder="Describe this celebration"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          label="Date or Season"
+          value={formData.date_or_season}
+          onChange={(e) => setFormData({ ...formData, date_or_season: e.target.value })}
+          placeholder="e.g., December 25 or Winter"
+        />
+
+        <Input
+          label="Location"
+          value={formData.location}
+          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+          placeholder="Where is this celebration held?"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Significance
+        </label>
+        <textarea
+          value={formData.significance}
+          onChange={(e) => setFormData({ ...formData, significance: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          rows={3}
+          placeholder="What is the cultural or personal significance of this celebration?"
+        />
+      </div>
+
+      <Input
+        label="Participants (comma separated)"
+        value={formData.participants?.join(', ') || ''}
+        onChange={(e) => setFormData({ 
+          ...formData, 
+          participants: e.target.value.split(',').map(p => p.trim()).filter(p => p) 
+        })}
+        placeholder="Family members, community, etc."
+      />
+
+      <div className="flex space-x-3 pt-4">
+        <Button
+          type="button"
+          onClick={resetForm}
+          variant="outline"
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          isLoading={isSubmitting}
+          className="flex-1"
+        >
+          {showEditForm ? 'Update Celebration' : 'Save Celebration'}
+        </Button>
+      </div>
+    </form>
+  );
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -168,24 +273,12 @@ export const CelebrationManager: React.FC = () => {
           <Calendar className="w-6 h-6 text-blue-500" />
           <h2 className="text-xl font-semibold text-gray-900">Celebrations & Events</h2>
         </div>
-        <button
-          onClick={() => {
-            setShowAddForm(true);
-            setIsEditing(false);
-            setFormData({
-              name: '',
-              description: '',
-              date_or_season: '',
-              significance: '',
-              location: '',
-              participants: []
-            });
-          }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        <Button
+          onClick={() => setShowAddForm(true)}
+          leftIcon={<Plus className="w-5 h-5" />}
         >
-          <Plus className="w-5 h-5" />
-          <span>Add Celebration</span>
-        </button>
+          Add Celebration
+        </Button>
       </div>
 
       <div className="relative mb-6">
@@ -201,25 +294,22 @@ export const CelebrationManager: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <LoadingSpinner size="lg" text="Loading celebrations..." />
         </div>
       ) : filteredCelebrations.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No celebrations found</h3>
-          <p className="text-gray-500 mb-4">
-            {searchTerm 
+        <EmptyState
+          icon={<Calendar className="w-8 h-8" />}
+          title="No celebrations found"
+          description={
+            searchTerm 
               ? `No results for "${searchTerm}"` 
-              : 'Start by adding your first celebration or cultural event'}
-          </p>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Celebration
-          </button>
-        </div>
+              : 'Start by adding your first celebration or cultural event'
+          }
+          action={{
+            label: "Add Celebration",
+            onClick: () => setShowAddForm(true)
+          }}
+        />
       ) : (
         <div className="space-y-8">
           {Object.entries(groupedCelebrations).map(([group, groupCelebrations]) => (
@@ -329,132 +419,25 @@ export const CelebrationManager: React.FC = () => {
         </div>
       )}
 
-      {/* Add/Edit Celebration Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {isEditing ? 'Edit Celebration' : 'Add New Celebration'}
-                </h3>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+      {/* Add Celebration Form Modal */}
+      <Modal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        title="Add New Celebration"
+        size="lg"
+      >
+        {renderCelebrationForm()}
+      </Modal>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter celebration name"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={3}
-                    placeholder="Describe this celebration"
-                  ></textarea>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date or Season
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.date_or_season}
-                      onChange={(e) => setFormData({ ...formData, date_or_season: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., December 25 or Winter"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Where is this celebration held?"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Significance
-                  </label>
-                  <textarea
-                    value={formData.significance}
-                    onChange={(e) => setFormData({ ...formData, significance: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={3}
-                    placeholder="What is the cultural or personal significance of this celebration?"
-                  ></textarea>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Participants (comma separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.participants?.join(', ') || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      participants: e.target.value.split(',').map(p => p.trim()).filter(p => p) 
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Family members, community, etc."
-                  />
-                </div>
-
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    {isEditing ? 'Update Celebration' : 'Save Celebration'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* Edit Celebration Form Modal */}
+      <Modal
+        isOpen={showEditForm}
+        onClose={() => setShowEditForm(false)}
+        title="Edit Celebration"
+        size="lg"
+      >
+        {renderCelebrationForm()}
+      </Modal>
     </div>
   );
 };
