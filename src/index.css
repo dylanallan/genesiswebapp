@@ -30,34 +30,6 @@
   }
 }
 
-.reactflow-wrapper {
-  @apply h-full;
-}
-
-.react-flow__node {
-  @apply font-sans;
-}
-
-.react-flow__controls {
-  @apply !bg-white/80 !shadow-lg !rounded-lg !border !border-gray-200;
-}
-
-.react-flow__controls-button {
-  @apply !border-gray-200 !bg-white hover:!bg-gray-50 !transition-colors;
-}
-
-.react-flow__minimap {
-  @apply !bg-white/80 !rounded-lg !border !border-gray-200;
-}
-
-.react-flow__edge-path {
-  @apply !stroke-genesis-600;
-}
-
-.react-flow__node {
-  @apply !shadow-flow hover:!shadow-flow-hover !transition-shadow;
-}
-
 /* Custom animations */
 @keyframes slide-in {
   0% {
