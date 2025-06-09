@@ -22,20 +22,28 @@ export const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    resetField
+    resetField,
+    setValue
   } = useForm<AuthForm>({
-    resolver: zodResolver(authSchema)
+    resolver: zodResolver(authSchema),
+    defaultValues: {
+      email: '',
+      password: ''
+    }
   });
 
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
+      setAuthError(null);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -50,6 +58,7 @@ export const Auth: React.FC = () => {
       if (error) throw error;
     } catch (error: any) {
       console.error('Google sign in error:', error);
+      setAuthError('Failed to sign in with Google. Please try again.');
       toast.error('Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoading(false);
@@ -58,6 +67,8 @@ export const Auth: React.FC = () => {
 
   const onSubmit = async (data: AuthForm) => {
     setIsLoading(true);
+    setAuthError(null);
+    
     try {
       if (isLogin) {
         const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -95,21 +106,32 @@ export const Auth: React.FC = () => {
       console.error('Auth error:', error);
       
       if (error.message.includes('Invalid login credentials')) {
+        setAuthError('Invalid email or password');
         toast.error('Invalid email or password');
         resetField('password');
       } else if (error.message.includes('Email not confirmed')) {
+        setAuthError('Please verify your email before signing in');
         toast.error('Please verify your email before signing in');
       } else if (error.message.includes('already registered')) {
+        setAuthError('This email is already registered');
         toast.error('This email is already registered');
         setIsLogin(true);
       } else if (error.message.includes('Password should be at least 6 characters')) {
+        setAuthError('Password must be at least 6 characters long');
         toast.error('Password must be at least 6 characters long');
       } else {
+        setAuthError(error.message || 'Authentication failed. Please try again.');
         toast.error(error.message || 'Authentication failed. Please try again.');
       }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // For demo purposes, pre-fill the form
+  const fillDemoCredentials = () => {
+    setValue('email', 'dylltoamill@gmail.com');
+    setValue('password', 'Latino@1992');
   };
 
   return (
@@ -139,6 +161,12 @@ export const Auth: React.FC = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl p-8 border border-genesis-100">
+          {authError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {authError}
+            </div>
+          )}
+          
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -234,16 +262,25 @@ export const Auth: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-center">
+        <div className="text-center space-y-3">
           <button
             type="button"
             onClick={() => {
               setIsLogin(!isLogin);
+              setAuthError(null);
               reset();
             }}
             className="text-sm text-genesis-600 hover:text-genesis-500 transition-colors"
           >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+          
+          <button
+            type="button"
+            onClick={fillDemoCredentials}
+            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            Use demo credentials
           </button>
         </div>
       </motion.div>
