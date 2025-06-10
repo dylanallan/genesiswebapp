@@ -1,5 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Brain, Upload, BookOpen, Briefcase, Users, Clock, Sparkles, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  Send, 
+  Bot, 
+  User, 
+  Loader2, 
+  Brain, 
+  Upload, 
+  BookOpen, 
+  Briefcase, 
+  Users, 
+  Clock, 
+  Sparkles, 
+  ArrowRight 
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import { streamResponse, getBestModelForTask, getMockResponse } from '../lib/ai';

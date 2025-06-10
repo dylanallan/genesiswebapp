@@ -95,6 +95,34 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
           description: 'Keep data in sync between multiple systems and databases',
           category: 'Data Management',
           nodes: 6
+        },
+        {
+          id: '5',
+          name: 'Lead Nurturing',
+          description: 'Automatically nurture leads with personalized content based on their behavior',
+          category: 'Marketing',
+          nodes: 14
+        },
+        {
+          id: '6',
+          name: 'Invoice Processing',
+          description: 'Automate invoice processing, approval workflows, and payment tracking',
+          category: 'Finance',
+          nodes: 9
+        },
+        {
+          id: '7',
+          name: 'Social Media Scheduler',
+          description: 'Schedule and post content to multiple social media platforms',
+          category: 'Marketing',
+          nodes: 7
+        },
+        {
+          id: '8',
+          name: 'Cultural Event Notifications',
+          description: 'Send notifications about upcoming cultural events and heritage celebrations',
+          category: 'Cultural Heritage',
+          nodes: 5
         }
       ]);
     } catch (error) {

@@ -59,6 +59,9 @@ export const WorkflowGenerator: React.FC<WorkflowGeneratorProps> = ({
     { id: 'email-campaign', name: 'Email Campaign', icon: Mail },
     { id: 'meeting-scheduler', name: 'Meeting Scheduler', icon: Calendar },
     { id: 'data-sync', name: 'Data Synchronization', icon: Database },
+    { id: 'cultural-event', name: 'Cultural Event Notifications', icon: Calendar },
+    { id: 'lead-nurturing', name: 'Lead Nurturing', icon: Users },
+    { id: 'invoice-processing', name: 'Invoice Processing', icon: FileText },
     { id: 'custom', name: 'Custom Workflow', icon: Workflow }
   ];
 

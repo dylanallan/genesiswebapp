@@ -223,7 +223,7 @@ export const AutomationAssistant: React.FC<AutomationAssistantProps> = ({
       const workflowTypes = [
         'customer onboarding', 'lead nurturing', 'document processing', 
         'invoice processing', 'email campaign', 'data sync', 
-        'meeting scheduler', 'social media'
+        'meeting scheduler', 'social media', 'cultural event'
       ];
       
       let workflowType = 'custom workflow';
@@ -273,7 +273,10 @@ export const AutomationAssistant: React.FC<AutomationAssistantProps> = ({
     { name: 'Document Processing', icon: FileText, description: 'Extract data from documents and process automatically' },
     { name: 'Email Campaigns', icon: Mail, description: 'Schedule and send personalized email campaigns' },
     { name: 'Meeting Scheduler', icon: Calendar, description: 'Automate meeting scheduling and reminders' },
-    { name: 'Data Synchronization', icon: Database, description: 'Keep data in sync across multiple systems' }
+    { name: 'Data Synchronization', icon: Database, description: 'Keep data in sync across multiple systems' },
+    { name: 'Cultural Event Notifications', icon: Calendar, description: 'Send notifications for cultural events and celebrations' },
+    { name: 'Lead Nurturing', icon: Users, description: 'Automatically nurture leads with personalized content' },
+    { name: 'Invoice Processing', icon: FileText, description: 'Automate invoice processing and payment tracking' }
   ];
 
   if (!isOpen) return null;
@@ -325,7 +328,7 @@ export const AutomationAssistant: React.FC<AutomationAssistantProps> = ({
           {/* Quick Start Templates */}
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
             <h3 className="font-medium text-blue-900 mb-3">Quick Start Templates</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {automationTemplates.map((template, index) => {
                 const Icon = template.icon;
                 return (
