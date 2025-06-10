@@ -39,3 +39,42 @@ export const userPreferencesAtom = atom<UserPreferences>({
 });
 
 export const systemStateAtom = atom<Record<string, any>>({});
+
+export interface UserSession {
+  id: string;
+  email: string;
+  preferences: UserPreferences;
+  lastActive: Date;
+  interactions: Interaction[];
+  flowData: FlowData[];
+  documents: Document[];
+}
+
+export interface Interaction {
+  id: string;
+  userId: string;
+  type: string;
+  data: any;
+  timestamp: Date;
+}
+
+export interface FlowData {
+  id: string;
+  userId: string;
+  name: string;
+  nodes: any[];
+  edges: any[];
+  created: Date;
+  updated: Date;
+}
+
+export interface Document {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  type: string;
+  created: Date;
+  updated: Date;
+  tags: string[];
+}

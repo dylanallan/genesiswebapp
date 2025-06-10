@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
   Activity, 
+  Cpu, 
   LogOut, 
+  Search, 
+  ChevronDown, 
   Bell, 
   Settings, 
-  Zap,
-  Users,
-  Globe,
-  BookOpen,
-  Calendar
+  X, 
+  Zap, 
+  Globe, 
+  Users, 
+  BookOpen, 
+  ChefHat, 
+  Calendar,
+  User
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
@@ -21,7 +27,12 @@ import { CulturalArtifactGallery } from './CulturalArtifactGallery';
 import { TraditionsManager } from './TraditionsManager';
 import { FamilyContactManager } from './FamilyContactManager';
 import { CelebrationManager } from './CelebrationManager';
+import { CulturalStoryLibrary } from './CulturalStoryLibrary';
+import { CulturalRecipeBook } from './CulturalRecipeBook';
+import { TimelineBuilder } from './TimelineBuilder';
+import { AutomationFlow } from './AutomationFlow';
 import { Chat } from './Chat';
+import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 
 interface DashboardProps {
@@ -32,12 +43,18 @@ const features = [
   { id: 'artifacts', name: 'Cultural Artifacts', icon: Globe, component: CulturalArtifactGallery },
   { id: 'traditions', name: 'Traditions', icon: BookOpen, component: TraditionsManager },
   { id: 'contacts', name: 'Family Contacts', icon: Users, component: FamilyContactManager },
-  { id: 'celebrations', name: 'Celebrations', icon: Calendar, component: CelebrationManager }
+  { id: 'celebrations', name: 'Celebrations', icon: Calendar, component: CelebrationManager },
+  { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
+  { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
+  { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
+  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationFlow },
+  { id: 'profile', name: 'User Profile', icon: User, component: UserProfileManager }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const session = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('artifacts');
@@ -106,6 +123,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                         {session.user?.email?.[0].toUpperCase()}
                       </span>
                     </div>
+                    <ChevronDown className="w-4 h-4 text-gray-600" />
                   </button>
 
                   {showUserMenu && (
@@ -117,6 +135,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                       </div>
                       <button
                         onClick={() => {
+                          setShowUserMenu(false);
+                          setActiveFeature('profile');
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        My Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
                           setShowUserMenu(false);
                         }}
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
@@ -194,6 +223,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             >
               <Activity className="w-4 h-4 text-green-500" />
               <span>All Systems Active</span>
+            </motion.div>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
+            >
+              <Cpu className="w-4 h-4" />
+              <span>Processing Optimized</span>
             </motion.div>
           </div>
         </div>

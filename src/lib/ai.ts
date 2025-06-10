@@ -1,13 +1,14 @@
 import { supabase } from './supabase';
 
-export type AIModel = 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku' | 'gemini-pro' | 'auto';
+export type AIModel = 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku' | 'gemini-pro' | 'gemini-1.5-pro' | 'auto';
 
 export function getBestModelForTask(input: string): AIModel {
   // Enhanced model selection logic with better keyword detection
-  const businessKeywords = ['automation', 'workflow', 'business', 'strategy', 'consulting', 'efficiency', 'process', 'optimization'];
-  const culturalKeywords = ['heritage', 'tradition', 'culture', 'ancestry', 'family', 'cultural', 'identity', 'genealogy'];
-  const codingKeywords = ['code', 'programming', 'function', 'api', 'development', 'debug', 'algorithm', 'software'];
-  const analysisKeywords = ['analyze', 'analysis', 'compare', 'evaluate', 'research', 'study', 'examine', 'investigate'];
+  const businessKeywords = ['automation', 'workflow', 'business', 'strategy', 'consulting', 'efficiency', 'process', 'optimization', 'revenue', 'profit', 'marketing', 'sales', 'funnel', 'lead', 'conversion', 'roi', 'kpi'];
+  const culturalKeywords = ['heritage', 'tradition', 'culture', 'ancestry', 'family', 'cultural', 'identity', 'genealogy', 'ethnicity', 'customs', 'ritual', 'ceremony', 'ancestor'];
+  const codingKeywords = ['code', 'programming', 'function', 'api', 'development', 'debug', 'algorithm', 'software', 'javascript', 'python', 'react', 'typescript', 'html', 'css', 'sql', 'git'];
+  const analysisKeywords = ['analyze', 'analysis', 'compare', 'evaluate', 'research', 'study', 'examine', 'investigate', 'assess', 'review', 'data', 'statistics', 'metrics'];
+  const creativeKeywords = ['creative', 'design', 'story', 'write', 'content', 'marketing', 'brand', 'narrative', 'artistic', 'imagination', 'brainstorm'];
   
   const lowerInput = input.toLowerCase();
   
@@ -31,13 +32,19 @@ export function getBestModelForTask(input: string): AIModel {
     return 'claude-3-opus';
   }
   
+  // Check for creative tasks
+  if (creativeKeywords.some(keyword => lowerInput.includes(keyword))) {
+    return 'claude-3-opus';
+  }
+  
   // Default to GPT-3.5 for general queries
   return 'gpt-3.5-turbo';
 }
 
 export async function* streamResponse(
   prompt: string,
-  model: AIModel
+  model: AIModel,
+  context?: string
 ): AsyncGenerator<string> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -56,7 +63,8 @@ export async function* streamResponse(
       },
       body: JSON.stringify({
         prompt,
-        model: model === 'auto' ? 'gpt-4' : model
+        model: model === 'auto' ? 'gpt-4' : model,
+        context
       }),
     });
 
@@ -120,4 +128,13 @@ export async function getMockResponse(prompt: string): Promise<string> {
     fullResponse += chunk;
   }
   return fullResponse;
+}
+
+export async function checkAIServiceHealth(): Promise<boolean> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return !!session?.access_token;
+  } catch {
+    return false;
+  }
 }
