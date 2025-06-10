@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Mic, 
-  Brain, 
-  FileTree, 
-  Settings, 
-  Volume2, 
-  VolumeX, 
-  X, 
-  Maximize2, 
-  Minimize2,
-  Users,
-  MessageSquare,
-  Zap
-} from 'lucide-react';
+import { Mic, Brain, File as FileTree, Settings, Volume2, VolumeX, X, Maximize2, Minimize2, Users, MessageSquare, Zap } from 'lucide-react';
 import { FamilyTreeVoiceAgent } from './FamilyTreeVoiceAgent';
 import { Chat } from './Chat';
 import { toast } from 'sonner';

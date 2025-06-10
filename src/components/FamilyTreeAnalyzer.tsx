@@ -1,18 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  FileTree, 
-  Upload, 
-  Download, 
-  Search, 
-  Users, 
-  MapPin, 
-  Calendar, 
-  Loader2,
-  AlertTriangle,
-  CheckCircle,
-  Info
-} from 'lucide-react';
+import { File as FileTree, Upload, Download, Search, Users, MapPin, Calendar, Loader2, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { streamResponse } from '../lib/ai';

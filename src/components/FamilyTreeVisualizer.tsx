@@ -189,9 +189,9 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
     if (confidence >= 0.9) {
       return <CheckCircle className="w-4 h-4 text-green-500" title="High confidence" />;
     } else if (confidence >= 0.7) {
-      return <CheckCircle className="w-4 h-4 text-yellow-500" title="Medium confidence" />;
+      return <CheckCircle className="w-4 h-4 text-yellow-500\" title="Medium confidence" />;
     } else {
-      return <AlertTriangle className="w-4 h-4 text-red-500" title="Low confidence" />;
+      return <AlertTriangle className="w-4 h-4 text-red-500\" title="Low confidence" />;
     }
   };
 

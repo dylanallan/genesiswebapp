@@ -1,22 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Mic, 
-  MicOff, 
-  Loader2, 
-  Play, 
-  Pause, 
-  Volume2, 
-  VolumeX, 
-  Settings, 
-  X,
-  Users,
-  UserPlus,
-  FileTree,
-  CheckCircle,
-  AlertTriangle,
-  Info
-} from 'lucide-react';
+import { Mic, MicOff, Loader2, Play, Pause, Volume2, VolumeX, Settings, X, Users, UserPlus, File as FileTree, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { streamResponse } from '../lib/ai';
