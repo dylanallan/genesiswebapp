@@ -8,6 +8,8 @@ import { Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { BackendSetup } from './BackendSetup';
+import { automationIntegration } from '../lib/automation-integration';
 
 export const MainApp: React.FC = () => {
   const session = useSession();
@@ -15,11 +17,16 @@ export const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'standard' | 'enterprise' | 'hackathon'>('standard');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showBackendSetup, setShowBackendSetup] = useState(false);
 
   useEffect(() => {
     // Simplified loading to prevent crashes
     const timer = setTimeout(() => {
       setIsLoading(false);
+      
+      // Check if backend setup is needed
+      const backendInitialized = localStorage.getItem('backend_initialized') === 'true';
+      setShowBackendSetup(!backendInitialized);
     }, 500);
     
     return () => clearTimeout(timer);
@@ -74,6 +81,16 @@ export const MainApp: React.FC = () => {
     }
   };
 
+  const handleBackendSetupComplete = () => {
+    localStorage.setItem('backend_initialized', 'true');
+    setShowBackendSetup(false);
+    
+    // Initialize automation integration
+    if (automationIntegration.isN8NConnected()) {
+      toast.success('n8n integration is active and ready to use');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex items-center justify-center">
@@ -92,6 +109,10 @@ export const MainApp: React.FC = () => {
 
   if (!session) {
     return <Auth />;
+  }
+
+  if (showBackendSetup) {
+    return <BackendSetup onSetupComplete={handleBackendSetupComplete} />;
   }
 
   if (showProfileSetup) {

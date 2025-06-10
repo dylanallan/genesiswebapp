@@ -26,7 +26,7 @@ import { CelebrationManager } from './CelebrationManager';
 import { CulturalStoryLibrary } from './CulturalStoryLibrary';
 import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
-import { AutomationDashboard } from './AutomationDashboard';
+import { AutomationHub } from './AutomationHub';
 import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 import { UserProfileButton } from './UserProfileButton';
@@ -46,7 +46,7 @@ const features = [
   { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
   { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
   { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
-  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationDashboard },
+  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationHub },
   { id: 'profile', name: 'User Profile', icon: Users, component: UserProfileManager }
 ];
 
