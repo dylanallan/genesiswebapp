@@ -11,7 +11,9 @@ import {
   Users, 
   BookOpen, 
   ChefHat, 
-  Calendar
+  Calendar,
+  Database,
+  Sparkles
 } from 'lucide-react';
 import { useSession } from '@supabase/auth-helpers-react';
 import { useAtom } from 'jotai';
@@ -29,6 +31,8 @@ import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 import { UserProfileButton } from './UserProfileButton';
 import { GenesisVoiceAssistant } from './GenesisVoiceAssistant';
+import { EnhancedAIAssistant } from './EnhancedAIAssistant';
+import { AIContextManager } from './AIContextManager';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -53,6 +57,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('artifacts');
+  const [showAIContextManager, setShowAIContextManager] = useState(false);
   
   const { colorScheme } = preferences;
 
@@ -160,6 +165,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               <Cpu className="w-4 h-4" />
               <span>Processing Optimized</span>
             </motion.div>
+            <motion.button
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              onClick={() => setShowAIContextManager(true)}
+              className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors"
+            >
+              <Database className="w-4 h-4" />
+              <span>Manage AI Knowledge</span>
+            </motion.button>
           </div>
         </div>
 
@@ -168,10 +183,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             <ActiveComponent />
           </div>
           <div className="space-y-6">
-            <GenesisVoiceAssistant />
+            <EnhancedAIAssistant />
           </div>
         </div>
       </main>
+
+      {/* AI Context Manager Modal */}
+      {showAIContextManager && (
+        <AIContextManager onClose={() => setShowAIContextManager(false)} />
+      )}
 
       {/* Enhanced Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50">
@@ -181,39 +201,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Zap className="w-6 h-6" />
+            <Sparkles className="w-6 h-6" />
           </motion.button>
           
           <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
             <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
-              <h3 className="font-semibold text-gray-900 mb-2">System Status</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">Enhanced AI Features</h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span>AI Router</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Optimal</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Database</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Optimal</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Automation</span>
+                  <span>Semantic Search</span>
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-green-600">Active</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span>Analytics</span>
+                  <span>Context Awareness</span>
                   <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-blue-600">Running</span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Active</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Multi-model Routing</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Active</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Custom Instructions</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Active</span>
                   </div>
                 </div>
               </div>
