@@ -8,6 +8,8 @@ import { Loader2, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { BackendSetup } from './BackendSetup';
+import { checkBackendStatus } from '../lib/backend-status';
 
 export const MainApp: React.FC = () => {
   const session = useSession();
@@ -15,11 +17,23 @@ export const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'standard' | 'enterprise' | 'hackathon'>('standard');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
+  const [checkingBackend, setCheckingBackend] = useState(true);
 
   useEffect(() => {
     const checkUserRole = async () => {
       if (session?.user) {
         try {
+          // Check backend status first
+          setCheckingBackend(true);
+          const backendStatus = await checkBackendStatus();
+          setBackendReady(backendStatus.overallStatus === 'operational');
+          setCheckingBackend(false);
+          
+          if (backendStatus.overallStatus !== 'operational') {
+            return;
+          }
+          
           // Check if user is admin
           const { data: adminData } = await supabase
             .from('admin_roles')
@@ -58,7 +72,7 @@ export const MainApp: React.FC = () => {
     };
 
     checkUserRole();
-  }, [session]);
+  }, [session, backendReady]);
 
   const handleViewModeChange = async (mode: 'standard' | 'enterprise' | 'hackathon') => {
     setViewMode(mode);
@@ -78,7 +92,12 @@ export const MainApp: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  const handleBackendSetupComplete = () => {
+    setBackendReady(true);
+    toast.success('Backend setup complete!');
+  };
+
+  if (isLoading || checkingBackend) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex items-center justify-center">
         <div className="text-center">
@@ -96,6 +115,10 @@ export const MainApp: React.FC = () => {
 
   if (!session) {
     return <Auth />;
+  }
+
+  if (!backendReady) {
+    return <BackendSetup onSetupComplete={handleBackendSetupComplete} />;
   }
 
   if (showProfileSetup) {

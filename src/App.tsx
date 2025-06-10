@@ -5,6 +5,7 @@ import { ErrorBoundary } from './lib/error-boundary';
 import { MainApp } from './components/MainApp';
 import { useSession } from '@supabase/auth-helpers-react';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import { BackendStatusIndicator } from './components/BackendStatusIndicator';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <AppContent />
       </AuthProvider>
       <Toaster position="top-right" />
+      <BackendStatusIndicator />
     </ErrorBoundary>
   );
 }
