@@ -22,10 +22,11 @@ export const MainApp: React.FC = () => {
           const { data: adminData } = await supabase
             .from('admin_roles')
             .select('role_name')
-            .eq('user_id', session.user.id);
+            .eq('user_id', session.user.id)
+            .single();
 
-          if (adminData && adminData.length > 0) {
-            setUserRole(adminData[0].role_name);
+          if (adminData) {
+            setUserRole(adminData.role_name);
           } else {
             setUserRole('user');
           }
