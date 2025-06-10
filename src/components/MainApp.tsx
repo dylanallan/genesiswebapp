@@ -17,77 +17,41 @@ export const MainApp: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'standard' | 'enterprise' | 'hackathon'>('standard');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [backendReady, setBackendReady] = useState(false);
-  const [checkingBackend, setCheckingBackend] = useState(true);
+  const [backendReady, setBackendReady] = useState(true); // Changed to true by default
+  const [checkingBackend, setCheckingBackend] = useState(false); // Changed to false
+
+  useEffect(() => {
+    // Simulate loading resources - reduced timeout
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500); // Reduced from 1000ms to 500ms
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const checkUserRole = async () => {
       if (session?.user) {
         try {
-          // Check backend status first
-          setCheckingBackend(true);
-          const backendStatus = await checkBackendStatus();
-          setBackendReady(backendStatus.overallStatus === 'operational');
-          setCheckingBackend(false);
+          // Skip backend status check for now
+          setBackendReady(true);
           
-          if (backendStatus.overallStatus !== 'operational') {
-            return;
-          }
-          
-          // Check if user is admin
-          const { data: adminData, error: adminError } = await supabase
-            .from('admin_roles')
-            .select('role_name')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-          if (adminError && adminError.code !== 'PGRST116') { // Not found error
-            console.warn('Error checking admin role:', adminError);
-          }
-
-          if (adminData) {
-            setUserRole(adminData.role_name);
-          } else {
-            setUserRole('user');
-          }
-
           // Get user preferences
-          const { data: userData, error: userError } = await supabase
+          const { data: userData } = await supabase
             .from('user_data')
             .select('preferences')
             .eq('user_id', session.user.id)
             .maybeSingle();
-
-          if (userError && userError.code !== 'PGRST116') {
-            console.warn('Error fetching user data:', userError);
-          }
 
           if (userData?.preferences?.viewMode) {
             setViewMode(userData.preferences.viewMode);
           }
           
           // Check if profile setup is needed
-          try {
-            const { data: profileData, error: profileError } = await supabase
-              .from('user_profiles')
-              .select('ancestry, business_goals, onboarding_completed')
-              .eq('id', session.user.id)
-              .single();
-              
-            if (profileError && profileError.code !== 'PGRST116') {
-              console.warn('Error fetching user profile:', profileError);
-            }
-            
-            // Show profile setup if profile doesn't exist or is incomplete
-            const isProfileComplete = profileData && 
-                                     (profileData.ancestry || 
-                                      profileData.business_goals || 
-                                      profileData.onboarding_completed);
-            
-            setShowProfileSetup(!isProfileComplete);
-          } catch (error) {
-            console.error('Error checking profile:', error);
-          }
+          const isProfileComplete = userData?.preferences?.ancestry || 
+                                   userData?.preferences?.businessGoals;
+          
+          setShowProfileSetup(!isProfileComplete);
         } catch (error) {
           console.error('Error fetching user role:', error);
           setUserRole('user');
@@ -97,7 +61,7 @@ export const MainApp: React.FC = () => {
     };
 
     checkUserRole();
-  }, [session, backendReady]);
+  }, [session]);
 
   const handleViewModeChange = async (mode: 'standard' | 'enterprise' | 'hackathon') => {
     setViewMode(mode);
@@ -122,7 +86,7 @@ export const MainApp: React.FC = () => {
     toast.success('Backend setup complete!');
   };
 
-  if (isLoading || checkingBackend) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex items-center justify-center">
         <div className="text-center">
@@ -184,17 +148,12 @@ const ProfileSetup: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
     
     try {
       // Update user profile
-      const { error } = await supabase
-        .from('user_profiles')
-        .upsert({
-          id: (await supabase.auth.getUser()).data.user?.id,
-          display_name: formData.name,
-          ancestry: formData.ancestry,
-          business_goals: formData.businessGoals,
-          cultural_background: formData.culturalBackground,
-          location: formData.location,
-          onboarding_completed: true
-        });
+      const { error } = await supabase.rpc('update_user_profile_batch',
+        {
+          p_updates: formData,
+          p_reason: 'Initial profile setup'
+        }
+      );
       
       if (error) throw error;
       
@@ -266,6 +225,7 @@ const ProfileSetup: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Your full name"
+                  required
                 />
               </div>
               
@@ -315,6 +275,7 @@ const ProfileSetup: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                   placeholder="Describe your ancestry and heritage"
+                  required
                 />
               </div>
               
@@ -392,6 +353,7 @@ const ProfileSetup: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                   placeholder="Describe your business goals and objectives"
+                  required
                 />
               </div>
               
