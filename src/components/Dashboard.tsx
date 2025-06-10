@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
@@ -15,10 +15,7 @@ import {
   Users, 
   BookOpen, 
   ChefHat, 
-  Calendar, 
-  Dna, 
-  Camera, 
-  Mic 
+  Calendar
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
@@ -32,8 +29,7 @@ import { CelebrationManager } from './CelebrationManager';
 import { CulturalStoryLibrary } from './CulturalStoryLibrary';
 import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
-import { Button } from './ui/Button';
-import { LoadingSpinner } from './LoadingSpinner';
+import { toast } from 'sonner';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -56,18 +52,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('artifacts');
-  const [isLoading, setIsLoading] = useState(false);
   
   const handleSignOut = async () => {
     try {
-      setIsLoading(true);
       await supabase.auth.signOut();
       toast.success('Signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -279,9 +271,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           </div>
         </div>
       </div>
-
-      {/* Loading Overlay */}
-      {isLoading && <LoadingSpinner fullScreen text="Processing..." />}
     </div>
   );
 };

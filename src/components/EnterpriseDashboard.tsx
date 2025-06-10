@@ -1,266 +1,171 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
   Activity, 
-  BarChart3, 
-  Users, 
-  Globe, 
-  TrendingUp,
-  Cpu,
+  Cpu, 
+  LogOut, 
+  Bell, 
+  Settings, 
+  X,
   Zap,
-  Workflow,
-  ChefHat,
-  Calendar,
-  Dna,
-  Mic,
-  Camera
+  BarChart3,
+  Users,
+  Globe,
+  TrendingUp,
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useSession } from '@supabase/auth-helpers-react';
+import { useAtom } from 'jotai';
+import { userPreferencesAtom } from '../lib/store';
+import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 
-import EnterpriseHeader from './EnterpriseHeader';
-import EnterpriseFeatureNav from './EnterpriseFeatureNav';
-import EnterpriseFeatureBanner from './EnterpriseFeatureBanner';
-import { AutomationFlow } from './AutomationFlow';
-import { MetricsCard } from './MetricsCard';
-import { Chat } from './Chat';
-import { AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
-import { SystemDashboard } from './SystemDashboard';
-import { VoiceCloning } from './VoiceCloning';
-import { ARHeritageViewer } from './ARHeritageViewer';
-import { DNAInsights } from './DNAInsights';
-import { TimelineBuilder } from './TimelineBuilder';
-import { CulturalRecipeBook } from './CulturalRecipeBook';
-import { MarketingAutomation } from './MarketingAutomation';
-import { FlowBuilder } from './FlowBuilder';
-
-interface DashboardMetrics {
-  totalUsers: number;
-  activeAutomations: number;
-  systemHealth: number;
-  aiRequests: number;
-  culturalArtifacts: number;
-  businessProcesses: number;
-}
-
-const features = [
-  {
-    id: 'dashboard',
-    name: 'AI Dashboard',
-    icon: Brain,
-    component: () => (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <AutomationFlow />
-        </div>
-        <div className="space-y-6">
-          <MetricsCard
-            title="Enterprise Performance"
-            metrics={{
-              errorDetection: 0.999,
-              errorCorrection: 0.99,
-              systemValidation: 0.999,
-              performanceMonitoring: 0.999,
-              qualityAssurance: 0.999,
-            }}
-            targetMetrics={{
-              errorDetection: 0.995,
-              errorCorrection: 0.98,
-              systemValidation: 0.995,
-              performanceMonitoring: 0.995,
-              qualityAssurance: 0.995,
-            }}
-          />
-          <Chat
-            userName="Enterprise User"
-            ancestry="Sample ancestry data"
-            businessGoals="Sample business goals"
-          />
-        </div>
-      </div>
-    ),
-    description: 'AI-powered enterprise automation hub',
-    category: 'core'
-  },
-  {
-    id: 'system-monitor',
-    name: 'System Monitor',
-    icon: Activity,
-    component: SystemDashboard,
-    description: 'Real-time system optimization and monitoring',
-    category: 'core'
-  },
-  {
-    id: 'analytics',
-    name: 'Advanced Analytics',
-    icon: BarChart3,
-    component: AdvancedAnalyticsDashboard,
-    description: 'AI-powered insights and predictive analytics',
-    category: 'core'
-  },
-  {
-    id: 'workflow-builder',
-    name: 'Workflow Builder',
-    icon: Workflow,
-    component: FlowBuilder,
-    description: 'Enterprise workflow automation builder',
-    category: 'business'
-  },
-  {
-    id: 'marketing',
-    name: 'Marketing Automation',
-    icon: TrendingUp,
-    component: MarketingAutomation,
-    description: 'Automated marketing funnels and campaigns',
-    category: 'business'
-  },
-  {
-    id: 'voice-cloning',
-    name: 'Voice Preservation',
-    icon: Mic,
-    component: VoiceCloning,
-    description: 'Clone and preserve ancestral voices',
-    category: 'heritage'
-  },
-  {
-    id: 'ar-heritage',
-    name: 'AR Heritage',
-    icon: Camera,
-    component: ARHeritageViewer,
-    description: 'Augmented reality heritage exploration',
-    category: 'heritage'
-  },
-  {
-    id: 'dna-insights',
-    name: 'DNA Analysis',
-    icon: Dna,
-    component: DNAInsights,
-    description: 'Comprehensive genetic heritage insights',
-    category: 'heritage'
-  },
-  {
-    id: 'timeline',
-    name: 'Family Timeline',
-    icon: Calendar,
-    component: TimelineBuilder,
-    description: 'Interactive family history timeline',
-    category: 'heritage'
-  },
-  {
-    id: 'recipes',
-    name: 'Cultural Recipes',
-    icon: ChefHat,
-    component: CulturalRecipeBook,
-    description: 'Traditional family recipes and stories',
-    category: 'heritage'
-  }
-];
-
 export const EnterpriseDashboard: React.FC = () => {
+  const session = useSession();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [notifications] = useState<string[]>([]);
+  const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('dashboard');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics>({
-    totalUsers: 0,
-    activeAutomations: 0,
-    systemHealth: 0,
-    aiRequests: 0,
-    culturalArtifacts: 0,
-    businessProcesses: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboardData();
-    const interval = setInterval(loadDashboardData, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadDashboardData = async () => {
+  
+  const handleSignOut = async () => {
     try {
-      // Load dashboard metrics
-      const [
-        usersResult,
-        automationsResult,
-        aiRequestsResult,
-        artifactsResult,
-        businessResult
-      ] = await Promise.allSettled([
-        supabase.from('user_data').select('user_id', { count: 'exact' }),
-        supabase.from('automation_workflows').select('id', { count: 'exact' }).eq('is_active', true),
-        supabase.from('ai_request_logs').select('id', { count: 'exact' }).gte('created_at', new Date(Date.now() - 86400000).toISOString()),
-        supabase.from('cultural_artifacts').select('id', { count: 'exact' }),
-        supabase.from('marketing_funnels').select('id', { count: 'exact' })
-      ]);
-
-      setDashboardMetrics({
-        totalUsers: usersResult.status === 'fulfilled' ? usersResult.value.count || 0 : 0,
-        activeAutomations: automationsResult.status === 'fulfilled' ? automationsResult.value.count || 0 : 0,
-        systemHealth: 98.5,
-        aiRequests: aiRequestsResult.status === 'fulfilled' ? aiRequestsResult.value.count || 0 : 0,
-        culturalArtifacts: artifactsResult.status === 'fulfilled' ? artifactsResult.value.count || 0 : 0,
-        businessProcesses: businessResult.status === 'fulfilled' ? businessResult.value.count || 0 : 0
-      });
+      await supabase.auth.signOut();
+      toast.success('Signed out successfully');
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
     }
   };
 
-  const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
-  const activeFeatureData = features.find(f => f.id === activeFeature) || features[0];
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <Brain className="w-12 h-12 text-genesis-600 mx-auto mb-4" />
-          </motion.div>
-          <p className="text-gray-600 font-medium">Loading Genesis Heritage Enterprise...</p>
-        </div>
-      </div>
-    );
-  }
+  const { colorScheme } = preferences;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
       {/* Enterprise Header */}
-      <EnterpriseHeader 
-        onCategoryChange={setSelectedCategory}
-        selectedCategory={selectedCategory}
-      />
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Genesis Heritage Pro
+                </h1>
+                <p className="text-sm text-gray-600">Enterprise Edition</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 bg-green-100 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-green-800 text-sm font-medium">Enterprise Ready</span>
+              </div>
+              
+              <button 
+                className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <Bell className="w-5 h-5 text-gray-600" />
+                {notifications.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </button>
+              
+              {session && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-genesis-500 to-spiritual-500 flex items-center justify-center">
+                      <span className="text-sm font-medium text-white">
+                        {session.user?.email?.[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-700">Enterprise Admin</span>
+                  </button>
 
-      {/* Feature Navigation */}
-      <EnterpriseFeatureNav 
-        features={features}
-        activeFeature={activeFeature}
-        onFeatureChange={setActiveFeature}
-        selectedCategory={selectedCategory}
-      />
-
-      {/* Feature Banner */}
-      <EnterpriseFeatureBanner 
-        title={activeFeatureData.name}
-        description={activeFeatureData.description}
-        icon={React.createElement(activeFeatureData.icon, { className: "w-5 h-5" })}
-      />
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border bg-white">
+                      <div className="px-4 py-2 border-b">
+                        <p className="text-sm font-medium text-gray-900">
+                          {session.user?.email}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowSettings(true);
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                      </button>
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 flex items-center"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <motion.div
-          key={activeFeature}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <ActiveComponent />
-        </motion.div>
+        <div className="text-center py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Enterprise Dashboard Coming Soon</h2>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              We're building a powerful enterprise dashboard with advanced features for business automation and cultural heritage preservation.
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <TrendingUp className="w-8 h-8 text-blue-500 mb-3 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Advanced Analytics</h3>
+              <p className="text-gray-600 text-sm">Comprehensive business intelligence with AI-powered insights</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <Zap className="w-8 h-8 text-purple-500 mb-3 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Workflow Automation</h3>
+              <p className="text-gray-600 text-sm">Powerful automation tools with cultural context awareness</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <Globe className="w-8 h-8 text-green-500 mb-3 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Heritage Integration</h3>
+              <p className="text-gray-600 text-sm">Seamlessly blend cultural heritage with modern business practices</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => toast.success('You\'ll be notified when Enterprise features are ready!')}
+            className="mt-8 px-6 py-3 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Get Early Access
+          </button>
+        </div>
       </main>
 
       {/* Enhanced Floating Action Button */}

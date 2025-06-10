@@ -92,8 +92,8 @@ export const MainApp: React.FC = () => {
   return (
     <>
       {viewMode === 'standard' && <Dashboard onViewModeChange={handleViewModeChange} />}
-      {viewMode === 'enterprise' && <EnterpriseDashboard onViewModeChange={handleViewModeChange} />}
-      {viewMode === 'hackathon' && <HackathonDemoPage onViewModeChange={handleViewModeChange} />}
+      {viewMode === 'enterprise' && <EnterpriseDashboard />}
+      {viewMode === 'hackathon' && <HackathonDemoPage />}
     </>
   );
 };
