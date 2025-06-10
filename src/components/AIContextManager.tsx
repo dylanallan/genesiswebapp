@@ -10,7 +10,8 @@ import {
   Loader2, 
   Database,
   RefreshCw,
-  X
+  X,
+  Memory
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -37,11 +38,22 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
   const [contentType, setContentType] = useState('document');
   const [contentText, setContentText] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'knowledge' | 'memory'>('knowledge');
+  const [conversationMemory, setConversationMemory] = useState<{
+    id: string;
+    sessionId: string;
+    messages: number;
+    lastActive: Date;
+  }[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadContentItems();
-  }, []);
+    if (activeTab === 'knowledge') {
+      loadContentItems();
+    } else {
+      loadConversationMemory();
+    }
+  }, [activeTab]);
 
   const loadContentItems = async () => {
     try {
@@ -99,6 +111,56 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
       ];
       
       setContentItems(mockItems);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadConversationMemory = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get conversation sessions from the database
+      const { data, error } = await supabase
+        .from('ai_conversation_history')
+        .select('session_id, created_at')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Group by session_id
+      const sessionMap = new Map<string, { count: number, lastActive: Date }>();
+      
+      data?.forEach(item => {
+        if (!sessionMap.has(item.session_id)) {
+          sessionMap.set(item.session_id, { count: 0, lastActive: new Date(item.created_at) });
+        }
+        
+        const session = sessionMap.get(item.session_id)!;
+        session.count++;
+        
+        // Update last active if this message is more recent
+        const messageDate = new Date(item.created_at);
+        if (messageDate > session.lastActive) {
+          session.lastActive = messageDate;
+        }
+      });
+      
+      // Convert to array
+      const memory = Array.from(sessionMap.entries()).map(([sessionId, info]) => ({
+        id: crypto.randomUUID(),
+        sessionId,
+        messages: info.count,
+        lastActive: info.lastActive
+      }));
+      
+      setConversationMemory(memory);
+    } catch (error) {
+      console.error('Error loading conversation memory:', error);
+      toast.error('Failed to load conversation memory');
+      
+      // Fallback to empty array
+      setConversationMemory([]);
     } finally {
       setIsLoading(false);
     }
@@ -333,6 +395,27 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
     }
   };
 
+  const deleteMemory = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to delete this conversation memory?')) return;
+    
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('ai_conversation_history')
+        .delete()
+        .eq('session_id', sessionId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setConversationMemory(prev => prev.filter(item => item.sessionId !== sessionId));
+      toast.success('Conversation memory deleted successfully');
+    } catch (error) {
+      console.error('Error deleting memory:', error);
+      toast.error('Failed to delete memory');
+    }
+  };
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'document':
@@ -363,7 +446,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Brain className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold text-gray-900">AI Knowledge Base Manager</h2>
+              <h2 className="text-xl font-semibold text-gray-900">AI Context Manager</h2>
             </div>
             <button
               onClick={onClose}
@@ -372,222 +455,322 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
               <X className="w-6 h-6" />
             </button>
           </div>
+          
+          <div className="flex space-x-4 mt-4">
+            <button
+              onClick={() => setActiveTab('knowledge')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'knowledge'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Knowledge Base</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('memory')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'memory'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Memory className="w-5 h-5" />
+                <span>Conversation Memory</span>
+              </div>
+            </button>
+          </div>
         </div>
         
         <div className="p-6 flex-1 overflow-y-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="relative flex-1 max-w-lg">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search knowledge base..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-                <span>Add Content</span>
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <Upload className="w-5 h-5" />
-                <span>Upload File</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".txt,.md,.csv,.json"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-          </div>
-          
-          {selectedFile && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <FileText className="w-5 h-5 text-blue-500" />
-                <div>
-                  <p className="font-medium text-blue-900">{selectedFile.name}</p>
-                  <p className="text-sm text-blue-700">{(selectedFile.size / 1024).toFixed(2)} KB</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setSelectedFile(null)}
-                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                >
-                  <Trash className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={uploadFile}
-                  disabled={isUploading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {isUploading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    'Process File'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {showAddForm && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-gray-900">Add New Content</h3>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Content Type
-                  </label>
-                  <select
-                    value={contentType}
-                    onChange={(e) => setContentType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="document">Document</option>
-                    <option value="note">Note</option>
-                    <option value="reference">Reference</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Content
-                  </label>
-                  <textarea
-                    value={contentText}
-                    onChange={(e) => setContentText(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={8}
-                    placeholder="Enter content to add to the AI knowledge base..."
+          {activeTab === 'knowledge' ? (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div className="relative flex-1 max-w-lg">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search knowledge base..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 
-                <div className="flex justify-end space-x-2">
+                <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => setShowAddForm(false)}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    onClick={() => setShowAddForm(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Cancel
+                    <Plus className="w-5 h-5" />
+                    <span>Add Content</span>
                   </button>
                   <button
-                    onClick={addContent}
-                    disabled={isUploading || !contentText.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    {isUploading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      'Add Content'
-                    )}
+                    <Upload className="w-5 h-5" />
+                    <span>Upload File</span>
                   </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.md,.csv,.json"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
                 </div>
               </div>
-            </div>
-          )}
-          
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-            </div>
-          ) : filteredItems.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <Database className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No content found</h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm 
-                  ? `No results for "${searchTerm}"` 
-                  : 'Add content to your AI knowledge base to enhance responses'}
-              </p>
-              <div className="flex justify-center space-x-4">
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Add Content
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Upload File
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3">
-                      {getContentTypeIcon(item.contentType)}
-                      <div>
-                        <h4 className="font-medium text-gray-900">{item.contentId}</h4>
-                        <p className="text-sm text-gray-500">
-                          Added on {item.createdAt.toLocaleDateString()}
-                        </p>
-                      </div>
+              
+              {selectedFile && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <FileText className="w-5 h-5 text-blue-500" />
+                    <div>
+                      <p className="font-medium text-blue-900">{selectedFile.name}</p>
+                      <p className="text-sm text-blue-700">{(selectedFile.size / 1024).toFixed(2)} KB</p>
                     </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => deleteContent(item.id)}
+                      onClick={() => setSelectedFile(null)}
                       className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
                     >
                       <Trash className="w-5 h-5" />
                     </button>
-                  </div>
-                  
-                  <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-32 overflow-y-auto">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {item.content.length > 300 
-                        ? `${item.content.substring(0, 300)}...` 
-                        : item.content}
-                    </p>
-                  </div>
-                  
-                  <div className="mt-3 flex items-center space-x-2">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                      {item.contentType}
-                    </span>
-                    {item.metadata?.fileType && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                        {item.metadata.fileType}
-                      </span>
-                    )}
+                    <button
+                      onClick={uploadFile}
+                      disabled={isUploading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        'Process File'
+                      )}
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+              
+              {showAddForm && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium text-gray-900">Add New Content</h3>
+                    <button
+                      onClick={() => setShowAddForm(false)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Content Type
+                      </label>
+                      <select
+                        value={contentType}
+                        onChange={(e) => setContentType(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="document">Document</option>
+                        <option value="note">Note</option>
+                        <option value="reference">Reference</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Content
+                      </label>
+                      <textarea
+                        value={contentText}
+                        onChange={(e) => setContentText(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        rows={8}
+                        placeholder="Enter content to add to the AI knowledge base..."
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => setShowAddForm(false)}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={addContent}
+                        disabled={isUploading || !contentText.trim()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          'Add Content'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <Database className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No content found</h3>
+                  <p className="text-gray-500 mb-4">
+                    {searchTerm 
+                      ? `No results for "${searchTerm}"` 
+                      : 'Add content to your AI knowledge base to enhance responses'}
+                  </p>
+                  <div className="flex justify-center space-x-4">
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Add Content
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Upload File
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          {getContentTypeIcon(item.contentType)}
+                          <div>
+                            <h4 className="font-medium text-gray-900">{item.contentId}</h4>
+                            <p className="text-sm text-gray-500">
+                              Added on {item.createdAt.toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteContent(item.id)}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                        >
+                          <Trash className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-32 overflow-y-auto">
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {item.content.length > 300 
+                            ? `${item.content.substring(0, 300)}...` 
+                            : item.content}
+                        </p>
+                      </div>
+                      
+                      <div className="mt-3 flex items-center space-x-2">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                          {item.contentType}
+                        </span>
+                        {item.metadata?.fileType && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                            {item.metadata.fileType}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-medium text-gray-900">Conversation Memory</h3>
+                <p className="text-sm text-gray-500">
+                  The AI assistant uses these memories to maintain context across conversations
+                </p>
+              </div>
+              
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+                </div>
+              ) : conversationMemory.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <Memory className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No conversation memory found</h3>
+                  <p className="text-gray-500 mb-4">
+                    Start a conversation with the AI assistant to create memories
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {conversationMemory.map((memory) => (
+                    <div
+                      key={memory.id}
+                      className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          <Memory className="w-5 h-5 text-blue-500" />
+                          <div>
+                            <h4 className="font-medium text-gray-900">Session {memory.sessionId.substring(0, 8)}...</h4>
+                            <p className="text-sm text-gray-500">
+                              Last active on {memory.lastActive.toLocaleDateString()} at {memory.lastActive.toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteMemory(memory.sessionId)}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                        >
+                          <Trash className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                          {memory.messages} messages
+                        </span>
+                        <button
+                          onClick={() => {
+                            // View memory details (in a real implementation)
+                            toast.info('Memory details view not implemented in this demo');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
         
         <div className="p-6 border-t border-gray-200">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-500">
-              {contentItems.length} items in knowledge base
+              {activeTab === 'knowledge' 
+                ? `${contentItems.length} items in knowledge base`
+                : `${conversationMemory.length} conversation memories`}
             </div>
             <button
               onClick={onClose}
