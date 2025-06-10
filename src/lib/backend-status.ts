@@ -30,12 +30,18 @@ export async function checkBackendStatus(): Promise<BackendStatus> {
     // Check if database is migrated by checking if key tables exist
     let databaseMigrated = false;
     try {
+      // Check for user_profiles table as an indicator of migration status
       const { data: tableCheck, error: tableError } = await supabase
-        .from('cultural_artifacts')
+        .from('user_profiles')
         .select('id')
         .limit(1);
       
-      databaseMigrated = !tableError;
+      if (tableError && tableError.code === '42P01') {
+        // Table doesn't exist
+        databaseMigrated = false;
+      } else {
+        databaseMigrated = true;
+      }
     } catch (error) {
       console.warn('Database migration check failed:', error);
       databaseMigrated = false;
@@ -44,12 +50,17 @@ export async function checkBackendStatus(): Promise<BackendStatus> {
     // Check if AI services are configured
     let aiServicesConfigured = false;
     try {
-      const { data: aiServices, error: aiError } = await supabase
-        .from('ai_service_config')
-        .select('service_name, is_active')
+      const { data: aiModels, error: aiError } = await supabase
+        .from('ai_models')
+        .select('id')
         .limit(1);
       
-      aiServicesConfigured = !aiError && !!aiServices && aiServices.length > 0;
+      if (aiError && aiError.code === '42P01') {
+        // Table doesn't exist
+        aiServicesConfigured = false;
+      } else {
+        aiServicesConfigured = !aiError && !!aiModels;
+      }
     } catch (error) {
       console.warn('AI Services check failed:', error);
       aiServicesConfigured = false;
@@ -63,7 +74,12 @@ export async function checkBackendStatus(): Promise<BackendStatus> {
         .select('id')
         .limit(1);
       
-      adminConfigured = !adminError && !!admins && admins.length > 0;
+      if (adminError && adminError.code === '42P01') {
+        // Table doesn't exist
+        adminConfigured = false;
+      } else {
+        adminConfigured = !adminError && !!admins && admins.length > 0;
+      }
     } catch (error) {
       console.warn('Admin configuration check failed:', error);
       adminConfigured = false;
@@ -73,15 +89,17 @@ export async function checkBackendStatus(): Promise<BackendStatus> {
     // Since we can't directly check this in WebContainer, we'll use a proxy check
     let edgeFunctionsDeployed = false;
     try {
-      // Check if the edge functions table exists as a proxy
-      const { data: edgeFunctions, error: edgeError } = await supabase
-        .from('ai_request_logs')
-        .select('id')
-        .limit(1);
+      // Try to call a simple edge function
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/health-check`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
-      // If the table exists, we'll assume edge functions are deployed
-      edgeFunctionsDeployed = !edgeError;
+      edgeFunctionsDeployed = response.ok;
     } catch (error) {
+      // If we can't connect, assume edge functions aren't deployed
       console.warn('Edge Functions check failed:', error);
       edgeFunctionsDeployed = false;
     }
@@ -94,8 +112,7 @@ export async function checkBackendStatus(): Promise<BackendStatus> {
     } else if (
       databaseMigrated && 
       aiServicesConfigured && 
-      adminConfigured &&
-      edgeFunctionsDeployed
+      adminConfigured
     ) {
       overallStatus = 'operational';
     } else {

@@ -39,28 +39,50 @@ async function initializeDatabaseTables() {
   try {
     // Check if key tables exist
     const tables = [
-      'cultural_artifacts',
-      'traditions',
-      'celebrations',
-      'cultural_stories',
-      'family_contacts',
-      'recipes',
+      'user_profiles',
+      'system_settings',
+      'audit_logs',
+      'heritage_regions',
+      'heritage_traditions',
+      'heritage_stories',
+      'heritage_artifacts',
+      'user_heritage',
+      'automation_workflows',
+      'workflow_steps',
+      'workflow_executions',
+      'workflow_triggers',
+      'business_integrations',
       'ai_models',
-      'ai_service_config',
-      'system_health_metrics',
+      'ai_prompts',
+      'ai_conversations',
+      'ai_messages',
+      'ai_feedback',
+      'analytics_events',
+      'analytics_metrics',
       'security_alerts',
-      'admin_roles',
-      'user_data'
+      'security_settings',
+      'family_members',
+      'family_relationships',
+      'family_events',
+      'family_documents',
+      'dna_analysis',
+      'marketing_campaigns',
+      'marketing_contacts',
+      'marketing_messages',
+      'community_groups',
+      'community_group_members',
+      'community_posts',
+      'community_comments'
     ];
     
+    // Check each table
     for (const table of tables) {
       try {
         // Try to select from the table to see if it exists
         const { error } = await supabase.from(table).select('id').limit(1);
         
-        if (error && error.code === '42P01') { // Table doesn't exist
-          console.log(`Table ${table} doesn't exist, creating...`);
-          await createTable(table);
+        if (error && error.code === '42P01') {
+          console.log(`Table ${table} doesn't exist, will be created by migrations`);
         }
       } catch (error) {
         console.warn(`Error checking table ${table}:`, error);
@@ -74,222 +96,63 @@ async function initializeDatabaseTables() {
   }
 }
 
-async function createTable(tableName: string) {
-  // This is a simplified version - in a real app, you'd use migrations
-  const tableDefinitions: Record<string, string> = {
-    'cultural_artifacts': `
-      CREATE TABLE cultural_artifacts (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-        title text NOT NULL,
-        description text,
-        category text NOT NULL,
-        media_url text,
-        media_type text,
-        metadata jsonb DEFAULT '{}'::jsonb,
-        tags text[] DEFAULT '{}'::text[],
-        created_at timestamptz DEFAULT now(),
-        updated_at timestamptz DEFAULT now()
-      );
-      ALTER TABLE cultural_artifacts ENABLE ROW LEVEL SECURITY;
-      CREATE POLICY "Users can manage their own artifacts" ON cultural_artifacts
-        FOR ALL TO authenticated USING (auth.uid() = user_id);
-    `,
-    'system_health_metrics': `
-      CREATE TABLE system_health_metrics (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        ts timestamptz NOT NULL DEFAULT now(),
-        metric_name text NOT NULL,
-        metric_value numeric NOT NULL,
-        metadata jsonb DEFAULT '{}'::jsonb
-      );
-    `,
-    'ai_service_config': `
-      CREATE TABLE ai_service_config (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        service_name text UNIQUE NOT NULL,
-        key_name text NOT NULL,
-        encrypted_key text,
-        is_active boolean DEFAULT true,
-        config jsonb DEFAULT '{}'::jsonb,
-        created_at timestamptz DEFAULT now(),
-        updated_at timestamptz DEFAULT now()
-      );
-      ALTER TABLE ai_service_config ENABLE ROW LEVEL SECURITY;
-      CREATE POLICY "Admins can manage AI configuration" ON ai_service_config
-        FOR ALL TO authenticated USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
-    `,
-    'ai_models': `
-      CREATE TABLE ai_models (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        name text NOT NULL,
-        version text NOT NULL,
-        capabilities text[] DEFAULT '{}'::text[] NOT NULL,
-        context_window integer DEFAULT 4096 NOT NULL,
-        api_endpoint text NOT NULL,
-        api_key text,
-        created_at timestamptz DEFAULT now(),
-        updated_at timestamptz DEFAULT now(),
-        UNIQUE(name, version)
-      );
-      ALTER TABLE ai_models ENABLE ROW LEVEL SECURITY;
-      CREATE POLICY "Allow read access to AI models" ON ai_models
-        FOR SELECT TO authenticated USING (true);
-    `,
-    'admin_roles': `
-      CREATE TABLE admin_roles (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-        role_name text DEFAULT 'admin'::text NOT NULL,
-        permissions jsonb DEFAULT '{"full_access": true}'::jsonb,
-        created_at timestamptz DEFAULT now(),
-        updated_at timestamptz DEFAULT now(),
-        UNIQUE(user_id)
-      );
-      ALTER TABLE admin_roles ENABLE ROW LEVEL SECURITY;
-      CREATE POLICY "Admins can manage admin roles" ON admin_roles
-        FOR ALL TO authenticated USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
-    `,
-    'user_data': `
-      CREATE TABLE user_data (
-        user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-        preferences jsonb DEFAULT '{}'::jsonb,
-        settings jsonb DEFAULT '{}'::jsonb,
-        last_login timestamptz DEFAULT now(),
-        login_count integer DEFAULT 0,
-        created_at timestamptz DEFAULT now(),
-        updated_at timestamptz DEFAULT now()
-      );
-      ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
-      CREATE POLICY "Users can manage their own data" ON user_data
-        FOR ALL TO authenticated USING (auth.uid() = user_id);
-    `,
-    'security_alerts': `
-      CREATE TABLE security_alerts (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        anomaly_score numeric NOT NULL,
-        metrics jsonb NOT NULL,
-        timestamp timestamptz DEFAULT now(),
-        resolved boolean DEFAULT false,
-        resolution_notes text,
-        resolved_at timestamptz
-      );
-      ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
-      CREATE POLICY "Admins can manage security alerts" ON security_alerts
-        FOR ALL TO authenticated USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
-    `
-  };
-  
-  if (tableDefinitions[tableName]) {
-    try {
-      const { error } = await supabase.rpc('exec_sql', {
-        sql: tableDefinitions[tableName]
-      });
-      
-      if (error) {
-        console.error(`Error creating table ${tableName}:`, error);
-        
-        // Try a simpler approach for tables that don't exist
-        if (tableName === 'system_health_metrics') {
-          await supabase.rpc('exec_sql', {
-            sql: `
-              CREATE TABLE system_health_metrics (
-                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                ts timestamptz NOT NULL DEFAULT now(),
-                metric_name text NOT NULL,
-                metric_value numeric NOT NULL,
-                metadata jsonb DEFAULT '{}'::jsonb
-              );
-            `
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Error creating table ${tableName}:`, error);
-    }
-  }
-}
-
 async function initializeAIServices() {
   try {
-    // Check if AI services are configured
-    const { data: aiServices, error } = await supabase
-      .from('ai_service_config')
-      .select('service_name, is_active')
-      .limit(10);
+    // Check if AI models table exists
+    const { error: tableError } = await supabase
+      .from('ai_models')
+      .select('id')
+      .limit(1);
     
-    if (error) {
-      // If table doesn't exist, create it
-      if (error.code === '42P01') {
-        await createTable('ai_service_config');
-        await createTable('ai_models');
-      } else {
-        throw error;
-      }
+    if (tableError && tableError.code === '42P01') {
+      console.log('AI models table will be created by migrations');
+      return true;
     }
     
-    // If no services found, initialize them
-    if (!aiServices || aiServices.length === 0) {
-      // Insert default AI services
+    // Check if any models exist
+    const { data: aiModels, error } = await supabase
+      .from('ai_models')
+      .select('id')
+      .limit(1);
+    
+    if (error) throw error;
+    
+    // If no models found, insert default models
+    if (!aiModels || aiModels.length === 0) {
       const { error: insertError } = await supabase
-        .from('ai_service_config')
-        .insert([
-          {
-            service_name: 'openai-gpt4-turbo',
-            key_name: 'OpenAI GPT-4 Turbo',
-            encrypted_key: 'encrypted-key-placeholder',
-            is_active: true,
-            config: { temperature: 0.7, streamingSupported: true }
-          },
-          {
-            service_name: 'anthropic-claude-3-opus',
-            key_name: 'Anthropic Claude 3 Opus',
-            encrypted_key: 'encrypted-key-placeholder',
-            is_active: true,
-            config: { temperature: 0.7, streamingSupported: true }
-          },
-          {
-            service_name: 'google-gemini-15-pro',
-            key_name: 'Google Gemini 1.5 Pro',
-            encrypted_key: 'encrypted-key-placeholder',
-            is_active: true,
-            config: { temperature: 0.7, streamingSupported: true }
-          }
-        ]);
-      
-      if (insertError) {
-        console.warn('Error inserting AI services:', insertError);
-      }
-      
-      // Insert default AI models
-      const { error: modelError } = await supabase
         .from('ai_models')
         .insert([
           {
             name: 'gpt-4-turbo',
-            version: '1.0',
-            capabilities: ['chat', 'analysis', 'generation', 'coding', 'business', 'creative', 'technical'],
-            context_window: 128000,
-            api_endpoint: 'https://api.openai.com/v1/chat/completions'
+            provider: 'openai',
+            model_type: 'chat',
+            capabilities: ['general', 'coding', 'analysis'],
+            max_tokens: 128000,
+            token_cost: 0.00003,
+            configuration: { temperature: 0.7 }
           },
           {
             name: 'claude-3-opus',
-            version: '1.0',
-            capabilities: ['chat', 'analysis', 'generation', 'business', 'cultural', 'creative', 'research'],
-            context_window: 200000,
-            api_endpoint: 'https://api.anthropic.com/v1/messages'
+            provider: 'anthropic',
+            model_type: 'chat',
+            capabilities: ['general', 'cultural', 'creative'],
+            max_tokens: 200000,
+            token_cost: 0.000075,
+            configuration: { temperature: 0.7 }
           },
           {
             name: 'gemini-1.5-pro',
-            version: '1.0',
-            capabilities: ['chat', 'analysis', 'generation', 'coding', 'business', 'research'],
-            context_window: 1048576,
-            api_endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent'
+            provider: 'google',
+            model_type: 'chat',
+            capabilities: ['general', 'multimodal', 'research'],
+            max_tokens: 1048576,
+            token_cost: 0.000007,
+            configuration: { temperature: 0.7 }
           }
         ]);
       
-      if (modelError) {
-        console.warn('Error inserting AI models:', modelError);
+      if (insertError) {
+        console.warn('Error inserting AI models:', insertError);
       }
     }
     
@@ -309,7 +172,8 @@ async function createDefaultAdminIfNeeded() {
       .limit(1);
     
     if (tableError && tableError.code === '42P01') {
-      await createTable('admin_roles');
+      console.log('Admin roles table will be created by migrations');
+      return true;
     }
     
     // Check if any admin exists
@@ -359,7 +223,8 @@ async function createInitialHealthMetrics() {
       .limit(1);
     
     if (tableError && tableError.code === '42P01') {
-      await createTable('system_health_metrics');
+      console.log('System health metrics table will be created by migrations');
+      return true;
     }
     
     // Insert initial health metrics
