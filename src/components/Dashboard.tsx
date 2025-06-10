@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
@@ -15,7 +15,8 @@ import {
   Users, 
   BookOpen, 
   ChefHat, 
-  Calendar
+  Calendar,
+  User
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
@@ -31,6 +32,7 @@ import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
 import { AutomationFlow } from './AutomationFlow';
 import { Chat } from './Chat';
+import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 
 interface DashboardProps {
@@ -45,7 +47,8 @@ const features = [
   { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
   { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
   { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
-  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationFlow }
+  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationFlow },
+  { id: 'profile', name: 'User Profile', icon: User, component: UserProfileManager }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
@@ -130,6 +133,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                           {session.user?.email}
                         </p>
                       </div>
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setActiveFeature('profile');
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        My Profile
+                      </button>
                       <button
                         onClick={() => {
                           setShowSettings(true);
