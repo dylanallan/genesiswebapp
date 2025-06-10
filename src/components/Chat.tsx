@@ -345,7 +345,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         }
         provider = 'AI Router';
       } else {
-        fullResponse = await getMockResponse(pathway);
+        fullResponse = await getMockResponse(agentPrompt(ancestry, businessGoals));
         setStreamingContent(fullResponse);
         provider = 'Mock Response';
       }
@@ -378,7 +378,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         return;
       }
       
-      const fallbackResponse = await getMockResponse(pathway);
+      const fallbackResponse = await getMockResponse(agentPrompt(ancestry, businessGoals));
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: fallbackResponse,
@@ -408,9 +408,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       let fullResponse = '';
       let provider = '';
       
+      const promptWithContext = `User ${userName} with ancestry ${ancestry} and business goals ${businessGoals} says: ${option}`;
+
       if (isAuthenticated && aiServiceHealth) {
         for await (const chunk of streamResponse(
-          option, 
+          promptWithContext, 
           getBestModelForTask(option) as any
         )) {
           fullResponse += chunk;
@@ -418,7 +420,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
         }
         provider = 'AI Router';
       } else {
-        fullResponse = await getMockResponse(option);
+        fullResponse = await getMockResponse(promptWithContext);
         setStreamingContent(fullResponse);
         provider = 'Mock Response';
       }
@@ -482,14 +484,19 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       let fullResponse = '';
       let provider = '';
       
+      const promptWithContext = `User ${userName} with ancestry ${ancestry} and business goals ${businessGoals} says: ${input}`;
+
       if (isAuthenticated && aiServiceHealth) {
-        for await (const chunk of streamResponse(input, selectedModel as any)) {
+        for await (const chunk of streamResponse(
+          promptWithContext, 
+          selectedModel as any
+        )) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
         provider = 'AI Router';
       } else {
-        fullResponse = await getMockResponse(input);
+        fullResponse = await getMockResponse(promptWithContext);
         setStreamingContent(fullResponse);
         provider = 'Mock Response';
       }
