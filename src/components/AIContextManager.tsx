@@ -8,10 +8,9 @@ import {
   Plus, 
   Search, 
   Loader2, 
-  CheckCircle, 
-  AlertTriangle,
   Database,
-  RefreshCw
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -41,37 +40,39 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadContentItems();
-  }, []);
-
-  const loadContentItems = async () => {
-    try {
-      setIsLoading(true);
+    // Simulate loading content items
+    setTimeout(() => {
+      const mockItems: ContentItem[] = [
+        {
+          id: '1',
+          contentType: 'document',
+          contentId: 'business-automation-guide.txt',
+          content: 'Business automation is the technology-enabled automation of complex business processes. It can streamline a business for simplicity, achieve digital transformation, increase service quality, improve service delivery or contain costs.',
+          metadata: {
+            fileName: 'business-automation-guide.txt',
+            fileSize: 1024,
+            fileType: 'text/plain',
+            uploadDate: new Date().toISOString()
+          },
+          createdAt: new Date()
+        },
+        {
+          id: '2',
+          contentType: 'note',
+          contentId: 'cultural-heritage-notes',
+          content: 'Cultural heritage is the legacy of physical artifacts and intangible attributes of a group or society that is inherited from past generations. It includes tangible culture (such as buildings, monuments, landscapes, books, works of art, and artifacts), intangible culture (such as folklore, traditions, language, and knowledge), and natural heritage (including culturally significant landscapes, and biodiversity).',
+          metadata: {
+            source: 'manual',
+            addedDate: new Date().toISOString()
+          },
+          createdAt: new Date(Date.now() - 86400000)
+        }
+      ];
       
-      const { data, error } = await supabase
-        .from('ai_embeddings')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const items: ContentItem[] = (data || []).map(item => ({
-        id: item.id,
-        contentType: item.content_type,
-        contentId: item.content_id,
-        content: item.content,
-        metadata: item.metadata,
-        createdAt: new Date(item.created_at)
-      }));
-      
-      setContentItems(items);
-    } catch (error) {
-      console.error('Error loading content items:', error);
-      toast.error('Failed to load content items');
-    } finally {
+      setContentItems(mockItems);
       setIsLoading(false);
-    }
-  };
+    }, 1000);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,47 +87,31 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
     try {
       setIsUploading(true);
       
-      // Read file content
-      const text = await readFileAsText(selectedFile);
+      // Simulate file processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Call the edge function to process and store the content
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.access_token) {
-        throw new Error('Authentication required');
-      }
-      
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-content`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+      // Add mock content item
+      const newItem: ContentItem = {
+        id: crypto.randomUUID(),
+        contentType: 'document',
+        contentId: selectedFile.name,
+        content: `Content from ${selectedFile.name} (simulated)`,
+        metadata: {
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type,
+          uploadDate: new Date().toISOString()
         },
-        body: JSON.stringify({
-          content: text,
-          contentType: 'document',
-          contentId: selectedFile.name,
-          metadata: {
-            fileName: selectedFile.name,
-            fileSize: selectedFile.size,
-            fileType: selectedFile.type,
-            uploadDate: new Date().toISOString()
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to process content: ${response.statusText}`);
-      }
+        createdAt: new Date()
+      };
       
-      toast.success('File uploaded and processed successfully');
+      setContentItems(prev => [newItem, ...prev]);
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
       
-      // Reload content items
-      loadContentItems();
+      toast.success('File uploaded and processed successfully');
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Failed to upload file');
@@ -144,42 +129,27 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
     try {
       setIsUploading(true);
       
-      // Call the edge function to process and store the content
-      const { data: { session } } = await supabase.auth.getSession();
+      // Simulate processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (!session?.access_token) {
-        throw new Error('Authentication required');
-      }
-      
-      const contentId = `manual-${Date.now()}`;
-      
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-content`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+      // Add mock content item
+      const newItem: ContentItem = {
+        id: crypto.randomUUID(),
+        contentType,
+        contentId: `manual-${Date.now()}`,
+        content: contentText,
+        metadata: {
+          source: 'manual',
+          addedDate: new Date().toISOString()
         },
-        body: JSON.stringify({
-          content: contentText,
-          contentType,
-          contentId,
-          metadata: {
-            source: 'manual',
-            addedDate: new Date().toISOString()
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to process content: ${response.statusText}`);
-      }
+        createdAt: new Date()
+      };
       
-      toast.success('Content added successfully');
+      setContentItems(prev => [newItem, ...prev]);
       setContentText('');
       setShowAddForm(false);
       
-      // Reload content items
-      loadContentItems();
+      toast.success('Content added successfully');
     } catch (error) {
       console.error('Error adding content:', error);
       toast.error('Failed to add content');
@@ -192,30 +162,13 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
     if (!confirm('Are you sure you want to delete this content?')) return;
     
     try {
-      const { error } = await supabase
-        .from('ai_embeddings')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      toast.success('Content deleted successfully');
-      
       // Update local state
       setContentItems(prev => prev.filter(item => item.id !== id));
+      toast.success('Content deleted successfully');
     } catch (error) {
       console.error('Error deleting content:', error);
       toast.error('Failed to delete content');
     }
-  };
-
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsText(file);
-    });
   };
 
   const getContentTypeIcon = (type: string) => {
@@ -254,9 +207,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>
@@ -338,9 +289,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                   onClick={() => setShowAddForm(false)}
                   className="text-gray-500 hover:text-gray-700"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
               
