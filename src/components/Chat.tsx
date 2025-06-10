@@ -64,7 +64,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
       analysis: initialAnalysis
     };
     setMessages([initialMessage]);
-  }, []);
+  }, [ancestry, businessGoals]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -261,7 +261,14 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     } catch (error: any) {
       console.error('Error:', error);
       
-      const fallbackResponse = await getMockResponse(input);
+      // Improved error handling with more detailed fallback
+      let fallbackResponse;
+      try {
+        fallbackResponse = await getMockResponse(input);
+      } catch (fallbackError) {
+        fallbackResponse = "I apologize, but I'm experiencing technical difficulties at the moment. Please try again in a few moments.";
+      }
+      
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: fallbackResponse,

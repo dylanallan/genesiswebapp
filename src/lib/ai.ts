@@ -69,6 +69,7 @@ export async function* streamResponse(
     });
 
     if (!response.ok) {
+      console.error(`AI Stream error: ${response.status} ${response.statusText}`);
       throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
     }
 
@@ -79,14 +80,21 @@ export async function* streamResponse(
 
     const decoder = new TextDecoder();
     
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      if (chunk) {
-        yield chunk;
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) {
+          yield chunk;
+        }
       }
+    } catch (streamError) {
+      console.error('Stream reading error:', streamError);
+      throw streamError;
+    } finally {
+      reader.releaseLock();
     }
   } catch (error) {
     console.error('Error in streamResponse:', error);
