@@ -183,12 +183,13 @@ async function streamGemini(prompt: string, systemPrompt: string, model: string,
 function createTextStream(text: string): ReadableStream {
   return new ReadableStream({
     start(controller) {
+      const encoder = new TextEncoder();
       const words = text.split(' ');
       let index = 0;
       
       const sendWord = () => {
         if (index < words.length) {
-          controller.enqueue(new TextEncoder().encode(words[index] + ' '));
+          controller.enqueue(encoder.encode(words[index] + ' '));
           index++;
           setTimeout(sendWord, 50);
         } else {
@@ -258,10 +259,10 @@ Deno.serve(async (req) => {
       console.error(`Error with ${model}:`, error);
       
       // Try fallback model if primary fails
-      if (model !== 'gemini-pro') {
-        console.log(`Falling back to gemini-pro from ${model}`);
+      if (model !== 'gpt-3.5-turbo') {
+        console.log(`Falling back to gpt-3.5-turbo from ${model}`);
         try {
-          response = await streamGemini(prompt, systemPrompt, 'gemini-pro', temperature);
+          response = await streamOpenAI(prompt, systemPrompt, 'gpt-3.5-turbo', temperature, maxTokens);
         } catch (fallbackError) {
           console.error("Fallback also failed:", fallbackError);
           response = await createFallbackResponse(prompt, error);
@@ -275,7 +276,7 @@ Deno.serve(async (req) => {
     return new Response(response, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive'
       },

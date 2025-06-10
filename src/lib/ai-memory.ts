@@ -177,4 +177,12 @@ export class AIMemory {
   getSessionId(): string {
     return this.sessionId;
   }
+  
+  /**
+   * Start a new conversation session
+   */
+  startNewSession(): string {
+    this.sessionId = crypto.randomUUID();
+    return this.sessionId;
+  }
 }

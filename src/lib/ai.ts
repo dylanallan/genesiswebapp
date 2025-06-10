@@ -63,7 +63,7 @@ export async function* streamResponse(
       },
       body: JSON.stringify({
         prompt,
-        model: model === 'auto' ? 'gpt-4' : model,
+        model: model === 'auto' ? getBestModelForTask(prompt) : model,
         context
       }),
     });
