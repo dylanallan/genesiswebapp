@@ -1,28 +1,30 @@
 /*
-  # Add Advanced AI Features
+  # Fix Model Performance Metrics
 
   1. New Tables
-    - `model_performance_metrics`: Track model performance over time
-    - `knowledge_embeddings`: Store pre-computed embeddings
-    - `system_learnings`: Store system's learned patterns and insights
-  
-  2. New Functions
-    - `update_model_metrics`: Update model performance metrics
-    - `compute_embedding`: Generate embeddings for text
-    - `find_similar_content`: Find similar content using embeddings
-  
-  3. Indexes and Optimizations
-    - Added indexes for performance optimization
-    - Added materialized views for faster queries
+    - `model_performance_metrics` - Stores performance metrics for AI models
+    - `knowledge_embeddings` - Stores vector embeddings for knowledge content
+    - `system_learnings` - Stores system-learned patterns and insights
+
+  2. Indexes
+    - Added indexes for efficient querying of metrics and embeddings
+    - Added vector search index for embeddings
+
+  3. Views
+    - Created materialized view for model performance summary
+
+  4. Functions
+    - Added utility functions for updating metrics and computing embeddings
 */
 
 -- Model Performance Metrics
 CREATE TABLE IF NOT EXISTS model_performance_metrics (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid DEFAULT gen_random_uuid(),
   model_id uuid REFERENCES ai_models(id) ON DELETE CASCADE,
   metric_type text NOT NULL,
   value numeric NOT NULL,
-  timestamp timestamptz DEFAULT now()
+  timestamp timestamptz DEFAULT now(),
+  PRIMARY KEY (id)
 );
 
 -- Knowledge Embeddings
@@ -48,11 +50,12 @@ CREATE TABLE IF NOT EXISTS system_learnings (
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_model_metrics_model_id ON model_performance_metrics(model_id);
 CREATE INDEX IF NOT EXISTS idx_model_metrics_timestamp ON model_performance_metrics(timestamp);
-CREATE INDEX IF NOT EXISTS idx_knowledge_embeddings_vector ON knowledge_embeddings USING ivfflat (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_model_metrics_model_timestamp ON model_performance_metrics(model_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_knowledge_embeddings_vector ON knowledge_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists='100');
 CREATE INDEX IF NOT EXISTS idx_system_learnings_category ON system_learnings(category);
 
 -- Create materialized view for quick access to recent model performance
-CREATE MATERIALIZED VIEW model_performance_summary AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS model_performance_summary AS
 SELECT 
   model_id,
   metric_type,
@@ -145,20 +148,13 @@ CREATE TRIGGER update_system_learnings_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Refresh materialized view periodically
+-- Create function to refresh materialized view
 CREATE OR REPLACE FUNCTION refresh_model_performance_summary()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY model_performance_summary;
+  REFRESH MATERIALIZED VIEW model_performance_summary;
 END;
 $$;
-
--- Create a scheduled job to refresh the materialized view
-SELECT cron.schedule(
-  'refresh_model_performance',
-  '0 * * * *',  -- Every hour
-  'SELECT refresh_model_performance_summary()'
-);
