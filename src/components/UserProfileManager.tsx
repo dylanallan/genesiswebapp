@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Edit, History, RefreshCw, Settings, Shield, Calendar, MapPin, Globe, Briefcase, Languages } from 'lucide-react';
+import { User, Edit, History, RefreshCw, Settings, Calendar, MapPin, Globe, Briefcase, Languages, Clock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { ProfileEditor } from './ProfileEditor';
@@ -22,6 +22,7 @@ export const UserProfileManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const [showHistoryViewer, setShowHistoryViewer] = useState(false);
+  const [createAttempted, setCreateAttempted] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -35,11 +36,70 @@ export const UserProfileManager: React.FC = () => {
       if (error) throw error;
       
       setProfile(data);
+      
+      // Check if profile is empty or missing key fields
+      const isEmpty = !data || 
+        (!data.preferences?.ancestry && !data.preferences?.businessGoals);
+      
+      if (isEmpty && !createAttempted) {
+        // Create default profile
+        await createDefaultProfile();
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
       toast.error('Failed to load profile');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const createDefaultProfile = async () => {
+    setCreateAttempted(true);
+    try {
+      // Default profile data based on system information
+      const defaultProfile = {
+        name: "Genesis Heritage User",
+        ancestry: "European and Asian heritage",
+        businessGoals: "Automate marketing and preserve cultural knowledge",
+        location: "United States",
+        language: "English",
+        timezone: "America/New_York",
+        culturalBackground: "Mixed cultural background with emphasis on preserving family traditions",
+        familyTraditions: "Family gatherings, cultural celebrations, and traditional recipes",
+        businessType: "sole_proprietorship",
+        industryFocus: "technology"
+      };
+
+      // Update the profile in the database
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (!sessionData.session) {
+        throw new Error('No active session');
+      }
+      
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/update-profile`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sessionData.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          updates: defaultProfile,
+          reason: 'Initial profile creation'
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create default profile');
+      }
+      
+      // Reload the profile
+      await loadUserProfile();
+      toast.success('Default profile created successfully');
+    } catch (error) {
+      console.error('Error creating default profile:', error);
+      toast.error('Failed to create default profile');
     }
   };
 
@@ -94,6 +154,17 @@ export const UserProfileManager: React.FC = () => {
     return industries[industry] || industry;
   };
 
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return 'N/A';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -130,10 +201,10 @@ export const UserProfileManager: React.FC = () => {
             We couldn't find your profile information
           </p>
           <Button
-            onClick={() => setShowProfileEditor(true)}
+            onClick={createDefaultProfile}
             leftIcon={<Edit className="w-4 h-4" />}
           >
-            Create Profile
+            Create Default Profile
           </Button>
         </div>
       ) : (
@@ -306,33 +377,4 @@ export const UserProfileManager: React.FC = () => {
       )}
     </div>
   );
-};
-
-// Clock icon component
-const Clock = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-
-// Format date helper function
-const formatDate = (dateString: string): string => {
-  if (!dateString) return 'N/A';
-  
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
 };

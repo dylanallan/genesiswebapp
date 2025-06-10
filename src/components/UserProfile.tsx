@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Edit, History, RefreshCw, MapPin, Globe, Briefcase, Languages, Calendar, Clock } from 'lucide-react';
+import { User, Edit, RefreshCw, MapPin, Globe, Briefcase, Languages, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { Button } from './ui/Button';
@@ -10,14 +10,39 @@ export const UserProfile: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [createAttempted, setCreateAttempted] = useState(false);
 
   useEffect(() => {
-    // Create a default profile based on available information
-    createDefaultProfile();
+    loadUserProfile();
   }, []);
 
-  const createDefaultProfile = async () => {
+  const loadUserProfile = async () => {
     setIsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_user_profile');
+      
+      if (error) throw error;
+      
+      setProfile(data);
+      
+      // Check if profile is empty or missing key fields
+      const isEmpty = !data || 
+        (!data.preferences?.ancestry && !data.preferences?.businessGoals);
+      
+      if (isEmpty && !createAttempted) {
+        // Create default profile
+        await createDefaultProfile();
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createDefaultProfile = async () => {
+    setCreateAttempted(true);
     try {
       // Default profile data based on system information
       const defaultProfile = {
@@ -34,45 +59,40 @@ export const UserProfile: React.FC = () => {
       };
 
       // Update the profile in the database
-      const { error } = await supabase.rpc(
-        'update_user_profile_batch',
-        {
-          p_updates: defaultProfile,
-          p_reason: 'Initial profile creation'
-        }
-      );
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (error) throw error;
+      if (!sessionData.session) {
+        throw new Error('No active session');
+      }
       
-      // Load the newly created profile
-      const { data, error: profileError } = await supabase.rpc('get_user_profile');
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/update-profile`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sessionData.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          updates: defaultProfile,
+          reason: 'Initial profile creation'
+        })
+      });
       
-      if (profileError) throw profileError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create default profile');
+      }
       
-      setProfile(data);
+      // Reload the profile
+      await loadUserProfile();
       toast.success('Default profile created successfully');
     } catch (error) {
       console.error('Error creating default profile:', error);
       toast.error('Failed to create default profile');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleProfileUpdate = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('get_user_profile');
-      
-      if (error) throw error;
-      
-      setProfile(data);
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      toast.error('Failed to load profile');
-    } finally {
-      setIsLoading(false);
-    }
+    await loadUserProfile();
   };
 
   const getProfileValue = (key: string): string => {
@@ -160,10 +180,10 @@ export const UserProfile: React.FC = () => {
             We couldn't find your profile information
           </p>
           <Button
-            onClick={() => setShowProfileEditor(true)}
+            onClick={createDefaultProfile}
             leftIcon={<Edit className="w-4 h-4" />}
           >
-            Create Profile
+            Create Default Profile
           </Button>
         </div>
       ) : (
