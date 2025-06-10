@@ -9,7 +9,8 @@ import {
   XCircle, 
   Loader2,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
