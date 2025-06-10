@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Brain, 
-  Upload, 
-  FileText, 
-  Trash, 
-  Plus, 
-  Search, 
-  Loader2, 
-  Database,
-  RefreshCw,
-  X,
-  Memory
-} from 'lucide-react';
+import { Brain, Upload, FileText, Trash, Plus, Search, Loader2, Database, RefreshCw, X, MemoryStick as Memory } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 
