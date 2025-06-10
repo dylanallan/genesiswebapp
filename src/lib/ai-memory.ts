@@ -35,18 +35,6 @@ export class AIMemory {
       
       const messageIndex = lastMessage && lastMessage.length > 0 ? lastMessage[0].message_index + 1 : 0;
       
-      // Generate embedding for the message if it's not a system message
-      let embedding = null;
-      if (role !== 'system') {
-        try {
-          // In a real implementation, this would call the OpenAI API
-          // For now, we'll just simulate it
-          embedding = Array(1536).fill(0).map(() => Math.random() * 2 - 1);
-        } catch (embeddingError) {
-          console.error('Error generating embedding:', embeddingError);
-        }
-      }
-      
       // Store the message
       const { data, error } = await supabase
         .from('ai_conversation_history')
@@ -56,7 +44,6 @@ export class AIMemory {
           message_index: messageIndex,
           role,
           content,
-          embedding,
           metadata: {
             ...metadata,
             timestamp: new Date().toISOString()
@@ -180,16 +167,8 @@ export class AIMemory {
   /**
    * Load a specific conversation session
    */
-  async loadSession(sessionId: string): Promise<void> {
+  loadSession(sessionId: string): void {
     this.sessionId = sessionId;
-  }
-
-  /**
-   * Start a new conversation session
-   */
-  startNewSession(): string {
-    this.sessionId = crypto.randomUUID();
-    return this.sessionId;
   }
 
   /**
