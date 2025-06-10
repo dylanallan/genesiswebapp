@@ -40,8 +40,37 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Simulate loading content items
-    setTimeout(() => {
+    loadContentItems();
+  }, []);
+
+  const loadContentItems = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get content items from the database
+      const { data, error } = await supabase
+        .from('ai_embeddings')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Convert to ContentItem format
+      const items: ContentItem[] = data?.map(item => ({
+        id: item.id,
+        contentType: item.content_type,
+        contentId: item.content_id,
+        content: item.content,
+        metadata: item.metadata || {},
+        createdAt: new Date(item.created_at)
+      })) || [];
+      
+      setContentItems(items);
+    } catch (error) {
+      console.error('Error loading content items:', error);
+      toast.error('Failed to load knowledge base');
+      
+      // Fallback to mock data if database query fails
       const mockItems: ContentItem[] = [
         {
           id: '1',
@@ -70,9 +99,10 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
       ];
       
       setContentItems(mockItems);
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,21 +111,93 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
     }
   };
 
+  const readFileContent = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          resolve(event.target.result as string);
+        } else {
+          reject(new Error('Failed to read file'));
+        }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+  };
+
   const uploadFile = async () => {
     if (!selectedFile) return;
     
     try {
       setIsUploading(true);
       
-      // Simulate file processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Read file content
+      const content = await readFileContent(selectedFile);
       
-      // Add mock content item
+      // Process content through the edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+      
+      // Try to use the edge function if available
+      try {
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-content`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content,
+            contentType: 'document',
+            contentId: selectedFile.name,
+            metadata: {
+              fileName: selectedFile.name,
+              fileSize: selectedFile.size,
+              fileType: selectedFile.type,
+              uploadDate: new Date().toISOString()
+            }
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Processing error: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        toast.success(`File processed into ${result.chunks} chunks`);
+      } catch (edgeFunctionError) {
+        console.error('Edge function error:', edgeFunctionError);
+        
+        // Fallback: Store directly in the database
+        const { error } = await supabase
+          .from('ai_embeddings')
+          .insert({
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            content_type: 'document',
+            content_id: selectedFile.name,
+            content: content.substring(0, 10000), // Limit content size
+            embedding: null, // No embedding in fallback mode
+            metadata: {
+              fileName: selectedFile.name,
+              fileSize: selectedFile.size,
+              fileType: selectedFile.type,
+              uploadDate: new Date().toISOString()
+            }
+          });
+        
+        if (error) throw error;
+      }
+      
+      // Add to local state
       const newItem: ContentItem = {
         id: crypto.randomUUID(),
         contentType: 'document',
         contentId: selectedFile.name,
-        content: `Content from ${selectedFile.name} (simulated)`,
+        content: content.substring(0, 300) + '...',
         metadata: {
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
@@ -129,14 +231,66 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
     try {
       setIsUploading(true);
       
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Process content through the edge function
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Add mock content item
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+      
+      const contentId = `manual-${Date.now()}`;
+      
+      // Try to use the edge function if available
+      try {
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-content`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: contentText,
+            contentType,
+            contentId,
+            metadata: {
+              source: 'manual',
+              addedDate: new Date().toISOString()
+            }
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Processing error: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        toast.success(`Content processed into ${result.chunks} chunks`);
+      } catch (edgeFunctionError) {
+        console.error('Edge function error:', edgeFunctionError);
+        
+        // Fallback: Store directly in the database
+        const { error } = await supabase
+          .from('ai_embeddings')
+          .insert({
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            content_type: contentType,
+            content_id: contentId,
+            content: contentText,
+            embedding: null, // No embedding in fallback mode
+            metadata: {
+              source: 'manual',
+              addedDate: new Date().toISOString()
+            }
+          });
+        
+        if (error) throw error;
+      }
+      
+      // Add to local state
       const newItem: ContentItem = {
         id: crypto.randomUUID(),
         contentType,
-        contentId: `manual-${Date.now()}`,
+        contentId,
         content: contentText,
         metadata: {
           source: 'manual',
@@ -162,6 +316,14 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
     if (!confirm('Are you sure you want to delete this content?')) return;
     
     try {
+      // Delete from database
+      const { error } = await supabase
+        .from('ai_embeddings')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
       // Update local state
       setContentItems(prev => prev.filter(item => item.id !== id));
       toast.success('Content deleted successfully');

@@ -121,21 +121,33 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     try {
       setIsLoadingHistory(true);
       
-      // For now, just create some mock history
-      setConversationHistory([
-        {
-          id: 'session-1',
-          title: `Conversation from ${new Date().toLocaleString()}`,
-          date: new Date()
-        },
-        {
-          id: 'session-2',
-          title: `Conversation from ${new Date(Date.now() - 86400000).toLocaleString()}`,
-          date: new Date(Date.now() - 86400000)
+      // Get conversation history from the database
+      const { data, error } = await supabase
+        .from('ai_conversation_history')
+        .select('session_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      
+      // Group by session_id and get the first message of each session
+      const sessions = new Map<string, Date>();
+      data?.forEach(item => {
+        if (!sessions.has(item.session_id)) {
+          sessions.set(item.session_id, new Date(item.created_at));
         }
-      ]);
+      });
+      
+      const history = Array.from(sessions.entries()).map(([id, date]) => ({
+        id,
+        title: `Conversation from ${date.toLocaleString()}`,
+        date
+      }));
+      
+      setConversationHistory(history);
     } catch (error) {
       console.error('Error loading conversation history:', error);
+      toast.error('Failed to load conversation history');
     } finally {
       setIsLoadingHistory(false);
     }
@@ -145,24 +157,24 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     try {
       setIsLoading(true);
       
-      // For now, just create some mock messages
-      const loadedMessages: Message[] = [
-        {
-          id: crypto.randomUUID(),
-          role: 'user',
-          content: 'Tell me about business automation',
-          timestamp: new Date(Date.now() - 3600000),
-          sessionId
-        },
-        {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: 'Business automation involves using technology to execute recurring tasks or processes where manual effort can be replaced. It helps businesses increase efficiency, reduce costs, and minimize errors.',
-          timestamp: new Date(Date.now() - 3590000),
-          model: 'gpt-4',
-          sessionId
-        }
-      ];
+      // Get conversation messages from the database
+      const { data, error } = await supabase
+        .from('ai_conversation_history')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('message_index', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Convert to Message format
+      const loadedMessages: Message[] = data?.map(item => ({
+        id: item.id,
+        role: item.role as 'user' | 'assistant' | 'system',
+        content: item.content,
+        timestamp: new Date(item.created_at),
+        model: item.model_used,
+        sessionId: item.session_id
+      })) || [];
       
       setMessages(loadedMessages);
       setSessionId(sessionId);
@@ -195,10 +207,16 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     setStreamingContent('');
 
     try {
+      // Store user message in the database
+      await storeMessage(userMessage);
+      
       let fullResponse = '';
       
-      // Use the streamResponse function from lib/ai.ts since the enhanced function isn't working
-      for await (const chunk of streamResponse(input, 'gpt-4')) {
+      // Create context-enhanced prompt
+      const enhancedPrompt = await createEnhancedPrompt(input);
+      
+      // Use the streamResponse function from lib/ai.ts
+      for await (const chunk of streamResponse(enhancedPrompt, 'gpt-4')) {
         fullResponse += chunk;
         setStreamingContent(fullResponse);
       }
@@ -211,6 +229,9 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
         model: 'gpt-4',
         sessionId
       };
+
+      // Store assistant message in the database
+      await storeMessage(assistantMessage);
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
@@ -232,6 +253,105 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     }
   };
 
+  const createEnhancedPrompt = async (userPrompt: string): Promise<string> => {
+    let enhancedPrompt = userPrompt;
+    
+    // Add user context if enabled
+    if (settings.includeUserContext) {
+      try {
+        const { data, error } = await supabase.rpc('get_user_profile');
+        
+        if (!error && data) {
+          const userContext = `
+User Context:
+- Ancestry: ${data.preferences?.ancestry || 'Not specified'}
+- Business Goals: ${data.preferences?.businessGoals || 'Not specified'}
+- Cultural Background: ${data.preferences?.culturalBackground || 'Not specified'}
+- Business Type: ${data.preferences?.businessType || 'Not specified'}
+- Industry Focus: ${data.preferences?.industryFocus || 'Not specified'}
+`;
+          enhancedPrompt = `${userContext}\n\nUser Query: ${userPrompt}`;
+        }
+      } catch (error) {
+        console.error('Error getting user context:', error);
+      }
+    }
+    
+    // Add conversation history if enabled
+    if (settings.includeHistory && messages.length > 0) {
+      const history = messages
+        .slice(-6) // Last 6 messages
+        .map(m => `${m.role}: ${m.content}`)
+        .join('\n\n');
+      
+      enhancedPrompt = `
+Previous Conversation:
+${history}
+
+Current Query: ${enhancedPrompt}`;
+    }
+    
+    // Add custom instructions if enabled
+    if (settings.includeCustomInstructions && customInstructions) {
+      enhancedPrompt = `
+Custom Instructions: ${customInstructions}
+
+Query: ${enhancedPrompt}`;
+    }
+    
+    // Add semantic search results if enabled
+    if (settings.includeSemanticSearch) {
+      try {
+        // In a real implementation, this would call the semantic search function
+        // For now, we'll just add a placeholder
+        enhancedPrompt = `
+Relevant Knowledge Base Content:
+- Business automation involves using technology to execute recurring tasks or processes where manual effort can be replaced.
+- Cultural heritage is the legacy of physical artifacts and intangible attributes of a group or society that is inherited from past generations.
+
+Query: ${enhancedPrompt}`;
+      } catch (error) {
+        console.error('Error performing semantic search:', error);
+      }
+    }
+    
+    return enhancedPrompt;
+  };
+
+  const storeMessage = async (message: Message) => {
+    try {
+      // Get the latest message index
+      const { data: lastMessage, error: indexError } = await supabase
+        .from('ai_conversation_history')
+        .select('message_index')
+        .eq('session_id', sessionId)
+        .order('message_index', { ascending: false })
+        .limit(1);
+      
+      const messageIndex = lastMessage && lastMessage.length > 0 ? lastMessage[0].message_index + 1 : 0;
+      
+      // Store the message
+      const { error } = await supabase
+        .from('ai_conversation_history')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          session_id: sessionId,
+          message_index: messageIndex,
+          role: message.role,
+          content: message.content,
+          model_used: message.model,
+          tokens_used: Math.ceil(message.content.length / 4), // Rough estimate
+          metadata: {
+            timestamp: message.timestamp.toISOString()
+          }
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error storing message:', error);
+    }
+  };
+
   const handleFeedback = async (messageId: string, rating: number) => {
     try {
       // Find the message
@@ -245,6 +365,18 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
           : m
       ));
       
+      // Store feedback in the database
+      const { error } = await supabase
+        .from('ai_feedback')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          conversation_id: message.id,
+          rating,
+          created_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
       toast.success(rating > 3 ? 'Thanks for the positive feedback!' : 'Thanks for your feedback. We\'ll work to improve.');
     } catch (error) {
       console.error('Error saving feedback:', error);
@@ -254,7 +386,18 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
 
   const handleSaveInstructions = async () => {
     try {
-      // In a real implementation, this would save to the database
+      // Save custom instructions to the database
+      const { error } = await supabase
+        .from('ai_custom_instructions')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          instructions: customInstructions,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
       setShowSettings(false);
       toast.success('Custom instructions saved');
     } catch (error) {
