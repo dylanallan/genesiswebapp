@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
@@ -11,10 +11,8 @@ import {
   Users, 
   BookOpen, 
   ChefHat, 
-  Calendar,
-  User
+  Calendar
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
 import { useAtom } from 'jotai';
 import { userPreferencesAtom } from '../lib/store';
@@ -27,10 +25,10 @@ import { CulturalStoryLibrary } from './CulturalStoryLibrary';
 import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
 import { AutomationDashboard } from './AutomationDashboard';
-import { Chat } from './Chat';
 import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 import { UserProfileButton } from './UserProfileButton';
+import { GenesisVoiceAssistant } from './GenesisVoiceAssistant';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -45,7 +43,7 @@ const features = [
   { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
   { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
   { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationDashboard },
-  { id: 'profile', name: 'User Profile', icon: User, component: UserProfileManager }
+  { id: 'profile', name: 'User Profile', icon: Users, component: UserProfileManager }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
@@ -170,11 +168,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             <ActiveComponent />
           </div>
           <div className="space-y-6">
-            <Chat
-              userName="User"
-              ancestry="European and Asian heritage"
-              businessGoals="Automate marketing and preserve cultural knowledge"
-            />
+            <GenesisVoiceAssistant />
           </div>
         </div>
       </main>
