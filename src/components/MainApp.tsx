@@ -22,7 +22,7 @@ export const MainApp: React.FC = () => {
             .from('admin_roles')
             .select('role_name')
             .eq('user_id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (adminData) {
             setUserRole(adminData.role_name);
@@ -35,7 +35,7 @@ export const MainApp: React.FC = () => {
             .from('user_data')
             .select('preferences')
             .eq('user_id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (userData?.preferences?.viewMode) {
             setViewMode(userData.preferences.viewMode);
