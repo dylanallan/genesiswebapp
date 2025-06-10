@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <h2 className="text-lg font-semibold">Something went wrong</h2>
             </div>
             <p className="text-gray-600 mb-4">
-              We apologize for the inconvenience. Please try refreshing the page or contact support if the problem persists.
+              We apologize for the inconvenience. Please try refreshing the page.
             </p>
             <div className="bg-gray-50 p-4 rounded-lg mb-4 overflow-auto max-h-32">
               <code className="text-sm text-red-600">{this.state.error?.message}</code>

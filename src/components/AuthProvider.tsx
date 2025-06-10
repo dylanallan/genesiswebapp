@@ -15,7 +15,6 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Session check error:', error);
-          toast.error('Authentication error. Please sign in again.');
         }
       } catch (error) {
         console.error('Unexpected session error:', error);
@@ -34,8 +33,6 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setIsLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setIsLoading(false);
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully');
       }
     });
 

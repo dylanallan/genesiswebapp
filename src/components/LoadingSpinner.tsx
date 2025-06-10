@@ -24,12 +24,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   const spinner = (
     <div className={cn("flex flex-col items-center justify-center", className)}>
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-      >
-        <Loader2 className={cn("text-genesis-600", sizes[size])} />
-      </motion.div>
+      <Loader2 className={cn("text-genesis-600 animate-spin", sizes[size])} />
       {text && (
         <p className="mt-4 text-sm text-gray-500 font-medium">{text}</p>
       )}

@@ -1,22 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
   Activity, 
-  Cpu, 
   LogOut, 
-  Search, 
-  ChevronDown, 
   Bell, 
   Settings, 
-  X, 
-  Zap, 
-  Globe, 
-  Users, 
-  BookOpen, 
-  ChefHat, 
-  Calendar,
-  User
+  Zap,
+  Users,
+  Globe,
+  BookOpen,
+  Calendar
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
@@ -27,12 +21,6 @@ import { CulturalArtifactGallery } from './CulturalArtifactGallery';
 import { TraditionsManager } from './TraditionsManager';
 import { FamilyContactManager } from './FamilyContactManager';
 import { CelebrationManager } from './CelebrationManager';
-import { CulturalStoryLibrary } from './CulturalStoryLibrary';
-import { CulturalRecipeBook } from './CulturalRecipeBook';
-import { TimelineBuilder } from './TimelineBuilder';
-import { AutomationFlow } from './AutomationFlow';
-import { Chat } from './Chat';
-import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 
 interface DashboardProps {
@@ -43,18 +31,12 @@ const features = [
   { id: 'artifacts', name: 'Cultural Artifacts', icon: Globe, component: CulturalArtifactGallery },
   { id: 'traditions', name: 'Traditions', icon: BookOpen, component: TraditionsManager },
   { id: 'contacts', name: 'Family Contacts', icon: Users, component: FamilyContactManager },
-  { id: 'celebrations', name: 'Celebrations', icon: Calendar, component: CelebrationManager },
-  { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
-  { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
-  { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
-  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationFlow },
-  { id: 'profile', name: 'User Profile', icon: User, component: UserProfileManager }
+  { id: 'celebrations', name: 'Celebrations', icon: Calendar, component: CelebrationManager }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const session = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('artifacts');
@@ -123,7 +105,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                         {session.user?.email?.[0].toUpperCase()}
                       </span>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-700">User</span>
                   </button>
 
                   {showUserMenu && (
@@ -135,17 +117,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                       </div>
                       <button
                         onClick={() => {
-                          setShowUserMenu(false);
-                          setActiveFeature('profile');
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        My Profile
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowSettings(true);
                           setShowUserMenu(false);
                         }}
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
@@ -224,80 +195,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               <Activity className="w-4 h-4 text-green-500" />
               <span>All Systems Active</span>
             </motion.div>
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
-            >
-              <Cpu className="w-4 h-4" />
-              <span>Processing Optimized</span>
-            </motion.div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <ActiveComponent />
-          </div>
-          <div className="space-y-6">
-            <Chat
-              userName="User"
-              ancestry="European and Asian heritage"
-              businessGoals="Automate marketing and preserve cultural knowledge"
-            />
-          </div>
+        <div className="space-y-6">
+          <ActiveComponent />
         </div>
       </main>
-
-      {/* Enhanced Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative group">
-          <motion.button 
-            className="w-14 h-14 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Zap className="w-6 h-6" />
-          </motion.button>
-          
-          <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
-              <h3 className="font-semibold text-gray-900 mb-2">System Status</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>AI Router</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Optimal</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Database</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Optimal</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Automation</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Analytics</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-blue-600">Running</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

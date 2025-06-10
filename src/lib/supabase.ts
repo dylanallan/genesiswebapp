@@ -8,7 +8,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase configuration');
-  toast.error('Missing Supabase configuration. Please check your environment variables.');
 }
 
 // Create and export the Supabase client
@@ -16,10 +15,7 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    storage: localStorage,
-    storageKey: 'genesis.auth.token',
-    flowType: 'pkce'
+    detectSessionInUrl: true
   }
 });
 
@@ -39,12 +35,6 @@ supabase.auth.onAuthStateChange((event, session) => {
       break;
     case 'USER_UPDATED':
       toast.success('Profile updated successfully');
-      break;
-    case 'USER_DELETED':
-      toast.info('Account deleted successfully');
-      break;
-    case 'PASSWORD_RECOVERY':
-      toast.info('Password reset email sent');
       break;
   }
 });
