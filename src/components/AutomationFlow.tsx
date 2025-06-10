@@ -24,7 +24,7 @@ const initialNodes: Node[] = [
     data: {
       label: (
         <div className="flex items-center p-2">
-          <Brain className="w-5 h-5 text-blue-400 mr-2" />
+          <Brain className="w-5 h-5 text-genesis-400 mr-2" />
           <span className="text-gray-100">AI Processor</span>
         </div>
       ),
@@ -167,7 +167,7 @@ export const AutomationFlow: React.FC = () => {
       <div className="w-96 border-l border-gray-700 bg-gray-800 flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center space-x-2">
-            <Bot className="w-5 h-5 text-blue-400" />
+            <Bot className="w-5 h-5 text-genesis-400" />
             <h3 className="font-semibold text-gray-100">Automation Assistant</h3>
           </div>
           <p className="text-sm text-gray-400 mt-1">
@@ -188,7 +188,7 @@ export const AutomationFlow: React.FC = () => {
                 return (
                   <button
                     key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
+                    onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
                     className={`p-3 rounded-lg text-left transition-colors ${
                       selectedCategory === category.id
                         ? 'bg-gray-700 border-2 border-gray-600'
@@ -216,7 +216,7 @@ export const AutomationFlow: React.FC = () => {
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${
                     message.role === 'user'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-genesis-600 text-white'
                       : 'bg-gray-700 text-gray-100'
                   }`}
                 >
@@ -240,13 +240,13 @@ export const AutomationFlow: React.FC = () => {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               placeholder={selectedCategory ? "Describe your automation needs..." : "Select a category first"}
-              className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-genesis-500"
               disabled={isLoading || !selectedCategory}
             />
             <button
               type="submit"
               disabled={isLoading || !chatInput.trim() || !selectedCategory}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
             </button>

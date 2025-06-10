@@ -29,6 +29,8 @@ import { CelebrationManager } from './CelebrationManager';
 import { CulturalStoryLibrary } from './CulturalStoryLibrary';
 import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
+import { AutomationFlow } from './AutomationFlow';
+import { Chat } from './Chat';
 import { toast } from 'sonner';
 
 interface DashboardProps {
@@ -42,7 +44,8 @@ const features = [
   { id: 'celebrations', name: 'Celebrations', icon: Calendar, component: CelebrationManager },
   { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
   { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
-  { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder }
+  { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
+  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationFlow }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
@@ -220,7 +223,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           </div>
         </div>
 
-        <ActiveComponent />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <ActiveComponent />
+          </div>
+          <div className="space-y-6">
+            <Chat
+              userName="User"
+              ancestry="European and Asian heritage"
+              businessGoals="Automate marketing and preserve cultural knowledge"
+            />
+          </div>
+        </div>
       </main>
 
       {/* Enhanced Floating Action Button */}

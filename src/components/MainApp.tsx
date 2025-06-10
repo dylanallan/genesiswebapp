@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '@supabase/auth-helpers-react';
 import { Dashboard } from './Dashboard';
-import { EnterpriseDashboard } from './EnterpriseDashboard';
-import { HackathonDemoPage } from './HackathonDemoPage';
 import { Auth } from './Auth';
 import { Loader2, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
 export const MainApp: React.FC = () => {
   const session = useSession();
@@ -65,6 +64,7 @@ export const MainApp: React.FC = () => {
           });
       } catch (error) {
         console.error('Error updating view mode preference:', error);
+        toast.error('Failed to update view mode');
       }
     }
   };
@@ -89,11 +89,5 @@ export const MainApp: React.FC = () => {
     return <Auth />;
   }
 
-  return (
-    <>
-      {viewMode === 'standard' && <Dashboard onViewModeChange={handleViewModeChange} />}
-      {viewMode === 'enterprise' && <EnterpriseDashboard />}
-      {viewMode === 'hackathon' && <HackathonDemoPage />}
-    </>
-  );
+  return <Dashboard onViewModeChange={handleViewModeChange} />;
 };

@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
                   </button>
                 </div>
               )}
-              <div className={!title ? 'p-6' : undefined}>
+              <div className={!title ? 'p-6' : 'p-6'}>
                 {children}
               </div>
             </motion.div>

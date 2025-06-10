@@ -7,7 +7,6 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { Card, CardBody } from './ui/Card';
-import { CulturalArtifactForm } from './CulturalArtifactForm';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -30,6 +29,15 @@ export const CulturalArtifactGallery: React.FC = () => {
   const [selectedArtifact, setSelectedArtifact] = useState<CulturalArtifact | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: '',
+    media_url: '',
+    media_type: '',
+    tags: [] as string[]
+  });
+  const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
     fetchArtifacts();
@@ -59,7 +67,35 @@ export const CulturalArtifactGallery: React.FC = () => {
     }
   };
 
-  const handleDeleteArtifact = async (id: string) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (showEditForm && selectedArtifact) {
+        const { error } = await supabase
+          .from('cultural_artifacts')
+          .update(formData)
+          .eq('id', selectedArtifact.id);
+
+        if (error) throw error;
+        toast.success('Artifact updated successfully');
+      } else {
+        const { error } = await supabase
+          .from('cultural_artifacts')
+          .insert([formData]);
+
+        if (error) throw error;
+        toast.success('Artifact added successfully');
+      }
+
+      resetForm();
+      fetchArtifacts();
+    } catch (error) {
+      console.error('Error saving artifact:', error);
+      toast.error('Failed to save artifact');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this artifact?')) return;
 
     try {
@@ -77,6 +113,50 @@ export const CulturalArtifactGallery: React.FC = () => {
       console.error('Error deleting artifact:', error);
       toast.error('Failed to delete artifact');
     }
+  };
+
+  const handleEdit = (artifact: CulturalArtifact) => {
+    setFormData({
+      title: artifact.title,
+      description: artifact.description,
+      category: artifact.category,
+      media_url: artifact.media_url || '',
+      media_type: artifact.media_type || '',
+      tags: artifact.tags || []
+    });
+    setSelectedArtifact(artifact);
+    setShowEditForm(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      category: '',
+      media_url: '',
+      media_type: '',
+      tags: []
+    });
+    setTagInput('');
+    setShowAddForm(false);
+    setShowEditForm(false);
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tagInput.trim()]
+      });
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(t => t !== tag)
+    });
   };
 
   const filteredArtifacts = artifacts.filter(artifact => 
@@ -329,7 +409,8 @@ export const CulturalArtifactGallery: React.FC = () => {
               <Button
                 className="flex-1"
                 onClick={() => {
-                  setShowEditForm(true);
+                  handleEdit(selectedArtifact);
+                  setSelectedArtifact(null);
                 }}
               >
                 Edit Artifact
@@ -337,7 +418,7 @@ export const CulturalArtifactGallery: React.FC = () => {
               <Button
                 variant="danger"
                 onClick={() => {
-                  handleDeleteArtifact(selectedArtifact.id);
+                  handleDelete(selectedArtifact.id);
                 }}
               >
                 Delete
@@ -347,37 +428,130 @@ export const CulturalArtifactGallery: React.FC = () => {
         )}
       </Modal>
 
-      {/* Add Artifact Form Modal */}
+      {/* Add/Edit Artifact Form Modal */}
       <Modal
-        isOpen={showAddForm}
-        onClose={() => setShowAddForm(false)}
-        title="Add Cultural Artifact"
+        isOpen={showAddForm || showEditForm}
+        onClose={resetForm}
+        title={showEditForm ? "Edit Cultural Artifact" : "Add Cultural Artifact"}
         size="lg"
       >
-        <CulturalArtifactForm
-          onClose={() => setShowAddForm(false)}
-          onSuccess={fetchArtifacts}
-        />
-      </Modal>
-
-      {/* Edit Artifact Form Modal */}
-      <Modal
-        isOpen={showEditForm && !!selectedArtifact}
-        onClose={() => setShowEditForm(false)}
-        title="Edit Cultural Artifact"
-        size="lg"
-      >
-        {selectedArtifact && (
-          <CulturalArtifactForm
-            onClose={() => setShowEditForm(false)}
-            onSuccess={() => {
-              fetchArtifacts();
-              setSelectedArtifact(null);
-            }}
-            initialData={selectedArtifact}
-            isEditing
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            error={formData.title ? '' : 'Title is required'}
+            placeholder="Enter artifact title"
+            required
           />
-        )}
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={3}
+              placeholder="Describe the cultural significance of this artifact"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select a category</option>
+                <option value="image">Image</option>
+                <option value="document">Document</option>
+                <option value="audio">Audio</option>
+                <option value="video">Video</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Media URL (optional)
+              </label>
+              <Input
+                value={formData.media_url}
+                onChange={(e) => setFormData({ ...formData, media_url: e.target.value })}
+                placeholder="https://example.com/media.jpg"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Tags
+            </label>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Add a tag and press Enter"
+              />
+              <Button
+                type="button"
+                onClick={addTag}
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                Add
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {formData.tags.map((tag, index) => (
+                <div
+                  key={index}
+                  className="flex items-center space-x-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                >
+                  <span>{tag}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <Button
+              type="button"
+              onClick={resetForm}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+            >
+              {showEditForm ? 'Update Artifact' : 'Save Artifact'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

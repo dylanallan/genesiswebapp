@@ -252,11 +252,12 @@ export const TraditionsManager: React.FC = () => {
               </div>
               
               <button
-                onClick={() => setSelectedTradition(tradition)}
+                onClick={() => setSelectedTradition(
+                  selectedTradition?.id === tradition.id ? null : tradition
+                )}
                 className="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center"
               >
-                <span>View full details</span>
-                <ChevronDown className="w-4 h-4 ml-1" />
+                <span>{selectedTradition?.id === tradition.id ? 'Hide details' : 'View details'}</span>
               </button>
               
               {selectedTradition?.id === tradition.id && (
@@ -275,15 +276,6 @@ export const TraditionsManager: React.FC = () => {
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-1">Modern Application</h4>
                       <p className="text-gray-600">{tradition.modern_application || 'No modern application provided'}</p>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => setSelectedTradition(null)}
-                        className="text-sm text-gray-500 hover:text-gray-700"
-                      >
-                        Close details
-                      </button>
                     </div>
                   </div>
                 </motion.div>
