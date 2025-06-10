@@ -1,107 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import EnterpriseHeader from './EnterpriseHeader';
-import EnterpriseFeatureNav from './EnterpriseFeatureNav';
-import EnterpriseFeatureBanner from './EnterpriseFeatureBanner';
-import EnterpriseMetricsPanel from './EnterpriseMetricsPanel';
-import EnterprisePricingPanel from './EnterprisePricingPanel';
-import EnterpriseFeatureComparison from './EnterpriseFeatureComparison';
-import EnterpriseROICalculator from './EnterpriseROICalculator';
-import EnterpriseDemo from './EnterpriseDemo';
-import { AutomationFlow } from './AutomationFlow';
-import { FlowBuilder } from './FlowBuilder';
-import { AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
-import { Chat } from './Chat';
-import { Brain, Activity, BarChart3, Users, Globe, TrendingUp, Cpu, Zap, Workflow, ChefHat, Calendar, Dna, Mic, Camera, DollarSign, Calculator, Presentation as PresentationScreen } from 'lucide-react';
+import { 
+  Brain, 
+  Activity, 
+  BarChart3, 
+  Users, 
+  Globe, 
+  TrendingUp, 
+  Cpu, 
+  Zap, 
+  Workflow, 
+  ChefHat, 
+  Calendar, 
+  Dna, 
+  Mic, 
+  Camera, 
+  DollarSign, 
+  Calculator, 
+  Presentation as PresentationScreen 
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
-
-const features = [
-  {
-    id: 'dashboard',
-    name: 'AI Dashboard',
-    icon: Brain,
-    component: () => (
-      <div className="space-y-6">
-        <EnterpriseMetricsPanel 
-          metrics={{
-            totalUsers: 1250,
-            activeAutomations: 87,
-            systemHealth: 99.8,
-            aiRequests: 125000,
-            culturalArtifacts: 3750,
-            businessProcesses: 450,
-            responseTime: 120,
-            uptime: 99.98
-          }}
-        />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <AutomationFlow />
-          </div>
-          <div className="space-y-6">
-            <Chat
-              userName="Enterprise User"
-              ancestry="European and Asian heritage"
-              businessGoals="Automate marketing and preserve cultural knowledge"
-            />
-          </div>
-        </div>
-      </div>
-    ),
-    description: 'AI-powered enterprise automation hub',
-    category: 'core'
-  },
-  {
-    id: 'workflow-builder',
-    name: 'Workflow Builder',
-    icon: Workflow,
-    component: FlowBuilder,
-    description: 'Enterprise workflow automation builder',
-    category: 'business'
-  },
-  {
-    id: 'analytics',
-    name: 'Advanced Analytics',
-    icon: BarChart3,
-    component: AdvancedAnalyticsDashboard,
-    description: 'AI-powered insights and predictive analytics',
-    category: 'core'
-  },
-  {
-    id: 'pricing',
-    name: 'Enterprise Pricing',
-    icon: DollarSign,
-    component: EnterprisePricingPanel,
-    description: 'Flexible pricing for businesses of all sizes',
-    category: 'business'
-  },
-  {
-    id: 'features',
-    name: 'Feature Comparison',
-    icon: Activity,
-    component: EnterpriseFeatureComparison,
-    description: 'Detailed comparison of all available features',
-    category: 'business'
-  },
-  {
-    id: 'roi-calculator',
-    name: 'ROI Calculator',
-    icon: Calculator,
-    component: EnterpriseROICalculator,
-    description: 'Calculate your return on investment',
-    category: 'business'
-  },
-  {
-    id: 'demo',
-    name: 'Interactive Demo',
-    icon: PresentationScreen,
-    component: EnterpriseDemo,
-    description: 'See Genesis Heritage Pro in action',
-    category: 'core'
-  }
-];
+import { UserProfileButton } from './UserProfileButton';
 
 export const HackathonDashboard: React.FC = () => {
   const session = useSession();
@@ -115,9 +36,6 @@ export const HackathonDashboard: React.FC = () => {
       setIsLoading(false);
     }, 1000);
   }, []);
-
-  const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
-  const activeFeatureData = features.find(f => f.id === activeFeature) || features[0];
 
   if (isLoading) {
     return (
@@ -138,37 +56,88 @@ export const HackathonDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
       {/* Enterprise Header */}
-      <EnterpriseHeader 
-        onCategoryChange={setSelectedCategory}
-        selectedCategory={selectedCategory}
-      />
-
-      {/* Feature Navigation */}
-      <EnterpriseFeatureNav 
-        features={features}
-        activeFeature={activeFeature}
-        onFeatureChange={setActiveFeature}
-        selectedCategory={selectedCategory}
-      />
-
-      {/* Feature Banner */}
-      <EnterpriseFeatureBanner 
-        title={activeFeatureData.name}
-        description={activeFeatureData.description}
-        icon={React.createElement(activeFeatureData.icon, { className: "w-5 h-5" })}
-      />
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Genesis Heritage Pro
+                </h1>
+                <p className="text-sm text-gray-600">Hackathon Demo</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 bg-green-100 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-green-800 text-sm font-medium">Live Demo</span>
+              </div>
+              
+              <UserProfileButton />
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <motion.div
-          key={activeFeature}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <ActiveComponent />
-        </motion.div>
+        <div className="text-center py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Hackathon Demo</h2>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Genesis Heritage Pro combines AI-powered business automation with cultural heritage preservation.
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <TrendingUp className="w-8 h-8 text-blue-500 mb-3 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">$37M Valuation</h3>
+              <p className="text-gray-600 text-sm">Target valuation based on market analysis and growth potential</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <Zap className="w-8 h-8 text-purple-500 mb-3 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">AI-First Design</h3>
+              <p className="text-gray-600 text-sm">Built from the ground up for the AI era</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <Globe className="w-8 h-8 text-green-500 mb-3 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Cultural Intelligence</h3>
+              <p className="text-gray-600 text-sm">Respects and integrates cultural context in business operations</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => toast.success('Demo request received!')}
+            className="mt-8 px-6 py-3 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Request Full Demo
+          </button>
+        </div>
       </main>
+
+      {/* Hackathon Badge */}
+      <div className="fixed top-24 right-6 z-40">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          transition={{ delay: 1, type: "spring", stiffness: 100 }}
+          className="bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white px-4 py-2 rounded-lg shadow-lg transform -rotate-3"
+        >
+          <div className="font-bold">$37M Valuation</div>
+          <div className="text-xs">Hackathon Champion</div>
+        </motion.div>
+      </div>
 
       {/* Enhanced Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50">

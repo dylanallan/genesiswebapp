@@ -4,11 +4,8 @@ import {
   Brain, 
   Activity, 
   Cpu, 
-  LogOut, 
   Search, 
-  ChevronDown, 
   Bell, 
-  Settings, 
   X, 
   Zap, 
   Globe, 
@@ -34,6 +31,7 @@ import { AutomationFlow } from './AutomationFlow';
 import { Chat } from './Chat';
 import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
+import { UserProfileButton } from './UserProfileButton';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -59,16 +57,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('artifacts');
   
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast.success('Signed out successfully');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
-    }
-  };
-
   const { colorScheme } = preferences;
 
   const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
@@ -112,65 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                 )}
               </button>
               
-              {session && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-genesis-500 to-spiritual-500 flex items-center justify-center">
-                      <span className="text-sm font-medium text-white">
-                        {session.user?.email?.[0].toUpperCase()}
-                      </span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-gray-600" />
-                  </button>
-
-                  {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border bg-white">
-                      <div className="px-4 py-2 border-b">
-                        <p className="text-sm font-medium text-gray-900">
-                          {session.user?.email}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          setActiveFeature('profile');
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        My Profile
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowSettings(true);
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Settings
-                      </button>
-                      <button
-                        onClick={() => onViewModeChange('hackathon')}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center"
-                      >
-                        <Zap className="w-4 h-4 mr-2" />
-                        Hackathon Demo
-                      </button>
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 flex items-center"
-                      >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              <UserProfileButton />
             </div>
           </div>
         </div>
