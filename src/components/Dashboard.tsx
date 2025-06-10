@@ -4,7 +4,6 @@ import {
   Brain, 
   Activity, 
   Cpu, 
-  Search, 
   Bell, 
   X, 
   Zap, 
@@ -27,7 +26,7 @@ import { CelebrationManager } from './CelebrationManager';
 import { CulturalStoryLibrary } from './CulturalStoryLibrary';
 import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
-import { AutomationFlow } from './AutomationFlow';
+import { AutomationDashboard } from './AutomationDashboard';
 import { Chat } from './Chat';
 import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
@@ -45,7 +44,7 @@ const features = [
   { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
   { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
   { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
-  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationFlow },
+  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationDashboard },
   { id: 'profile', name: 'User Profile', icon: User, component: UserProfileManager }
 ];
 
