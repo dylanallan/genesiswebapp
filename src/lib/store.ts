@@ -37,3 +37,5 @@ export const userPreferencesAtom = atom<UserPreferences>({
   theme: 'light',
   colorScheme: defaultColorSchemes.light
 });
+
+export const systemStateAtom = atom<Record<string, any>>({});

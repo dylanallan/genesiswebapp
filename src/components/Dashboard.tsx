@@ -21,6 +21,7 @@ import { CulturalArtifactGallery } from './CulturalArtifactGallery';
 import { TraditionsManager } from './TraditionsManager';
 import { FamilyContactManager } from './FamilyContactManager';
 import { CelebrationManager } from './CelebrationManager';
+import { Chat } from './Chat';
 import { toast } from 'sonner';
 
 interface DashboardProps {
@@ -105,7 +106,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                         {session.user?.email?.[0].toUpperCase()}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-700">User</span>
                   </button>
 
                   {showUserMenu && (
@@ -198,10 +198,68 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <ActiveComponent />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <ActiveComponent />
+          </div>
+          <div className="space-y-6">
+            <Chat
+              userName="User"
+              ancestry="European and Asian heritage"
+              businessGoals="Automate marketing and preserve cultural knowledge"
+            />
+          </div>
         </div>
       </main>
+
+      {/* Enhanced Floating Action Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="relative group">
+          <motion.button 
+            className="w-14 h-14 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Zap className="w-6 h-6" />
+          </motion.button>
+          
+          <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
+              <h3 className="font-semibold text-gray-900 mb-2">System Status</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>AI Router</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Optimal</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Database</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Optimal</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Automation</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600">Active</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Analytics</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-blue-600">Running</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

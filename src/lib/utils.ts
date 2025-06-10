@@ -32,3 +32,17 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+export function generateUniqueId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+}
+
+export function getInitials(name: string): string {
+  if (!name) return '';
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
