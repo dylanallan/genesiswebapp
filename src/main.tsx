@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import { Toaster } from 'sonner';
 import App from './App';
 import './index.css';
@@ -14,4 +15,14 @@ createRoot(root).render(
   </StrictMode>
 );
 
-// PWA registration will be added once the package is properly installed
+// Register the service worker for offline support
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm('New content available. Reload?')) {
+      updateSW(true);
+    }
+  },
+  onOfflineReady() {
+    console.log('App ready to work offline');
+  },
+});
