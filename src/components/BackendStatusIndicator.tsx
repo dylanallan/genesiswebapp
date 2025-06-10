@@ -8,14 +8,18 @@ import {
   CheckCircle, 
   XCircle, 
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  User
 } from 'lucide-react';
 import { checkBackendStatus, BackendStatus } from '../lib/backend-status';
+import { initializeBackend } from '../lib/initialize-backend';
+import { toast } from 'sonner';
 
 export const BackendStatusIndicator: React.FC = () => {
   const [status, setStatus] = useState<BackendStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   useEffect(() => {
     checkStatus();
@@ -34,6 +38,23 @@ export const BackendStatusIndicator: React.FC = () => {
       console.error('Error checking backend status:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleInitialize = async () => {
+    setIsInitializing(true);
+    try {
+      const success = await initializeBackend();
+      
+      if (success) {
+        await checkStatus();
+        toast.success('Backend initialized successfully');
+      }
+    } catch (error) {
+      console.error('Error initializing backend:', error);
+      toast.error('Failed to initialize backend');
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -136,16 +157,43 @@ export const BackendStatusIndicator: React.FC = () => {
                   <XCircle className="w-4 h-4 text-red-500" />
                 )}
               </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4 text-red-500" />
+                  <span className="text-sm">Admin Configuration</span>
+                </div>
+                {status.adminConfigured ? (
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-red-500" />
+                )}
+              </div>
             </div>
             
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-gray-200 flex space-x-2">
               <button
                 onClick={checkStatus}
-                className="w-full flex items-center justify-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
+                className="flex-1 flex items-center justify-center space-x-1 text-sm text-blue-600 hover:text-blue-800 py-1 px-2 rounded hover:bg-blue-50"
               >
                 <RefreshCw className="w-3 h-3" />
-                <span>Refresh Status</span>
+                <span>Refresh</span>
               </button>
+              
+              {status.overallStatus !== 'operational' && (
+                <button
+                  onClick={handleInitialize}
+                  disabled={isInitializing}
+                  className="flex-1 flex items-center justify-center space-x-1 text-sm text-green-600 hover:text-green-800 py-1 px-2 rounded hover:bg-green-50 disabled:opacity-50"
+                >
+                  {isInitializing ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Zap className="w-3 h-3" />
+                  )}
+                  <span>Initialize</span>
+                </button>
+              )}
             </div>
           </motion.div>
         )}
