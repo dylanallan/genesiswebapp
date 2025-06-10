@@ -1,12 +1,22 @@
-import { GoogleGenerativeAI } from "npm:@google/generative-ai";
+import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.2.1";
+import OpenAI from "npm:openai@4.28.0";
+import { Anthropic } from "npm:@anthropic-ai/sdk@0.17.1";
 import { LlamaModel, LlamaContext, LlamaChatSession } from "npm:node-llama-cpp";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// Environment variables
 const geminiKey = Deno.env.get('GEMINI_API_KEY')!;
+const openaiKey = Deno.env.get('OPENAI_API_KEY');
+const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
 
 interface RequestBody {
   prompt: string;
-  model: 'gpt-4' | 'claude-3' | 'gemini-pro' | 'llama-3';
+  model: 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku' | 'gemini-pro' | 'gemini-1.5-pro' | 'llama-3';
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  context?: string;
+  type?: 'chat' | 'analysis' | 'generation' | 'coding' | 'business' | 'cultural' | 'creative' | 'technical' | 'research';
 }
 
 // Initialize Llama model
@@ -14,76 +24,365 @@ let llamaModel: LlamaModel | null = null;
 let llamaContext: LlamaContext | null = null;
 let llamaSession: LlamaChatSession | null = null;
 
+// Cache for model instances
+const modelCache = new Map();
+
+// Performance metrics
+const metrics = {
+  totalRequests: 0,
+  successfulRequests: 0,
+  failedRequests: 0,
+  averageResponseTime: 0,
+  requestsPerModel: new Map<string, number>()
+};
+
 async function initializeLlama() {
   if (!llamaModel) {
-    llamaModel = new LlamaModel({
-      modelPath: '/models/llama-3.2.gguf',
-      contextSize: 16384,
-      threads: 4
-    });
-    llamaContext = new LlamaContext({ model: llamaModel });
-    llamaSession = new LlamaChatSession({ context: llamaContext });
+    console.log("Initializing Llama model...");
+    try {
+      llamaModel = new LlamaModel({
+        modelPath: '/models/llama-3.2.gguf',
+        contextSize: 16384,
+        threads: 4,
+        gpuLayers: 0 // Set to higher value if GPU is available
+      });
+      llamaContext = new LlamaContext({ model: llamaModel });
+      llamaSession = new LlamaChatSession({ context: llamaContext });
+      console.log("Llama model initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize Llama model:", error);
+      throw new Error("Failed to initialize local AI model");
+    }
   }
 }
 
+function getSystemPrompt(type?: string): string {
+  switch (type) {
+    case 'business':
+      return "You are a business automation and consulting specialist. Provide practical, actionable advice for improving business processes and efficiency. Focus on ROI, scalability, and sustainable growth strategies.";
+    case 'cultural':
+      return "You are a cultural heritage specialist. Help users explore and integrate their cultural background into modern life while preserving traditions. Be respectful and knowledgeable about diverse cultures.";
+    case 'coding':
+      return "You are a programming expert. Provide clear, well-documented code solutions and explain best practices. Focus on clean, maintainable, and efficient code.";
+    case 'analysis':
+      return "You are an analytical expert. Provide thorough, well-reasoned analysis with clear conclusions and recommendations. Use data-driven insights when possible.";
+    case 'creative':
+      return "You are a creative specialist. Help with creative projects, storytelling, design thinking, and innovative solutions. Be imaginative while staying practical.";
+    case 'research':
+      return "You are a research specialist. Provide comprehensive, well-sourced information and analysis. Focus on accuracy, depth, and current information.";
+    case 'technical':
+      return "You are a technical specialist. Provide detailed technical guidance, troubleshooting, and solutions. Focus on accuracy and practical implementation.";
+    default:
+      return "You are a helpful AI assistant. Provide clear, accurate, and useful responses.";
+  }
+}
+
+async function createFallbackResponse(prompt: string, error: Error): Promise<ReadableStream> {
+  console.warn(`Using fallback response due to error: ${error.message}`);
+  
+  const fallbackText = `I apologize, but I'm currently experiencing technical difficulties processing your request: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}".
+
+The specific error was: ${error.message}
+
+Here are some options:
+1. Try again in a few moments
+2. Try a different AI model
+3. Simplify your request or break it into smaller parts
+
+Our team has been notified of this issue and is working to resolve it.`;
+
+  return new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
+      const chunks = fallbackText.split('. ');
+      
+      let i = 0;
+      function sendNextChunk() {
+        if (i < chunks.length) {
+          controller.enqueue(encoder.encode(chunks[i] + (i < chunks.length - 1 ? '. ' : '')));
+          i++;
+          setTimeout(sendNextChunk, 100);
+        } else {
+          controller.close();
+        }
+      }
+      
+      sendNextChunk();
+    }
+  });
+}
+
+async function streamOpenAI(prompt: string, systemPrompt: string, model: string, temperature: number, maxTokens: number): Promise<ReadableStream> {
+  if (!openaiKey) {
+    throw new Error("OpenAI API key not configured");
+  }
+  
+  const openai = new OpenAI({ apiKey: openaiKey });
+  
+  const stream = await openai.chat.completions.create({
+    model: model === 'gpt-4' ? 'gpt-4-turbo-preview' : 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt }
+    ],
+    stream: true,
+    temperature,
+    max_tokens: maxTokens
+  });
+
+  return new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            controller.enqueue(encoder.encode(content));
+          }
+        }
+        controller.close();
+      } catch (error) {
+        console.error("OpenAI streaming error:", error);
+        controller.error(error);
+      }
+    }
+  });
+}
+
+async function streamAnthropic(prompt: string, systemPrompt: string, model: string, temperature: number, maxTokens: number): Promise<ReadableStream> {
+  if (!anthropicKey) {
+    throw new Error("Anthropic API key not configured");
+  }
+  
+  const anthropic = new Anthropic({ apiKey: anthropicKey });
+  
+  const stream = await anthropic.messages.stream({
+    model: model,
+    max_tokens: maxTokens,
+    temperature,
+    messages: [{ 
+      role: 'user', 
+      content: `${systemPrompt}\n\n${prompt}` 
+    }]
+  });
+
+  return new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        for await (const chunk of stream) {
+          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+            controller.enqueue(encoder.encode(chunk.delta.text));
+          }
+        }
+        controller.close();
+      } catch (error) {
+        console.error("Anthropic streaming error:", error);
+        controller.error(error);
+      }
+    }
+  });
+}
+
+async function streamGemini(prompt: string, systemPrompt: string, model: string, temperature: number): Promise<ReadableStream> {
+  if (!geminiKey) {
+    throw new Error("Gemini API key not configured");
+  }
+  
+  const genAI = new GoogleGenerativeAI(geminiKey);
+  const geminiModel = genAI.getGenerativeModel({ 
+    model: model === 'gemini-1.5-pro' ? 'gemini-1.5-pro' : 'gemini-pro',
+    generationConfig: {
+      temperature
+    }
+  });
+  
+  const result = await geminiModel.generateContentStream(`${systemPrompt}\n\n${prompt}`);
+  
+  return new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            controller.enqueue(encoder.encode(text));
+          }
+        }
+        controller.close();
+      } catch (error) {
+        console.error("Gemini streaming error:", error);
+        controller.error(error);
+      }
+    }
+  });
+}
+
+async function streamLlama(prompt: string, systemPrompt: string): Promise<ReadableStream> {
+  await initializeLlama();
+  
+  if (!llamaSession) {
+    throw new Error('Failed to initialize Llama session');
+  }
+  
+  // Set system prompt
+  await llamaSession.setSystemPrompt(systemPrompt);
+  
+  // Stream the response
+  const stream = await llamaSession.streamingChat(prompt);
+  
+  return new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        for await (const chunk of stream) {
+          controller.enqueue(encoder.encode(chunk));
+        }
+        controller.close();
+      } catch (error) {
+        console.error("Llama streaming error:", error);
+        controller.error(error);
+      }
+    }
+  });
+}
+
+function updateMetrics(model: string, startTime: number, success: boolean) {
+  const responseTime = Date.now() - startTime;
+  
+  metrics.totalRequests++;
+  if (success) {
+    metrics.successfulRequests++;
+  } else {
+    metrics.failedRequests++;
+  }
+  
+  // Update average response time with exponential moving average
+  metrics.averageResponseTime = metrics.averageResponseTime === 0 
+    ? responseTime 
+    : metrics.averageResponseTime * 0.9 + responseTime * 0.1;
+  
+  // Update requests per model
+  const modelRequests = metrics.requestsPerModel.get(model) || 0;
+  metrics.requestsPerModel.set(model, modelRequests + 1);
+}
+
 Deno.serve(async (req) => {
+  const startTime = Date.now();
+  let success = false;
+  let selectedModel = 'unknown';
+  
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { prompt, model } = await req.json() as RequestBody;
+    // Parse request body
+    const { 
+      prompt, 
+      model = 'gpt-4', 
+      systemPrompt: customSystemPrompt,
+      temperature = 0.7,
+      maxTokens = 2048,
+      type
+    } = await req.json() as RequestBody;
 
+    if (!prompt) {
+      throw new Error('Prompt is required');
+    }
+    
+    selectedModel = model;
+    
+    // Get appropriate system prompt
+    const systemPrompt = customSystemPrompt || getSystemPrompt(type);
+    
+    // Stream response based on selected model
     let response: ReadableStream;
-
-    switch (model) {
-      case 'gemini-pro': {
-        const genAI = new GoogleGenerativeAI(geminiKey);
-        const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-        const result = await geminiModel.generateContentStream(prompt);
-        response = result.stream;
-        break;
+    
+    // Add timeout for all API calls
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timed out')), 30000); // 30 second timeout
+    });
+    
+    const responsePromise = (async () => {
+      switch (model) {
+        case 'gpt-4':
+        case 'gpt-3.5-turbo':
+          return await streamOpenAI(prompt, systemPrompt, model, temperature, maxTokens);
+          
+        case 'claude-3-opus':
+        case 'claude-3-sonnet':
+        case 'claude-3-haiku':
+          return await streamAnthropic(prompt, systemPrompt, model, temperature, maxTokens);
+          
+        case 'gemini-pro':
+        case 'gemini-1.5-pro':
+          return await streamGemini(prompt, systemPrompt, model, temperature);
+          
+        case 'llama-3':
+          return await streamLlama(prompt, systemPrompt);
+          
+        default:
+          throw new Error(`Unsupported model: ${model}`);
       }
+    })();
+    
+    try {
+      response = await Promise.race([responsePromise, timeoutPromise]);
+      success = true;
+    } catch (error) {
+      console.error(`Error with ${model}:`, error);
       
-      case 'llama-3': {
-        await initializeLlama();
-        if (!llamaSession) {
-          throw new Error('Failed to initialize Llama session');
+      // Try fallback model if primary fails
+      if (model !== 'gemini-pro') {
+        console.log(`Falling back to gemini-pro from ${model}`);
+        try {
+          response = await streamGemini(prompt, systemPrompt, 'gemini-pro', temperature);
+          success = true;
+          selectedModel = 'gemini-pro (fallback)';
+        } catch (fallbackError) {
+          console.error("Fallback also failed:", fallbackError);
+          response = await createFallbackResponse(prompt, error);
         }
-        const stream = await llamaSession.streamingChat(prompt);
-        response = new ReadableStream({
-          async start(controller) {
-            try {
-              for await (const chunk of stream) {
-                controller.enqueue(new TextEncoder().encode(chunk));
-              }
-              controller.close();
-            } catch (error) {
-              controller.error(error);
-            }
-          }
-        });
-        break;
+      } else {
+        response = await createFallbackResponse(prompt, error);
       }
-
-      default:
-        throw new Error(`Unsupported model: ${model}`);
     }
 
+    // Update metrics
+    updateMetrics(selectedModel, startTime, success);
+
+    // Return streaming response
     return new Response(response, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Model-Used': selectedModel,
+        'X-Response-Time': `${Date.now() - startTime}ms`
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
+    console.error('Request processing error:', error);
+    
+    // Update metrics
+    updateMetrics(selectedModel, startTime, false);
+    
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        model: selectedModel,
+        timestamp: new Date().toISOString()
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
 });
