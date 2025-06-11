@@ -37,15 +37,78 @@ interface DashboardProps {
 }
 
 const features = [
-  { id: 'artifacts', name: 'Cultural Artifacts', icon: Globe, component: CulturalArtifactGallery },
-  { id: 'traditions', name: 'Traditions', icon: BookOpen, component: TraditionsManager },
-  { id: 'contacts', name: 'Family Contacts', icon: Users, component: FamilyContactManager },
-  { id: 'celebrations', name: 'Celebrations', icon: Calendar, component: CelebrationManager },
-  { id: 'stories', name: 'Cultural Stories', icon: BookOpen, component: CulturalStoryLibrary },
-  { id: 'recipes', name: 'Cultural Recipes', icon: ChefHat, component: CulturalRecipeBook },
-  { id: 'timeline', name: 'Family Timeline', icon: Calendar, component: TimelineBuilder },
-  { id: 'automation', name: 'Business Automation', icon: Zap, component: AutomationHub },
-  { id: 'profile', name: 'User Profile', icon: Users, component: UserProfileManager }
+  {
+    id: 'artifacts',
+    name: 'Cultural Artifacts',
+    icon: Globe,
+    component: CulturalArtifactGallery,
+    description: 'Main AI-powered automation hub',
+    category: 'core'
+  },
+  {
+    id: 'traditions',
+    name: 'Traditions',
+    icon: BookOpen,
+    component: TraditionsManager,
+    description: 'Real-time system optimization and monitoring',
+    category: 'core'
+  },
+  {
+    id: 'contacts',
+    name: 'Family Contacts',
+    icon: Users,
+    component: FamilyContactManager,
+    description: 'AI-powered insights and predictive analytics',
+    category: 'core'
+  },
+  {
+    id: 'celebrations',
+    name: 'Celebrations',
+    icon: Calendar,
+    component: CelebrationManager,
+    description: 'Clone and preserve ancestral voices',
+    category: 'heritage'
+  },
+  {
+    id: 'stories',
+    name: 'Cultural Stories',
+    icon: BookOpen,
+    component: CulturalStoryLibrary,
+    description: 'Augmented reality heritage exploration',
+    category: 'heritage'
+  },
+  {
+    id: 'recipes',
+    name: 'Cultural Recipes',
+    icon: ChefHat,
+    component: CulturalRecipeBook,
+    description: 'Comprehensive genetic heritage insights',
+    category: 'heritage'
+  },
+  {
+    id: 'timeline',
+    name: 'Family Timeline',
+    icon: Calendar,
+    component: TimelineBuilder,
+    description: 'Interactive family history timeline',
+    category: 'heritage'
+  },
+  {
+    id: 'automation',
+    name: 'Business Automation',
+    icon: Zap,
+    component: AutomationHub,
+    description: 'Traditional family recipes and stories',
+    category: 'business'
+  },
+  {
+    id: 'profile',
+    name: 'User Profile',
+    icon: Users,
+    component: UserProfileManager,
+    description: 'User profile management',
+    category: 'core'
+  }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {

@@ -1,4 +1,7 @@
 import { supabase } from './supabase';
+import { toast } from 'sonner';
+import { circuitBreakerManager } from './circuit-breaker';
+import { errorRecovery } from './error-recovery';
 
 export type AIModel = 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku' | 'gemini-pro' | 'gemini-1.5-pro' | 'auto';
 
@@ -54,51 +57,89 @@ export async function* streamResponse(
       return;
     }
 
-    // Use the ai-stream edge function
-    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-stream`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt,
-        model: model === 'auto' ? getBestModelForTask(prompt) : model,
-        context
-      }),
-    });
-
-    if (!response.ok) {
-      console.error(`AI Stream error: ${response.status} ${response.statusText}`);
-      throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('No response body');
-    }
-
-    const decoder = new TextDecoder();
+    const circuitBreaker = circuitBreakerManager.getBreaker('ai-router');
     
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    return circuitBreaker.execute(async () => {
+      // Use the ai-stream edge function
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-stream`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          model: model === 'auto' ? getBestModelForTask(prompt) : model,
+          context,
+          type: determineRequestType(prompt)
+        }),
+      });
 
-        const chunk = decoder.decode(value, { stream: true });
-        if (chunk) {
-          yield chunk;
-        }
+      if (!response.ok) {
+        throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
       }
-    } catch (streamError) {
-      console.error('Stream reading error:', streamError);
-      throw streamError;
-    } finally {
-      reader.releaseLock();
-    }
+
+      return createStreamFromResponse(response);
+    });
   } catch (error) {
-    console.error('Error in streamResponse:', error);
+    console.error('AI Router error:', error);
+    
+    await errorRecovery.handleError({
+      component: 'ai-router',
+      error: error instanceof Error ? error : new Error('Unknown routing error'),
+      timestamp: new Date()
+    });
+    
     yield* getMockStreamResponse(prompt);
+  }
+}
+
+function determineRequestType(prompt: string): string {
+  const lowerPrompt = prompt.toLowerCase();
+  
+  if (lowerPrompt.includes('business') || lowerPrompt.includes('automation') || lowerPrompt.includes('workflow')) {
+    return 'business';
+  }
+  
+  if (lowerPrompt.includes('culture') || lowerPrompt.includes('heritage') || lowerPrompt.includes('tradition')) {
+    return 'cultural';
+  }
+  
+  if (lowerPrompt.includes('code') || lowerPrompt.includes('programming') || lowerPrompt.includes('function')) {
+    return 'coding';
+  }
+  
+  if (lowerPrompt.includes('analyze') || lowerPrompt.includes('compare') || lowerPrompt.includes('evaluate')) {
+    return 'analysis';
+  }
+  
+  if (lowerPrompt.includes('creative') || lowerPrompt.includes('story') || lowerPrompt.includes('design')) {
+    return 'creative';
+  }
+  
+  return 'chat';
+}
+
+async function* createStreamFromResponse(response: Response): AsyncGenerator<string> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body');
+  }
+
+  const decoder = new TextDecoder();
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      if (chunk) {
+        yield chunk;
+      }
+    }
+  } finally {
+    reader.releaseLock();
   }
 }
 

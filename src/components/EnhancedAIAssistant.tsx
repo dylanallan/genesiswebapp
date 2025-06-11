@@ -18,6 +18,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { streamResponse } from '../lib/ai';
+import { AIMemory } from '../lib/ai-memory';
 
 interface Message {
   id: string;
@@ -56,13 +59,20 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     includeCustomInstructions: true,
     includeSemanticSearch: true,
     semanticSearchThreshold: 0.7,
-    semanticSearchCount: 5
+    semanticSearchCount: 5,
+    selectedModel: 'auto' as 'auto' | 'gpt-4' | 'claude-3-opus' | 'gemini-pro'
   });
   const [showHistory, setShowHistory] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<{id: string, title: string, date: Date}[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<{
+    id: string;
+    sessionId: string;
+    messages: number;
+    lastActive: Date;
+  }[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const aiMemory = useRef<AIMemory>(new AIMemory({ sessionId }));
 
   useEffect(() => {
     // Add initial system message if provided
@@ -86,14 +96,52 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       
       setMessages([welcomeMessage]);
     }
+
+    // Load custom instructions if available
+    loadCustomInstructions();
   }, [initialContext]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, streamingContent]);
 
+  useEffect(() => {
+    if (showHistory) {
+      loadConversationHistory();
+    }
+  }, [showHistory]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadCustomInstructions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ai_custom_instructions')
+        .select('instructions')
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (!error && data?.instructions) {
+        setCustomInstructions(data.instructions);
+      }
+    } catch (error) {
+      console.error('Error loading custom instructions:', error);
+    }
+  };
+
+  const loadConversationHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const sessions = await AIMemory.getSessions();
+      setConversationHistory(sessions);
+    } catch (error) {
+      console.error('Error loading conversation history:', error);
+      toast.error('Failed to load conversation history');
+    } finally {
+      setIsLoadingHistory(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,33 +162,40 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     setStreamingContent('');
 
     try {
-      // Simulate AI response
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Store user message
+      await aiMemory.current.storeMessage('user', input);
       
-      const response = `I understand you're asking about: "${input}"
+      // Prepare context options
+      const contextOptions = {
+        sessionId,
+        userContext: settings.includeUserContext,
+        conversationHistory: settings.includeHistory,
+        customInstructions: settings.includeCustomInstructions && customInstructions ? true : false,
+        semanticSearch: settings.includeSemanticSearch,
+        semanticSearchThreshold: settings.semanticSearchThreshold,
+        semanticSearchCount: settings.semanticSearchCount
+      };
 
-I'm here to help with both business automation and cultural heritage exploration:
-
-**Business Automation:**
-- Workflow optimization and process streamlining
-- Marketing automation and customer journey mapping
-- Data integration and analytics
-- AI-powered decision support
-
-**Cultural Heritage:**
-- Family history documentation and preservation
-- Traditional practices and their modern applications
-- Cultural identity exploration
-- Community connection and heritage sharing
-
-How can I assist you specifically today?`;
+      let fullResponse = '';
+      
+      // Stream the response
+      for await (const chunk of streamResponse(
+        input,
+        settings.selectedModel === 'auto' ? 'auto' : settings.selectedModel
+      )) {
+        fullResponse += chunk;
+        setStreamingContent(fullResponse);
+      }
+      
+      // Store assistant message
+      await aiMemory.current.storeMessage('assistant', fullResponse, { model: settings.selectedModel });
       
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: response,
+        content: fullResponse,
         timestamp: new Date(),
-        model: 'gpt-4',
+        model: settings.selectedModel,
         sessionId
       };
 
@@ -179,6 +234,21 @@ How can I assist you specifically today?`;
           : m
       ));
       
+      // Save feedback to database
+      try {
+        await supabase
+          .from('ai_feedback')
+          .insert({
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            response_id: messageId,
+            rating,
+            was_helpful: rating > 3,
+            created_at: new Date().toISOString()
+          });
+      } catch (dbError) {
+        console.warn('Failed to save feedback to database:', dbError);
+      }
+      
       toast.success(rating > 3 ? 'Thanks for the positive feedback!' : 'Thanks for your feedback. We\'ll work to improve.');
     } catch (error) {
       console.error('Error saving feedback:', error);
@@ -188,6 +258,17 @@ How can I assist you specifically today?`;
 
   const handleSaveInstructions = async () => {
     try {
+      const { error } = await supabase
+        .from('ai_custom_instructions')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          instructions: customInstructions,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
       setShowSettings(false);
       toast.success('Custom instructions saved');
     } catch (error) {
@@ -199,6 +280,7 @@ How can I assist you specifically today?`;
   const startNewConversation = () => {
     const newSessionId = crypto.randomUUID();
     setSessionId(newSessionId);
+    aiMemory.current = new AIMemory({ sessionId: newSessionId });
     
     const welcomeMessage = {
       id: crypto.randomUUID(),
@@ -212,6 +294,56 @@ How can I assist you specifically today?`;
     
     toast.success('Started new conversation');
   };
+
+  const loadSession = (sessionId: string) => {
+    aiMemory.current.loadSession(sessionId);
+    setSessionId(sessionId);
+    
+    // Load messages for this session
+    loadSessionMessages(sessionId);
+    
+    setShowHistory(false);
+  };
+
+  const loadSessionMessages = async (sessionId: string) => {
+    setIsLoading(true);
+    try {
+      const history = await aiMemory.current.getConversationHistory();
+      
+      const formattedMessages: Message[] = history.map(msg => ({
+        id: crypto.randomUUID(),
+        role: msg.role as 'user' | 'assistant' | 'system',
+        content: msg.content,
+        timestamp: msg.timestamp,
+        sessionId
+      }));
+      
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error('Error loading session messages:', error);
+      toast.error('Failed to load conversation');
+      
+      // Add fallback welcome message
+      const welcomeMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: "👋 Hello! I'm your Genesis AI Assistant Pro. I can help with business automation and cultural heritage questions. How can I assist you today?",
+        timestamp: new Date(),
+        sessionId
+      };
+      
+      setMessages([welcomeMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const availableModels = [
+    { id: 'auto', name: 'Auto-Select', description: 'Best model for your task' },
+    { id: 'gpt-4', name: 'GPT-4', description: 'Advanced reasoning' },
+    { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Nuanced understanding' },
+    { id: 'gemini-pro', name: 'Gemini Pro', description: 'Fast responses' }
+  ];
 
   return (
     <div className={`flex flex-col h-[600px] bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}>
@@ -338,6 +470,19 @@ How can I assist you specifically today?`;
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
+        <div className="flex space-x-2 mb-2">
+          <select
+            value={settings.selectedModel}
+            onChange={(e) => setSettings({ ...settings, selectedModel: e.target.value as any })}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+          >
+            {availableModels.map(model => (
+              <option key={model.id} value={model.id}>
+                {model.name} - {model.description}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex space-x-2">
           <input
             type="text"
@@ -422,6 +567,19 @@ How can I assist you specifically today?`;
                     </label>
                     <Settings className="w-4 h-4 text-blue-500" />
                   </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={settings.includeSemanticSearch}
+                        onChange={(e) => setSettings({ ...settings, includeSemanticSearch: e.target.checked })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">Include Semantic Search</span>
+                    </label>
+                    <Sparkles className="w-4 h-4 text-blue-500" />
+                  </div>
                 </div>
                 
                 <div className="space-y-4">
@@ -495,18 +653,23 @@ How can I assist you specifically today?`;
                     {conversationHistory.map((conversation) => (
                       <button
                         key={conversation.id}
+                        onClick={() => loadSession(conversation.sessionId)}
                         className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <MessageSquare className="w-4 h-4 text-blue-500" />
                             <span className="font-medium text-gray-900">
-                              {conversation.title}
+                              Conversation {conversation.sessionId.substring(0, 8)}...
                             </span>
                           </div>
                           <span className="text-xs text-gray-500">
-                            {conversation.date.toLocaleDateString()}
+                            {conversation.lastActive.toLocaleDateString()}
                           </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                          <span>{conversation.messages} messages</span>
+                          <span>{conversation.lastActive.toLocaleTimeString()}</span>
                         </div>
                       </button>
                     ))}

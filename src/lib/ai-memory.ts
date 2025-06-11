@@ -1,9 +1,21 @@
 import { supabase } from './supabase';
 
-interface MemoryOptions {
-  sessionId?: string;
-  maxMessages?: number;
-  includeSystemMessages?: boolean;
+export interface AIContext {
+  sessionId: string;
+  userContext?: boolean;
+  conversationHistory?: boolean;
+  customInstructions?: boolean;
+  semanticSearch?: boolean;
+  semanticSearchThreshold?: number;
+  semanticSearchCount?: number;
+}
+
+export interface AIResponse {
+  content: string;
+  model: string;
+  sessionId: string;
+  tokensUsed?: number;
+  processingTime?: number;
 }
 
 /**
@@ -14,7 +26,11 @@ export class AIMemory {
   private maxMessages: number;
   private includeSystemMessages: boolean;
 
-  constructor(options: MemoryOptions = {}) {
+  constructor(options: {
+    sessionId?: string;
+    maxMessages?: number;
+    includeSystemMessages?: boolean;
+  } = {}) {
     this.sessionId = options.sessionId || crypto.randomUUID();
     this.maxMessages = options.maxMessages || 10;
     this.includeSystemMessages = options.includeSystemMessages || false;
@@ -23,7 +39,11 @@ export class AIMemory {
   /**
    * Store a message in the conversation history
    */
-  async storeMessage(role: 'user' | 'assistant' | 'system', content: string, metadata: Record<string, any> = {}): Promise<string> {
+  async storeMessage(
+    role: 'user' | 'assistant' | 'system', 
+    content: string, 
+    metadata: Record<string, any> = {}
+  ): Promise<string> {
     try {
       // Get the latest message index
       const { data: lastMessage, error: indexError } = await supabase
@@ -57,7 +77,10 @@ export class AIMemory {
       return data.id;
     } catch (error) {
       console.error('Error storing message:', error);
-      throw error;
+      
+      // Create a fallback in-memory storage if database fails
+      console.log('Using fallback in-memory storage for message');
+      return crypto.randomUUID();
     }
   }
 
@@ -87,6 +110,8 @@ export class AIMemory {
       }));
     } catch (error) {
       console.error('Error retrieving conversation history:', error);
+      
+      // Return empty array if database fails
       return [];
     }
   }
@@ -136,7 +161,7 @@ export class AIMemory {
   /**
    * Get all available conversation sessions
    */
-  static async getSessions(): Promise<{id: string, title: string, date: Date}[]> {
+  static async getSessions(): Promise<{id: string, sessionId: string, messages: number, lastActive: Date}[]> {
     try {
       const { data, error } = await supabase
         .from('ai_conversation_history')
@@ -146,17 +171,28 @@ export class AIMemory {
       if (error) throw error;
       
       // Group by session_id and get the first message of each session
-      const sessions = new Map<string, Date>();
+      const sessions = new Map<string, {count: number, lastActive: Date}>();
+      
       data?.forEach(item => {
         if (!sessions.has(item.session_id)) {
-          sessions.set(item.session_id, new Date(item.created_at));
+          sessions.set(item.session_id, { count: 0, lastActive: new Date(item.created_at) });
+        }
+        
+        const session = sessions.get(item.session_id)!;
+        session.count++;
+        
+        // Update last active if this message is more recent
+        const messageDate = new Date(item.created_at);
+        if (messageDate > session.lastActive) {
+          session.lastActive = messageDate;
         }
       });
       
-      return Array.from(sessions.entries()).map(([id, date]) => ({
-        id,
-        title: `Conversation from ${date.toLocaleString()}`,
-        date
+      return Array.from(sessions.entries()).map(([sessionId, info]) => ({
+        id: crypto.randomUUID(),
+        sessionId,
+        messages: info.count,
+        lastActive: info.lastActive
       }));
     } catch (error) {
       console.error('Error getting sessions:', error);

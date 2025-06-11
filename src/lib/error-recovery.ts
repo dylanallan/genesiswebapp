@@ -233,3 +233,12 @@ class ErrorRecoverySystem {
 }
 
 export const errorRecovery = ErrorRecoverySystem.getInstance();
+
+// Add missing types for window
+declare global {
+  interface Window {
+    gc?: () => void;
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: any;
+    __APP_STATE__?: Record<string, any>;
+  }
+}

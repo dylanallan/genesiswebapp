@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { BackendSetup } from './BackendSetup';
+import { ErrorBoundary } from '../lib/error-boundary';
 
 export const MainApp: React.FC = () => {
   const session = useSession();
@@ -100,12 +101,25 @@ export const MainApp: React.FC = () => {
     return <BackendSetup onSetupComplete={handleBackendSetupComplete} />;
   }
 
+  // Wrap each dashboard in an ErrorBoundary to prevent crashes
   switch (viewMode) {
     case 'enterprise':
-      return <EnterpriseDashboard />;
+      return (
+        <ErrorBoundary>
+          <EnterpriseDashboard />
+        </ErrorBoundary>
+      );
     case 'hackathon':
-      return <HackathonDashboard />;
+      return (
+        <ErrorBoundary>
+          <HackathonDashboard />
+        </ErrorBoundary>
+      );
     default:
-      return <Dashboard onViewModeChange={handleViewModeChange} />;
+      return (
+        <ErrorBoundary>
+          <Dashboard onViewModeChange={handleViewModeChange} />
+        </ErrorBoundary>
+      );
   }
 };
