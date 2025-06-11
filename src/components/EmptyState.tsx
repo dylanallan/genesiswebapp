@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { Button } from './ui/Button';
 
 interface EmptyStateProps {
   title: string;
@@ -43,13 +42,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <p className="text-gray-500 mb-6 max-w-md">{description}</p>
       
       {action && (
-        <Button
+        <button
           onClick={action.onClick}
-          variant="primary"
-          size="md"
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
           {action.label}
-        </Button>
+        </button>
       )}
     </motion.div>
   );

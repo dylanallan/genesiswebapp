@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Globe, Calendar, Users, MapPin, Clock, Plus, Edit, Trash, Search, Filter, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
 interface Tradition {
@@ -18,8 +17,45 @@ interface Tradition {
 }
 
 export const TraditionsManager: React.FC = () => {
-  const [traditions, setTraditions] = useState<Tradition[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [traditions, setTraditions] = useState<Tradition[]>([
+    {
+      id: '1',
+      name: 'Annual Family Reunion',
+      description: 'A gathering of all family members that happens every summer, featuring traditional foods, games, and storytelling.',
+      origin: 'Started in 1952 after the family immigrated to America',
+      historical_context: 'Began as a way to maintain family connections after migration scattered family members across different states.',
+      modern_application: 'Now includes video calls for members who cannot attend in person, and digital archiving of stories shared.',
+      frequency: 'Yearly',
+      participants: ['Extended family', 'Close friends', 'New generations'],
+      created_at: '2025-01-10T14:30:00Z',
+      updated_at: '2025-01-10T14:30:00Z'
+    },
+    {
+      id: '2',
+      name: 'Harvest Festival',
+      description: 'A celebration of the autumn harvest with traditional foods, music, and thanksgiving rituals.',
+      origin: 'Agricultural traditions from Eastern Europe',
+      historical_context: 'Based on pre-Christian harvest celebrations that were later incorporated into religious observances.',
+      modern_application: 'Now includes sustainable farming education and community garden participation.',
+      frequency: 'Yearly',
+      participants: ['Family', 'Community members', 'Local farmers'],
+      created_at: '2025-02-15T09:45:00Z',
+      updated_at: '2025-02-15T09:45:00Z'
+    },
+    {
+      id: '3',
+      name: 'Sunday Family Dinner',
+      description: 'Weekly gathering where the family prepares and shares a traditional meal together.',
+      origin: 'Mediterranean family custom',
+      historical_context: 'Rooted in the importance of family meals in Mediterranean cultures, where food preparation and sharing is a communal activity.',
+      modern_application: 'Recipes are now documented digitally, and sometimes includes virtual participation from distant family members.',
+      frequency: 'Weekly',
+      participants: ['Immediate family', 'Occasional guests'],
+      created_at: '2025-03-05T18:20:00Z',
+      updated_at: '2025-03-05T18:20:00Z'
+    }
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTradition, setSelectedTradition] = useState<Tradition | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -34,69 +70,64 @@ export const TraditionsManager: React.FC = () => {
     participants: []
   });
 
-  useEffect(() => {
-    fetchTraditions();
-  }, []);
+  const filteredTraditions = traditions.filter(tradition => 
+    tradition.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tradition.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tradition.origin.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const fetchTraditions = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('traditions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTraditions(data || []);
-    } catch (error) {
-      console.error('Error fetching traditions:', error);
-      toast.error('Failed to load traditions');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      if (isEditing && selectedTradition) {
-        // Update existing tradition
-        const { error } = await supabase
-          .from('traditions')
-          .update(formData)
-          .eq('id', selectedTradition.id);
-
-        if (error) throw error;
-        toast.success('Tradition updated successfully');
-      } else {
-        // Create new tradition
-        const { error } = await supabase
-          .from('traditions')
-          .insert([formData]);
-
-        if (error) throw error;
-        toast.success('Tradition added successfully');
-      }
-
-      // Reset form and fetch updated traditions
-      setFormData({
-        name: '',
-        description: '',
-        origin: '',
-        historical_context: '',
-        modern_application: '',
-        frequency: '',
-        participants: []
-      });
-      setShowAddForm(false);
-      setIsEditing(false);
-      setSelectedTradition(null);
-      fetchTraditions();
-    } catch (error) {
-      console.error('Error saving tradition:', error);
-      toast.error('Failed to save tradition');
+    if (!formData.name) {
+      toast.error('Name is required');
+      return;
     }
+
+    if (isEditing && selectedTradition) {
+      // Update existing tradition
+      setTraditions(traditions.map(t => 
+        t.id === selectedTradition.id 
+          ? { 
+              ...t, 
+              ...formData, 
+              updated_at: new Date().toISOString() 
+            } as Tradition
+          : t
+      ));
+      toast.success('Tradition updated successfully');
+    } else {
+      // Create new tradition
+      const newTradition: Tradition = {
+        id: Date.now().toString(),
+        name: formData.name!,
+        description: formData.description || '',
+        origin: formData.origin || '',
+        historical_context: formData.historical_context || '',
+        modern_application: formData.modern_application || '',
+        frequency: formData.frequency || '',
+        participants: formData.participants || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      setTraditions([newTradition, ...traditions]);
+      toast.success('Tradition added successfully');
+    }
+    
+    // Reset form and state
+    setFormData({
+      name: '',
+      description: '',
+      origin: '',
+      historical_context: '',
+      modern_application: '',
+      frequency: '',
+      participants: []
+    });
+    setShowAddForm(false);
+    setIsEditing(false);
+    setSelectedTradition(null);
   };
 
   const handleEdit = (tradition: Tradition) => {
@@ -114,29 +145,12 @@ export const TraditionsManager: React.FC = () => {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this tradition?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('traditions')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this tradition?')) {
+      setTraditions(traditions.filter(t => t.id !== id));
       toast.success('Tradition deleted successfully');
-      fetchTraditions();
-    } catch (error) {
-      console.error('Error deleting tradition:', error);
-      toast.error('Failed to delete tradition');
     }
   };
-
-  const filteredTraditions = traditions.filter(tradition => 
-    tradition.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tradition.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tradition.origin.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -287,7 +301,7 @@ export const TraditionsManager: React.FC = () => {
 
       {/* Add/Edit Tradition Form Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

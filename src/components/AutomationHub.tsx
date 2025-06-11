@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Workflow, 
@@ -25,10 +25,6 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
-import { AutomationAssistant } from './AutomationAssistant';
-import { WorkflowGenerator } from './WorkflowGenerator';
-import { N8NIntegration } from './N8NIntegration';
 
 interface Workflow {
   id: string;
@@ -47,173 +43,121 @@ interface Workflow {
 }
 
 export const AutomationHub: React.FC = () => {
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [workflows, setWorkflows] = useState<Workflow[]>([
+    {
+      id: '1',
+      name: 'Customer Onboarding',
+      description: 'Automates the customer onboarding process including welcome emails, data collection, and CRM updates',
+      status: 'active',
+      lastRun: '2025-06-10T15:30:00Z',
+      nextRun: '2025-06-11T15:30:00Z',
+      tags: ['customer', 'email', 'crm'],
+      n8nUrl: 'https://n8n.yourdomain.com/workflow/1',
+      createdAt: '2025-05-15T10:00:00Z',
+      updatedAt: '2025-06-09T14:20:00Z',
+      executionCount: 342,
+      successRate: 98.5,
+      averageExecutionTime: 1.2
+    },
+    {
+      id: '2',
+      name: 'Invoice Processing',
+      description: 'Extracts data from invoices, updates accounting system, and sends payment reminders',
+      status: 'active',
+      lastRun: '2025-06-10T12:15:00Z',
+      nextRun: '2025-06-11T12:15:00Z',
+      tags: ['finance', 'accounting', 'documents'],
+      n8nUrl: 'https://n8n.yourdomain.com/workflow/2',
+      createdAt: '2025-05-20T11:30:00Z',
+      updatedAt: '2025-06-08T09:45:00Z',
+      executionCount: 156,
+      successRate: 99.2,
+      averageExecutionTime: 2.5
+    },
+    {
+      id: '3',
+      name: 'Social Media Scheduler',
+      description: 'Schedules and posts content to multiple social media platforms based on optimal timing',
+      status: 'inactive',
+      lastRun: '2025-06-05T08:00:00Z',
+      nextRun: '',
+      tags: ['marketing', 'social media', 'content'],
+      n8nUrl: 'https://n8n.yourdomain.com/workflow/3',
+      createdAt: '2025-05-25T14:20:00Z',
+      updatedAt: '2025-06-05T16:10:00Z',
+      executionCount: 87,
+      successRate: 92.1,
+      averageExecutionTime: 1.8
+    },
+    {
+      id: '4',
+      name: 'Lead Qualification',
+      description: 'Scores and qualifies leads based on behavior, engagement, and demographic data',
+      status: 'active',
+      lastRun: '2025-06-10T09:00:00Z',
+      nextRun: '2025-06-10T21:00:00Z',
+      tags: ['sales', 'leads', 'crm'],
+      n8nUrl: 'https://n8n.yourdomain.com/workflow/4',
+      createdAt: '2025-06-01T13:45:00Z',
+      updatedAt: '2025-06-07T11:30:00Z',
+      executionCount: 215,
+      successRate: 97.3,
+      averageExecutionTime: 0.9
+    },
+    {
+      id: '5',
+      name: 'Data Backup',
+      description: 'Automatically backs up critical business data to secure cloud storage',
+      status: 'draft',
+      lastRun: '',
+      nextRun: '',
+      tags: ['data', 'security', 'backup'],
+      n8nUrl: 'https://n8n.yourdomain.com/workflow/5',
+      createdAt: '2025-06-08T16:20:00Z',
+      updatedAt: '2025-06-08T16:20:00Z',
+      executionCount: 0,
+      successRate: 0,
+      averageExecutionTime: 0
+    },
+    {
+      id: '6',
+      name: 'Cultural Event Notifications',
+      description: 'Sends notifications about upcoming cultural events and heritage celebrations',
+      status: 'active',
+      lastRun: '2025-06-10T08:00:00Z',
+      nextRun: '2025-06-11T08:00:00Z',
+      tags: ['culture', 'events', 'notifications'],
+      n8nUrl: 'https://n8n.yourdomain.com/workflow/6',
+      createdAt: '2025-06-02T10:15:00Z',
+      updatedAt: '2025-06-09T11:20:00Z',
+      executionCount: 78,
+      successRate: 100,
+      averageExecutionTime: 0.7
+    }
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [showAssistant, setShowAssistant] = useState(false);
-  const [showWorkflowGenerator, setShowWorkflowGenerator] = useState(false);
-  const [showN8NIntegration, setShowN8NIntegration] = useState(false);
-  const [isN8NConnected, setIsN8NConnected] = useState(false);
-  const [n8nUrl, setN8nUrl] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metrics, setMetrics] = useState({
-    totalWorkflows: 0,
-    activeWorkflows: 0,
-    totalExecutions: 0,
-    successRate: 0,
-    averageExecutionTime: 0,
-    timeSaved: 0
+    totalWorkflows: 6,
+    activeWorkflows: 4,
+    totalExecutions: 878,
+    successRate: 97.5,
+    averageExecutionTime: 1.42,
+    timeSaved: 127 // hours
   });
-
-  useEffect(() => {
-    checkN8NConnection();
-    fetchWorkflows();
-    fetchMetrics();
-  }, []);
-
-  const checkN8NConnection = () => {
-    const isConnected = localStorage.getItem('n8n_connected') === 'true';
-    const url = localStorage.getItem('n8n_url') || '';
-    setIsN8NConnected(isConnected);
-    setN8nUrl(url);
-  };
-
-  const fetchWorkflows = async () => {
-    setIsLoading(true);
-    try {
-      // In a real implementation, this would fetch from your n8n instance via an API
-      // For demo purposes, we'll use mock data
-      const mockWorkflows: Workflow[] = [
-        {
-          id: '1',
-          name: 'Customer Onboarding',
-          description: 'Automates the customer onboarding process including welcome emails, data collection, and CRM updates',
-          status: 'active',
-          lastRun: '2025-06-10T15:30:00Z',
-          nextRun: '2025-06-11T15:30:00Z',
-          tags: ['customer', 'email', 'crm'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/1',
-          createdAt: '2025-05-15T10:00:00Z',
-          updatedAt: '2025-06-09T14:20:00Z',
-          executionCount: 342,
-          successRate: 98.5,
-          averageExecutionTime: 1.2
-        },
-        {
-          id: '2',
-          name: 'Invoice Processing',
-          description: 'Extracts data from invoices, updates accounting system, and sends payment reminders',
-          status: 'active',
-          lastRun: '2025-06-10T12:15:00Z',
-          nextRun: '2025-06-11T12:15:00Z',
-          tags: ['finance', 'accounting', 'documents'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/2',
-          createdAt: '2025-05-20T11:30:00Z',
-          updatedAt: '2025-06-08T09:45:00Z',
-          executionCount: 156,
-          successRate: 99.2,
-          averageExecutionTime: 2.5
-        },
-        {
-          id: '3',
-          name: 'Social Media Scheduler',
-          description: 'Schedules and posts content to multiple social media platforms based on optimal timing',
-          status: 'inactive',
-          lastRun: '2025-06-05T08:00:00Z',
-          nextRun: '',
-          tags: ['marketing', 'social media', 'content'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/3',
-          createdAt: '2025-05-25T14:20:00Z',
-          updatedAt: '2025-06-05T16:10:00Z',
-          executionCount: 87,
-          successRate: 92.1,
-          averageExecutionTime: 1.8
-        },
-        {
-          id: '4',
-          name: 'Lead Qualification',
-          description: 'Scores and qualifies leads based on behavior, engagement, and demographic data',
-          status: 'active',
-          lastRun: '2025-06-10T09:00:00Z',
-          nextRun: '2025-06-10T21:00:00Z',
-          tags: ['sales', 'leads', 'crm'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/4',
-          createdAt: '2025-06-01T13:45:00Z',
-          updatedAt: '2025-06-07T11:30:00Z',
-          executionCount: 215,
-          successRate: 97.3,
-          averageExecutionTime: 0.9
-        },
-        {
-          id: '5',
-          name: 'Data Backup',
-          description: 'Automatically backs up critical business data to secure cloud storage',
-          status: 'draft',
-          lastRun: '',
-          nextRun: '',
-          tags: ['data', 'security', 'backup'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/5',
-          createdAt: '2025-06-08T16:20:00Z',
-          updatedAt: '2025-06-08T16:20:00Z',
-          executionCount: 0,
-          successRate: 0,
-          averageExecutionTime: 0
-        },
-        {
-          id: '6',
-          name: 'Cultural Event Notifications',
-          description: 'Sends notifications about upcoming cultural events and heritage celebrations',
-          status: 'active',
-          lastRun: '2025-06-10T08:00:00Z',
-          nextRun: '2025-06-11T08:00:00Z',
-          tags: ['culture', 'events', 'notifications'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/6',
-          createdAt: '2025-06-02T10:15:00Z',
-          updatedAt: '2025-06-09T11:20:00Z',
-          executionCount: 78,
-          successRate: 100,
-          averageExecutionTime: 0.7
-        }
-      ];
-
-      setWorkflows(mockWorkflows);
-    } catch (error) {
-      console.error('Error fetching workflows:', error);
-      toast.error('Failed to load automation workflows');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchMetrics = async () => {
-    try {
-      // In a real implementation, this would fetch metrics from your database or n8n API
-      // For demo purposes, we'll use mock data
-      const mockMetrics = {
-        totalWorkflows: 6,
-        activeWorkflows: 4,
-        totalExecutions: 878,
-        successRate: 97.5,
-        averageExecutionTime: 1.42,
-        timeSaved: 127 // hours
-      };
-
-      setMetrics(mockMetrics);
-    } catch (error) {
-      console.error('Error fetching metrics:', error);
-    }
-  };
+  const [isN8NConnected, setIsN8NConnected] = useState(true);
+  const [n8nUrl, setN8nUrl] = useState('https://n8n.yourdomain.com');
 
   const refreshData = async () => {
     setIsRefreshing(true);
     try {
-      await Promise.all([
-        fetchWorkflows(),
-        fetchMetrics(),
-        checkN8NConnection()
-      ]);
+      // Simulate data refresh
+      await new Promise(resolve => setTimeout(resolve, 1500));
       toast.success('Data refreshed');
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -223,14 +167,13 @@ export const AutomationHub: React.FC = () => {
     }
   };
 
-  const handleCreateWorkflow = (workflowType: string) => {
+  const handleCreateWorkflow = () => {
     if (!isN8NConnected) {
       toast.error('Please connect to n8n first');
-      setShowN8NIntegration(true);
       return;
     }
     
-    setShowWorkflowGenerator(true);
+    setShowAddForm(true);
   };
 
   const filteredWorkflows = workflows.filter(workflow => {
@@ -300,14 +243,7 @@ export const AutomationHub: React.FC = () => {
             <span>Automation Assistant</span>
           </button>
           <button
-            onClick={() => {
-              if (!isN8NConnected) {
-                toast.error('Please connect to n8n first');
-                setShowN8NIntegration(true);
-                return;
-              }
-              setShowWorkflowGenerator(true);
-            }}
+            onClick={handleCreateWorkflow}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -450,14 +386,7 @@ export const AutomationHub: React.FC = () => {
                     : 'Start by creating your first automation workflow'}
               </p>
               <button
-                onClick={() => {
-                  if (!isN8NConnected) {
-                    toast.error('Please connect to n8n first');
-                    setShowN8NIntegration(true);
-                    return;
-                  }
-                  setShowWorkflowGenerator(true);
-                }}
+                onClick={handleCreateWorkflow}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 <Plus className="w-5 h-5 mr-2" />
@@ -634,7 +563,7 @@ export const AutomationHub: React.FC = () => {
                   </a>
                 </div>
                 <button
-                  onClick={() => setShowN8NIntegration(true)}
+                  onClick={() => toast.info('Manage connection dialog would open here')}
                   className="w-full mt-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                 >
                   Manage Connection
@@ -646,7 +575,10 @@ export const AutomationHub: React.FC = () => {
                   Connect to n8n to enable powerful workflow automation capabilities.
                 </p>
                 <button
-                  onClick={() => setShowN8NIntegration(true)}
+                  onClick={() => {
+                    setIsN8NConnected(true);
+                    toast.success('Connected to n8n successfully');
+                  }}
                   className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
                   Connect to n8n
@@ -670,10 +602,9 @@ export const AutomationHub: React.FC = () => {
                 onClick={() => {
                   if (!isN8NConnected) {
                     toast.error('Please connect to n8n first');
-                    setShowN8NIntegration(true);
                     return;
                   }
-                  setShowWorkflowGenerator(true);
+                  toast.info('Workflow generator would open here');
                 }}
                 className="w-full flex items-center space-x-2 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-sm"
               >
@@ -684,7 +615,6 @@ export const AutomationHub: React.FC = () => {
                 onClick={() => {
                   if (!isN8NConnected) {
                     toast.error('Please connect to n8n first');
-                    setShowN8NIntegration(true);
                     return;
                   }
                   window.open(n8nUrl, '_blank');
@@ -717,28 +647,208 @@ export const AutomationHub: React.FC = () => {
         </div>
       </div>
 
+      {/* Add Workflow Form Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full"
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Create New Workflow</h3>
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form className="space-y-4">
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Workflow Name
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter workflow name"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Description
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    placeholder="Describe what this workflow does"
+                  ></textarea>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Trigger Type
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select trigger</option>
+                      <option value="webhook">Webhook</option>
+                      <option value="schedule">Schedule</option>
+                      <option value="form">Form Submission</option>
+                      <option value="email">Email Received</option>
+                      <option value="database">Database Change</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Tags (comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., sales, email, customer"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200 mt-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Quick Start Templates</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { name: 'Lead Nurturing', icon: Users },
+                      { name: 'Document Processing', icon: FileText },
+                      { name: 'Email Automation', icon: Mail },
+                      { name: 'Data Synchronization', icon: Database }
+                    ].map((template, index) => {
+                      const Icon = template.icon;
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          className="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                        >
+                          <Icon className="w-5 h-5 text-blue-500" />
+                          <span className="font-medium text-gray-700">{template.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toast.success('Redirecting to n8n workflow editor...');
+                      setShowAddForm(false);
+                      window.open('https://n8n.yourdomain.com/workflow/new', '_blank');
+                    }}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Create in n8n
+                  </button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Automation Assistant Modal */}
-      <AutomationAssistant 
-        isOpen={showAssistant} 
-        onClose={() => setShowAssistant(false)}
-        onCreateWorkflow={handleCreateWorkflow}
-      />
+      {showAssistant && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div className="flex items-center space-x-2">
+                <Bot className="w-5 h-5 text-blue-500" />
+                <h2 className="text-lg font-semibold text-gray-900">Automation Assistant</h2>
+                <div className="flex items-center space-x-1 ml-2">
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>AI Ready</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowAssistant(false)}
+                  className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-lg p-3 bg-gray-100 text-gray-900">
+                  <p className="whitespace-pre-wrap">👋 I'm your Automation Assistant. I can help you create, manage, and optimize your business automation workflows. How can I assist you today?</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-lg p-3 bg-blue-600 text-white">
+                  <p className="whitespace-pre-wrap">I need to create a workflow that automatically sends welcome emails to new customers</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-lg p-3 bg-gray-100 text-gray-900">
+                  <p className="whitespace-pre-wrap">I'd be happy to help you create a welcome email workflow! Here's how we can set this up:
 
-      {/* Workflow Generator Modal */}
-      <WorkflowGenerator 
-        isOpen={showWorkflowGenerator} 
-        onClose={() => setShowWorkflowGenerator(false)}
-        n8nUrl={n8nUrl}
-      />
+1. **Trigger**: We'll use a "New Customer" trigger that activates when a new customer is added to your CRM or signs up on your website.
 
-      {/* N8N Integration Modal */}
-      <N8NIntegration 
-        isOpen={showN8NIntegration} 
-        onClose={() => {
-          setShowN8NIntegration(false);
-          checkN8NConnection();
-        }}
-      />
+2. **Email Template**: Create a personalized welcome email template that includes:
+   - A warm greeting using their name
+   - Introduction to your business
+   - Next steps or getting started information
+   - Contact information for support
+
+3. **Automation Flow**:
+   - Trigger on new customer → Delay (optional, 1-2 hours) → Send welcome email → Update CRM status → Add to nurture sequence
+
+Would you like me to help you set up this workflow in n8n now?</p>
+                </div>
+              </div>
+            </div>
+            
+            <form className="p-4 border-t border-gray-200">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Ask about automation..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

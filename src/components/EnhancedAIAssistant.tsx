@@ -15,14 +15,9 @@ import {
   Zap,
   User,
   Bot,
-  RefreshCw,
-  Database
+  RefreshCw
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
-import { streamResponse } from '../lib/ai';
-import { AIMemory } from '../lib/ai-memory';
 
 interface Message {
   id: string;
@@ -68,16 +63,8 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const memoryRef = useRef<AIMemory>(new AIMemory({ sessionId }));
 
   useEffect(() => {
-    // Initialize memory system with the current session ID
-    memoryRef.current = new AIMemory({ 
-      sessionId,
-      maxMessages: 10,
-      includeSystemMessages: true
-    });
-    
     // Add initial system message if provided
     if (initialContext) {
       const systemMessage = {
@@ -88,7 +75,6 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       };
       
       setMessages([systemMessage]);
-      memoryRef.current.storeMessage('system', initialContext);
     } else {
       // Add default welcome message
       const welcomeMessage = {
@@ -99,15 +85,8 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       };
       
       setMessages([welcomeMessage]);
-      memoryRef.current.storeMessage('assistant', welcomeMessage.content);
     }
-    
-    // Load custom instructions
-    loadCustomInstructions();
-    
-    // Load conversation history
-    loadConversationHistory();
-  }, [initialContext, sessionId]);
+  }, [initialContext]);
 
   useEffect(() => {
     scrollToBottom();
@@ -115,69 +94,6 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const loadCustomInstructions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ai_custom_instructions')
-        .select('instructions')
-        .eq('is_active', true)
-        .single();
-
-      if (!error && data) {
-        setCustomInstructions(data.instructions);
-      }
-    } catch (error) {
-      console.error('Error loading custom instructions:', error);
-    }
-  };
-
-  const loadConversationHistory = async () => {
-    try {
-      setIsLoadingHistory(true);
-      
-      // Get conversation sessions
-      const sessions = await AIMemory.getSessions();
-      setConversationHistory(sessions);
-    } catch (error) {
-      console.error('Error loading conversation history:', error);
-      toast.error('Failed to load conversation history');
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
-  const loadConversation = async (sessionId: string) => {
-    try {
-      setIsLoading(true);
-      
-      // Update memory system with the new session ID
-      memoryRef.current.loadSession(sessionId);
-      
-      // Get conversation messages
-      const history = await memoryRef.current.getConversationHistory();
-      
-      // Convert to Message format
-      const loadedMessages: Message[] = history.map(item => ({
-        id: crypto.randomUUID(),
-        role: item.role as 'user' | 'assistant' | 'system',
-        content: item.content,
-        timestamp: item.timestamp,
-        sessionId
-      }));
-      
-      setMessages(loadedMessages);
-      setSessionId(sessionId);
-      setShowHistory(false);
-      
-      toast.success('Conversation loaded');
-    } catch (error) {
-      console.error('Error loading conversation:', error);
-      toast.error('Failed to load conversation');
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -198,31 +114,35 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     setStreamingContent('');
 
     try {
-      // Store user message in memory
-      await memoryRef.current.storeMessage('user', userMessage.content);
+      // Simulate AI response
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      let fullResponse = '';
-      
-      // Create context-enhanced prompt
-      const enhancedPrompt = await createEnhancedPrompt(input);
-      
-      // Use the streamResponse function from lib/ai.ts
-      for await (const chunk of streamResponse(enhancedPrompt, 'gpt-4')) {
-        fullResponse += chunk;
-        setStreamingContent(fullResponse);
-      }
+      const response = `I understand you're asking about: "${input}"
+
+I'm here to help with both business automation and cultural heritage exploration:
+
+**Business Automation:**
+- Workflow optimization and process streamlining
+- Marketing automation and customer journey mapping
+- Data integration and analytics
+- AI-powered decision support
+
+**Cultural Heritage:**
+- Family history documentation and preservation
+- Traditional practices and their modern applications
+- Cultural identity exploration
+- Community connection and heritage sharing
+
+How can I assist you specifically today?`;
       
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: fullResponse,
+        content: response,
         timestamp: new Date(),
         model: 'gpt-4',
         sessionId
       };
-
-      // Store assistant message in memory
-      await memoryRef.current.storeMessage('assistant', fullResponse, { model: 'gpt-4' });
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
@@ -240,84 +160,10 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       
       setMessages(prev => [...prev, errorMessage]);
       
-      // Store error message in memory
-      await memoryRef.current.storeMessage('assistant', errorMessage.content, { error: true });
-      
       toast.error('Failed to get response');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const createEnhancedPrompt = async (userPrompt: string): Promise<string> => {
-    let enhancedPrompt = userPrompt;
-    
-    // Add user context if enabled
-    if (settings.includeUserContext) {
-      try {
-        const { data, error } = await supabase.rpc('get_user_profile');
-        
-        if (!error && data) {
-          const userContext = `
-User Context:
-- Ancestry: ${data.preferences?.ancestry || 'Not specified'}
-- Business Goals: ${data.preferences?.businessGoals || 'Not specified'}
-- Cultural Background: ${data.preferences?.culturalBackground || 'Not specified'}
-- Business Type: ${data.preferences?.businessType || 'Not specified'}
-- Industry Focus: ${data.preferences?.industryFocus || 'Not specified'}
-`;
-          enhancedPrompt = `${userContext}\n\nUser Query: ${userPrompt}`;
-        }
-      } catch (error) {
-        console.error('Error getting user context:', error);
-      }
-    }
-    
-    // Add conversation history if enabled
-    if (settings.includeHistory) {
-      try {
-        const history = await memoryRef.current.getFormattedHistory();
-        if (history) {
-          enhancedPrompt = `
-Previous Conversation:
-${history}
-
-Current Query: ${enhancedPrompt}`;
-        }
-      } catch (error) {
-        console.error('Error getting conversation history:', error);
-      }
-    }
-    
-    // Add custom instructions if enabled
-    if (settings.includeCustomInstructions && customInstructions) {
-      enhancedPrompt = `
-Custom Instructions: ${customInstructions}
-
-Query: ${enhancedPrompt}`;
-    }
-    
-    // Add semantic search results if enabled
-    if (settings.includeSemanticSearch) {
-      try {
-        const relevantMessages = await memoryRef.current.searchMemory(userPrompt, 3);
-        if (relevantMessages.length > 0) {
-          const relevantContent = relevantMessages
-            .map(msg => `RELEVANT MEMORY (${msg.role}): ${msg.content.substring(0, 300)}${msg.content.length > 300 ? '...' : ''}`)
-            .join('\n\n');
-          
-          enhancedPrompt = `
-Relevant Previous Interactions:
-${relevantContent}
-
-Query: ${enhancedPrompt}`;
-        }
-      } catch (error) {
-        console.error('Error performing memory search:', error);
-      }
-    }
-    
-    return enhancedPrompt;
   };
 
   const handleFeedback = async (messageId: string, rating: number) => {
@@ -333,18 +179,6 @@ Query: ${enhancedPrompt}`;
           : m
       ));
       
-      // Store feedback in the database
-      const { error } = await supabase
-        .from('ai_feedback')
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          conversation_id: message.id,
-          rating,
-          created_at: new Date().toISOString()
-        });
-      
-      if (error) throw error;
-      
       toast.success(rating > 3 ? 'Thanks for the positive feedback!' : 'Thanks for your feedback. We\'ll work to improve.');
     } catch (error) {
       console.error('Error saving feedback:', error);
@@ -354,18 +188,6 @@ Query: ${enhancedPrompt}`;
 
   const handleSaveInstructions = async () => {
     try {
-      // Save custom instructions to the database
-      const { error } = await supabase
-        .from('ai_custom_instructions')
-        .upsert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          instructions: customInstructions,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        });
-      
-      if (error) throw error;
-      
       setShowSettings(false);
       toast.success('Custom instructions saved');
     } catch (error) {
@@ -378,13 +200,6 @@ Query: ${enhancedPrompt}`;
     const newSessionId = crypto.randomUUID();
     setSessionId(newSessionId);
     
-    // Initialize memory with new session ID
-    memoryRef.current = new AIMemory({ 
-      sessionId: newSessionId,
-      maxMessages: 10,
-      includeSystemMessages: true
-    });
-    
     const welcomeMessage = {
       id: crypto.randomUUID(),
       role: 'assistant' as const,
@@ -394,9 +209,6 @@ Query: ${enhancedPrompt}`;
     };
     
     setMessages([welcomeMessage]);
-    
-    // Store welcome message in memory
-    memoryRef.current.storeMessage('assistant', welcomeMessage.content);
     
     toast.success('Started new conversation');
   };
@@ -460,9 +272,7 @@ Query: ${enhancedPrompt}`;
                     ? 'bg-gray-100 text-gray-900 border border-gray-200'
                     : 'bg-gray-100 text-gray-900'
               }`}>
-                <ReactMarkdown className="prose prose-sm max-w-none">
-                  {message.content}
-                </ReactMarkdown>
+                <div className="whitespace-pre-wrap">{message.content}</div>
                 
                 <div className="mt-2 flex items-center justify-between text-xs opacity-70">
                   <span>{message.timestamp.toLocaleTimeString()}</span>
@@ -512,9 +322,7 @@ Query: ${enhancedPrompt}`;
               <Bot className="w-4 h-4 text-blue-600" />
             </div>
             <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-900">
-              <ReactMarkdown className="prose prose-sm max-w-none">
-                {streamingContent}
-              </ReactMarkdown>
+              <div className="whitespace-pre-wrap">{streamingContent}</div>
             </div>
           </div>
         )}
@@ -614,19 +422,6 @@ Query: ${enhancedPrompt}`;
                     </label>
                     <Settings className="w-4 h-4 text-blue-500" />
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={settings.includeSemanticSearch}
-                        onChange={(e) => setSettings({ ...settings, includeSemanticSearch: e.target.checked })}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-gray-700">Include Semantic Memory Search</span>
-                    </label>
-                    <Database className="w-4 h-4 text-blue-500" />
-                  </div>
                 </div>
                 
                 <div className="space-y-4">
@@ -700,7 +495,6 @@ Query: ${enhancedPrompt}`;
                     {conversationHistory.map((conversation) => (
                       <button
                         key={conversation.id}
-                        onClick={() => loadConversation(conversation.id)}
                         className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                       >
                         <div className="flex items-center justify-between">

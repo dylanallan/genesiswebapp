@@ -45,4 +45,4 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   }
 
   return spinner;
-};
+}

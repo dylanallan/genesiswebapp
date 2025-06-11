@@ -16,33 +16,9 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
-  }
-});
-
-// Add error handling for auth state changes
-supabase.auth.onAuthStateChange((event, session) => {
-  switch (event) {
-    case 'SIGNED_IN':
-      if (session?.user?.email) {
-        toast.success(`Welcome back, ${session.user.email}!`);
-      }
-      break;
-    case 'SIGNED_OUT':
-      toast.info('Signed out successfully');
-      break;
-    case 'TOKEN_REFRESHED':
-      console.log('Auth token refreshed');
-      break;
-    case 'USER_UPDATED':
-      toast.success('Profile updated successfully');
-      break;
-    case 'USER_DELETED':
-      toast.info('Account deleted successfully');
-      break;
-    case 'PASSWORD_RECOVERY':
-      toast.info('Password reset email sent');
-      break;
+    detectSessionInUrl: true,
+    storage: localStorage,
+    storageKey: 'genesis.auth.token'
   }
 });
 

@@ -30,9 +30,7 @@ import { AutomationHub } from './AutomationHub';
 import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 import { UserProfileButton } from './UserProfileButton';
-import { GenesisVoiceAssistant } from './GenesisVoiceAssistant';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
-import { AIContextManager } from './AIContextManager';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -57,7 +55,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('artifacts');
-  const [showAIContextManager, setShowAIContextManager] = useState(false);
   
   const { colorScheme } = preferences;
 
@@ -165,16 +162,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               <Cpu className="w-4 h-4" />
               <span>Processing Optimized</span>
             </motion.div>
-            <motion.button
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              onClick={() => setShowAIContextManager(true)}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors"
-            >
-              <Database className="w-4 h-4" />
-              <span>Manage AI Knowledge</span>
-            </motion.button>
           </div>
         </div>
 
@@ -187,11 +174,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           </div>
         </div>
       </main>
-
-      {/* AI Context Manager Modal */}
-      {showAIContextManager && (
-        <AIContextManager onClose={() => setShowAIContextManager(false)} />
-      )}
 
       {/* Enhanced Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50">
@@ -224,13 +206,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span>Multi-model Routing</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Custom Instructions</span>
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-green-600">Active</span>
