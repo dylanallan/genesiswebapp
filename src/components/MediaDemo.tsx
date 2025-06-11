@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, Tab } from 'lucide-react';
+import { Table as Tabs, Table as Tab } from 'lucide-react';
 import { VideoPlayer } from './VideoPlayer';
 import { AudioPlayer } from './AudioPlayer';
 import { MediaUploader } from './MediaUploader';
