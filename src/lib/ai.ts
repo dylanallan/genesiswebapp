@@ -61,26 +61,44 @@ export async function* streamResponse(
     const circuitBreaker = circuitBreakerManager.getBreaker('ai-router');
     
     return circuitBreaker.execute(async () => {
-      // Use the ai-stream edge function
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-stream`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt,
-          model: model === 'auto' ? getBestModelForTask(prompt) : model,
-          context,
-          type: determineRequestType(prompt)
-        }),
-      });
+      // Set up timeout controller
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      try {
+        // Use the ai-stream edge function
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-stream`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt,
+            model: model === 'auto' ? getBestModelForTask(prompt) : model,
+            context,
+            type: determineRequestType(prompt)
+          }),
+          signal: controller.signal
+        });
 
-      if (!response.ok) {
-        throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
+        }
+
+        return createStreamFromResponse(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        // Handle timeout specifically
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
+        }
+        
+        throw error;
       }
-
-      return createStreamFromResponse(response);
     });
   } catch (error) {
     console.error('AI Router error:', error);
@@ -91,7 +109,7 @@ export async function* streamResponse(
       timestamp: new Date()
     });
     
-    yield* getMockStreamResponse(prompt);
+    yield* getEnhancedMockStreamResponse(prompt);
   }
 }
 
@@ -139,33 +157,128 @@ async function* createStreamFromResponse(response: Response): AsyncGenerator<str
         yield chunk;
       }
     }
+  } catch (error) {
+    console.error('Error reading stream:', error);
+    throw error;
   } finally {
     reader.releaseLock();
   }
 }
 
-async function* getMockStreamResponse(prompt: string): AsyncGenerator<string> {
+async function* getEnhancedMockStreamResponse(prompt: string): AsyncGenerator<string> {
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  const response = `I understand you're asking about: "${prompt}"
+  const requestType = determineRequestType(prompt);
+  
+  const responses = {
+    business: `🚀 **Business Automation Analysis for: "${prompt}"**
 
-I'm here to help with both business automation and cultural heritage exploration:
+I understand you're looking for business optimization guidance. Here's my comprehensive analysis:
 
-**Business Automation:**
-- Workflow optimization and process streamlining
-- Marketing automation and customer journey mapping
-- Data integration and analytics
-- AI-powered decision support
+**🔄 Automation Opportunities:**
+• **Process Streamlining**: Identify repetitive tasks consuming valuable time
+• **Workflow Integration**: Connect your business tools for seamless operations  
+• **Customer Journey Optimization**: Automate lead nurturing and conversion processes
+• **Data-Driven Insights**: Implement analytics for informed decision making
 
-**Cultural Heritage:**
-- Family history documentation and preservation
-- Traditional practices and their modern applications
-- Cultural identity exploration
-- Community connection and heritage sharing
+**📊 Strategic Recommendations:**
+• **Quick Wins**: Start with simple automations for immediate ROI
+• **Scalable Solutions**: Design systems that grow with your business
+• **Cultural Integration**: Honor traditional values while embracing innovation
+• **Performance Metrics**: Track and optimize automation effectiveness
 
-How can I assist you specifically today?`;
+**🎯 Next Steps:**
+1. **Assessment**: Document current workflows and pain points
+2. **Prioritization**: Focus on high-impact, low-effort improvements  
+3. **Implementation**: Deploy automation tools and processes
+4. **Optimization**: Continuously refine and enhance systems
 
+I'm currently experiencing connectivity issues with our AI providers, but I've provided this guidance based on your request. For more detailed assistance, please try again in a moment.`,
+
+    cultural: `🌍 **Cultural Heritage Exploration for: "${prompt}"**
+
+I'm here to help you explore and integrate your rich cultural heritage:
+
+**🏛️ Heritage Discovery:**
+• **Family Story Documentation**: Preserve oral traditions and memories
+• **Cultural Practice Integration**: Blend ancestral wisdom with modern life
+• **Community Connection**: Build networks with others sharing your heritage
+• **Identity Celebration**: Embrace and share your unique cultural background
+
+**📚 Research & Preservation:**
+• **Genealogical Investigation**: Trace family lineages and migrations
+• **Historical Context**: Understand broader cultural narratives
+• **Tradition Documentation**: Record customs, recipes, and practices
+• **Language Preservation**: Maintain ancestral languages and dialects
+
+**🤝 Modern Integration:**
+• **Values Application**: Apply cultural principles to contemporary challenges
+• **Cross-Cultural Navigation**: Balance tradition with innovation
+• **Professional Integration**: Incorporate heritage into career development
+• **Community Building**: Create spaces for cultural expression and sharing
+
+I'm currently experiencing connectivity issues with our AI providers, but I've provided this guidance based on your request. For more detailed assistance, please try again in a moment.`,
+
+    coding: `💻 **Programming Solution for: "${prompt}"**
+
+I'm ready to help with your coding challenge:
+
+**🔧 Technical Analysis:**
+• **Problem Breakdown**: Analyze requirements and constraints
+• **Solution Architecture**: Design scalable, maintainable code structure
+• **Best Practices**: Apply SOLID principles and design patterns
+• **Performance Optimization**: Ensure efficient, fast-running code
+
+**🚀 Implementation Strategy:**
+• **Technology Selection**: Choose optimal frameworks and libraries
+• **Code Organization**: Structure for readability and maintainability  
+• **Testing Strategy**: Implement comprehensive quality assurance
+• **Documentation**: Create clear, helpful technical documentation
+
+**🔍 Quality Assurance:**
+• **Code Review**: Follow industry best practices
+• **Security**: Implement secure coding standards
+• **Scalability**: Design for growth and performance
+• **Debugging**: Systematic troubleshooting approaches
+
+I'm currently experiencing connectivity issues with our AI providers, but I've provided this guidance based on your request. For more detailed assistance, please try again in a moment.`,
+
+    default: `🤖 **Genesis Heritage AI Assistant**
+
+I understand you're asking about: "${prompt}"
+
+**🎯 Comprehensive AI Capabilities:**
+• **Business Automation**: Process optimization, strategy consulting
+• **Cultural Heritage**: Identity exploration, tradition preservation
+• **Technical Development**: Programming, architecture, debugging
+• **Research & Analysis**: Information gathering, trend analysis
+• **Creative Projects**: Content creation, storytelling, design
+
+**✨ Enhanced Features:**
+• Multi-model AI routing for optimal responses
+• Personalized recommendations based on your profile
+• Advanced analysis capabilities
+• Integration with business tools and platforms
+
+I'm currently experiencing connectivity issues with our AI providers, but I've provided this guidance based on your request. For more detailed assistance, please try again in a moment.`
+  };
+  
+  const response = responses[requestType as keyof typeof responses] || responses.default;
   const words = response.split(' ');
+  
+  for (const word of words) {
+    yield word + ' ';
+    await new Promise(resolve => setTimeout(resolve, 30));
+  }
+}
+
+async function* getMockStreamResponse(prompt: string): AsyncGenerator<string> {
+  let fullResponse = '';
+  for await (const chunk of getEnhancedMockStreamResponse(prompt)) {
+    fullResponse += chunk;
+  }
+  
+  const words = fullResponse.split(' ');
   for (let i = 0; i < words.length; i++) {
     yield words[i] + (i < words.length - 1 ? ' ' : '');
     await new Promise(resolve => setTimeout(resolve, 30));
@@ -183,7 +296,21 @@ export async function getMockResponse(prompt: string): Promise<string> {
 export async function checkAIServiceHealth(): Promise<boolean> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    return !!session?.access_token;
+    
+    if (!session?.access_token) {
+      return false;
+    }
+    
+    // Try a simple health check to the edge function
+    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/health-check`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    
+    return response.ok;
   } catch {
     return false;
   }

@@ -14,6 +14,8 @@ class ErrorRecoverySystem {
   private errorQueue: ErrorContext[] = [];
   private recoveryStrategies: Map<string, () => Promise<void>> = new Map();
   private isRecovering = false;
+  private maxRetries = 3;
+  private retryDelays = [1000, 3000, 5000]; // Exponential backoff
 
   private constructor() {
     this.initializeRecoveryStrategies();
@@ -34,24 +36,37 @@ class ErrorRecoverySystem {
       localStorage.removeItem('ai-router-cache');
       // Clear any stuck requests
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        await registration.unregister();
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.unregister();
+        } catch (error) {
+          console.warn('Failed to unregister service worker:', error);
+        }
       }
     });
 
     this.recoveryStrategies.set('supabase', async () => {
       console.log('🔧 Recovering Supabase connection...');
-      // Reset auth state
-      await supabase.auth.signOut();
-      // Clear cached data
-      localStorage.removeItem('supabase.auth.token');
+      try {
+        // Try to refresh the session
+        await supabase.auth.refreshSession();
+      } catch (error) {
+        console.warn('Failed to refresh session:', error);
+        // Clear auth state as a last resort
+        await supabase.auth.signOut();
+        localStorage.removeItem('supabase.auth.token');
+      }
     });
 
     this.recoveryStrategies.set('react-render', async () => {
       console.log('🔧 Recovering React render...');
       // Clear React DevTools cache if available
       if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
-        window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot = null;
+        try {
+          window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot = null;
+        } catch (error) {
+          console.warn('Failed to clear React DevTools hook:', error);
+        }
       }
     });
 
@@ -59,12 +74,67 @@ class ErrorRecoverySystem {
       console.log('🔧 Recovering from memory leak...');
       // Force garbage collection if available
       if (window.gc) {
-        window.gc();
+        try {
+          window.gc();
+        } catch (error) {
+          console.warn('Failed to force garbage collection:', error);
+        }
       }
       // Clear large caches
       if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        } catch (error) {
+          console.warn('Failed to clear caches:', error);
+        }
+      }
+    });
+
+    // Add new strategy for edge function errors
+    this.recoveryStrategies.set('edge-function', async () => {
+      console.log('🔧 Recovering from Edge Function error...');
+      try {
+        // Check if the edge function is available
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/health-check`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.warn('Edge function health check failed:', response.status);
+          toast.error('Edge functions are currently unavailable. Some features may not work.');
+        } else {
+          console.log('Edge functions are available');
+        }
+      } catch (error) {
+        console.warn('Failed to check edge function health:', error);
+        toast.error('Unable to connect to edge functions. Please check your network connection.');
+      }
+    });
+
+    // Add new strategy for chat-specific errors
+    this.recoveryStrategies.set('chat', async () => {
+      console.log('🔧 Recovering from chat error...');
+      try {
+        // Clear chat-related local storage
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('chat') || key.includes('message') || key.includes('conversation'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // Reset any chat-related state in the app
+        if (window.__APP_STATE__ && window.__APP_STATE__.chat) {
+          window.__APP_STATE__.chat = {};
+        }
+      } catch (error) {
+        console.warn('Failed to clear chat state:', error);
       }
     });
   }
@@ -74,7 +144,7 @@ class ErrorRecoverySystem {
     window.addEventListener('unhandledrejection', (event) => {
       this.handleError({
         component: 'promise-rejection',
-        error: new Error(event.reason),
+        error: new Error(event.reason?.message || 'Unhandled promise rejection'),
         timestamp: new Date(),
         stackTrace: event.reason?.stack
       });
@@ -93,19 +163,42 @@ class ErrorRecoverySystem {
 
     // Monitor performance issues
     if ('PerformanceObserver' in window) {
-      const observer = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          if (entry.entryType === 'measure' && entry.duration > 5000) {
-            this.handleError({
-              component: 'performance',
-              error: new Error(`Slow operation: ${entry.name} took ${entry.duration}ms`),
-              timestamp: new Date()
-            });
+      try {
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.entryType === 'measure' && entry.duration > 5000) {
+              this.handleError({
+                component: 'performance',
+                error: new Error(`Slow operation: ${entry.name} took ${entry.duration}ms`),
+                timestamp: new Date()
+              });
+            }
           }
-        }
-      });
-      observer.observe({ entryTypes: ['measure'] });
+        });
+        observer.observe({ entryTypes: ['measure'] });
+      } catch (error) {
+        console.warn('Failed to set up performance observer:', error);
+      }
     }
+
+    // Monitor fetch errors
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+      try {
+        const response = await originalFetch.apply(this, args);
+        return response;
+      } catch (error) {
+        // Only handle network errors, not HTTP errors
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          ErrorRecoverySystem.getInstance().handleError({
+            component: 'network',
+            error,
+            timestamp: new Date()
+          });
+        }
+        throw error;
+      }
+    };
   }
 
   async handleError(context: ErrorContext) {
@@ -132,8 +225,27 @@ class ErrorRecoverySystem {
       
       if (strategy) {
         console.log(`🔄 Applying recovery strategy: ${errorType}`);
-        await strategy();
-        toast.success(`System recovered from ${errorType} error`);
+        
+        // Try with retries
+        let success = false;
+        for (let attempt = 0; attempt < this.maxRetries && !success; attempt++) {
+          try {
+            await strategy();
+            success = true;
+          } catch (recoveryError) {
+            console.warn(`Recovery attempt ${attempt + 1} failed:`, recoveryError);
+            if (attempt < this.maxRetries - 1) {
+              // Wait before retrying with exponential backoff
+              await new Promise(resolve => setTimeout(resolve, this.retryDelays[attempt]));
+            }
+          }
+        }
+        
+        if (success) {
+          toast.success(`System recovered from ${errorType} error`);
+        } else {
+          toast.error(`Recovery failed after ${this.maxRetries} attempts`);
+        }
       } else {
         console.log('🔄 Applying generic recovery...');
         await this.genericRecovery();
@@ -155,19 +267,54 @@ class ErrorRecoverySystem {
     const errorMessage = context.error.message.toLowerCase();
     const stackTrace = context.stackTrace?.toLowerCase() || '';
 
-    if (errorMessage.includes('ai') || errorMessage.includes('router') || errorMessage.includes('provider')) {
+    // Check for chat-related errors
+    if (errorMessage.includes('chat') || 
+        errorMessage.includes('message') || 
+        errorMessage.includes('conversation') ||
+        stackTrace.includes('chat')) {
+      return 'chat';
+    }
+
+    // Check for edge function errors
+    if (errorMessage.includes('function') || 
+        errorMessage.includes('edge') || 
+        errorMessage.includes('supabase.functions') ||
+        errorMessage.includes('fetch') && errorMessage.includes('functions/v1')) {
+      return 'edge-function';
+    }
+
+    // Check for AI-related errors
+    if (errorMessage.includes('ai') || 
+        errorMessage.includes('router') || 
+        errorMessage.includes('provider') ||
+        errorMessage.includes('openai') ||
+        errorMessage.includes('claude') ||
+        errorMessage.includes('gemini')) {
       return 'ai-router';
     }
     
-    if (errorMessage.includes('supabase') || errorMessage.includes('auth') || errorMessage.includes('database')) {
+    // Check for Supabase-related errors
+    if (errorMessage.includes('supabase') || 
+        errorMessage.includes('auth') || 
+        errorMessage.includes('database') ||
+        errorMessage.includes('401') ||
+        errorMessage.includes('403')) {
       return 'supabase';
     }
     
-    if (errorMessage.includes('render') || stackTrace.includes('react') || errorMessage.includes('component')) {
+    // Check for React-related errors
+    if (errorMessage.includes('render') || 
+        stackTrace.includes('react') || 
+        errorMessage.includes('component') ||
+        errorMessage.includes('hook') ||
+        errorMessage.includes('invalid hook call')) {
       return 'react-render';
     }
     
-    if (errorMessage.includes('memory') || errorMessage.includes('heap')) {
+    // Check for memory-related errors
+    if (errorMessage.includes('memory') || 
+        errorMessage.includes('heap') ||
+        errorMessage.includes('out of memory')) {
       return 'memory-leak';
     }
 
@@ -195,10 +342,26 @@ class ErrorRecoverySystem {
     if (window.__APP_STATE__) {
       window.__APP_STATE__ = {};
     }
+
+    // Check if service worker needs refreshing
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.update();
+        }
+      } catch (error) {
+        console.warn('Failed to update service worker:', error);
+      }
+    }
   }
 
   private async logRecoveryAttempt(context: ErrorContext, strategy: string) {
     try {
+      // Check if we have an authenticated session before logging
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
       await supabase
         .from('error_recovery_logs')
         .insert({
@@ -207,7 +370,8 @@ class ErrorRecoverySystem {
           stack_trace: context.stackTrace,
           recovery_strategy: strategy,
           timestamp: context.timestamp.toISOString(),
-          user_agent: navigator.userAgent
+          user_agent: navigator.userAgent,
+          user_id: session.user.id
         });
     } catch (error) {
       console.warn('Failed to log recovery attempt:', error);
@@ -218,8 +382,19 @@ class ErrorRecoverySystem {
   async forceRecovery(type: string = 'generic') {
     const strategy = this.recoveryStrategies.get(type);
     if (strategy) {
-      await strategy();
-      toast.success(`Manual recovery completed: ${type}`);
+      try {
+        await strategy();
+        toast.success(`Manual recovery completed: ${type}`);
+        return true;
+      } catch (error) {
+        console.error(`Manual recovery failed for ${type}:`, error);
+        toast.error(`Manual recovery failed: ${type}`);
+        return false;
+      }
+    } else {
+      console.warn(`No recovery strategy found for type: ${type}`);
+      toast.warning(`Unknown recovery type: ${type}`);
+      return false;
     }
   }
 

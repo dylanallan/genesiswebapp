@@ -4,6 +4,7 @@ interface CircuitBreakerConfig {
   failureThreshold: number;
   resetTimeout: number;
   monitoringPeriod: number;
+  halfOpenMaxCalls?: number;
 }
 
 enum CircuitState {
@@ -17,18 +18,25 @@ class CircuitBreaker {
   private failureCount = 0;
   private lastFailureTime = 0;
   private nextAttemptTime = 0;
+  private successCount = 0;
+  private halfOpenMaxCalls: number;
 
   constructor(
     private name: string,
     private config: CircuitBreakerConfig
-  ) {}
+  ) {
+    this.halfOpenMaxCalls = config.halfOpenMaxCalls || 1;
+  }
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
+    // Check if circuit is open
     if (this.state === CircuitState.OPEN) {
       if (Date.now() < this.nextAttemptTime) {
         throw new Error(`Circuit breaker ${this.name} is OPEN`);
       }
       this.state = CircuitState.HALF_OPEN;
+      this.successCount = 0;
+      console.log(`Circuit breaker ${this.name} is now HALF_OPEN`);
     }
 
     try {
@@ -36,25 +44,40 @@ class CircuitBreaker {
       this.onSuccess();
       return result;
     } catch (error) {
-      this.onFailure();
+      this.onFailure(error);
       throw error;
     }
   }
 
   private onSuccess() {
-    this.failureCount = 0;
-    this.state = CircuitState.CLOSED;
+    if (this.state === CircuitState.HALF_OPEN) {
+      this.successCount++;
+      if (this.successCount >= this.halfOpenMaxCalls) {
+        this.state = CircuitState.CLOSED;
+        this.failureCount = 0;
+        console.log(`Circuit breaker ${this.name} is now CLOSED after successful recovery`);
+      }
+    } else {
+      this.failureCount = Math.max(0, this.failureCount - 1); // Gradually reduce failure count on success
+    }
   }
 
-  private onFailure() {
+  private onFailure(error: any) {
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
-    if (this.failureCount >= this.config.failureThreshold) {
+    // Log the error for debugging
+    console.error(`Circuit breaker ${this.name} failure:`, error);
+
+    if (this.state === CircuitState.HALF_OPEN || this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitState.OPEN;
       this.nextAttemptTime = Date.now() + this.config.resetTimeout;
       console.warn(`🔴 Circuit breaker ${this.name} opened due to ${this.failureCount} failures`);
-      toast.error(`Service ${this.name} is temporarily unavailable. Trying alternative methods.`);
+      
+      // Only show toast for user-facing services
+      if (this.name === 'ai-router' || this.name === 'chat') {
+        toast.error(`Service ${this.name} is temporarily unavailable. Trying alternative methods.`);
+      }
     }
   }
 
@@ -71,6 +94,8 @@ class CircuitBreaker {
     this.failureCount = 0;
     this.lastFailureTime = 0;
     this.nextAttemptTime = 0;
+    this.successCount = 0;
+    console.log(`Circuit breaker ${this.name} has been manually reset`);
   }
 }
 
@@ -92,7 +117,8 @@ class CircuitBreakerManager {
       const defaultConfig: CircuitBreakerConfig = {
         failureThreshold: 5,
         resetTimeout: 60000, // 1 minute
-        monitoringPeriod: 10000 // 10 seconds
+        monitoringPeriod: 10000, // 10 seconds
+        halfOpenMaxCalls: 2 // Require 2 successful calls to close the circuit
       };
       
       this.breakers.set(name, new CircuitBreaker(name, config || defaultConfig));
@@ -107,6 +133,18 @@ class CircuitBreakerManager {
 
   resetAll() {
     this.breakers.forEach(breaker => breaker.reset());
+    console.log('All circuit breakers have been reset');
+  }
+
+  getStatus(): Record<string, { state: string; failures: number }> {
+    const status: Record<string, { state: string; failures: number }> = {};
+    this.breakers.forEach((breaker, name) => {
+      status[name] = {
+        state: breaker.getState(),
+        failures: breaker.getFailureCount()
+      };
+    });
+    return status;
   }
 }
 
