@@ -11,7 +11,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { aiContextManager } from '../lib/ai-context-manager';
+import { supabase } from '../lib/supabase';
 
 interface AICustomInstructionsEditorProps {
   isOpen: boolean;
@@ -36,9 +36,16 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
   const loadInstructions = async () => {
     setIsLoading(true);
     try {
-      const customInstructions = await aiContextManager.loadCustomInstructions();
-      setInstructions(customInstructions || '');
-      setIsEnabled(true); // Assume enabled if instructions exist
+      const { data, error } = await supabase
+        .from('ai_custom_instructions')
+        .select('instructions, is_active')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+      
+      if (!error && data) {
+        setInstructions(data.instructions || '');
+        setIsEnabled(data.is_active);
+      }
     } catch (error) {
       console.error('Error loading custom instructions:', error);
       toast.error('Failed to load custom instructions');
@@ -50,8 +57,18 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await aiContextManager.saveCustomInstructions(instructions);
-      await aiContextManager.toggleCustomInstructions(isEnabled);
+      const { error } = await supabase
+        .from('ai_custom_instructions')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          instructions,
+          is_active: isEnabled,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
+      toast.success('Custom instructions saved successfully');
       onClose();
     } catch (error) {
       console.error('Error saving custom instructions:', error);
