@@ -50,6 +50,8 @@ export const Chat: React.FC<ChatProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const [currentModel, setCurrentModel] = useState<string>('auto');
   const [streamingContent, setStreamingContent] = useState('');
   const [sessionId] = useState(crypto.randomUUID());
@@ -203,8 +205,10 @@ How can I assist you today?`,
       const circuitBreaker = circuitBreakerManager.getBreaker('chat');
       
       try {
-        // Stream the response using enhanced AI assistant
-        for await (const chunk of await circuitBreaker.execute(() => enhancedAIAssistant(userMessage.content, contextOptions))) {
+        // Direct use of streamResponse instead of enhancedAIAssistant for more control
+        for await (const chunk of await circuitBreaker.execute(() => 
+          streamResponse(userMessage.content, currentModel as any, JSON.stringify(contextOptions))
+        )) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }

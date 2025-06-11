@@ -54,7 +54,7 @@ export async function* streamResponse(
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session?.access_token) {
-      yield* getMockStreamResponse(prompt);
+      yield* getEnhancedMockStreamResponse(prompt);
       return;
     }
 
@@ -85,7 +85,14 @@ export async function* streamResponse(
         clearTimeout(timeoutId);
 
         if (!response.ok) {
+          console.error(`AI Stream error: ${response.status} ${response.statusText}`);
           throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
+        }
+
+        // Check if the response body is null
+        if (!response.body) {
+          console.error('Response body is null');
+          throw new Error('Response body is null');
         }
 
         return createStreamFromResponse(response);
@@ -287,7 +294,7 @@ async function* getMockStreamResponse(prompt: string): AsyncGenerator<string> {
 
 export async function getMockResponse(prompt: string): Promise<string> {
   let fullResponse = '';
-  for await (const chunk of getMockStreamResponse(prompt)) {
+  for await (const chunk of getEnhancedMockStreamResponse(prompt)) {
     fullResponse += chunk;
   }
   return fullResponse;
