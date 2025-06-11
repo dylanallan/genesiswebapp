@@ -1,7 +1,5 @@
-import { StrictMode } from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerSW } from 'virtual:pwa-register';
-import { Toaster } from 'sonner';
 import App from './App';
 import './index.css';
 
@@ -9,20 +7,7 @@ const root = document.getElementById('root');
 if (!root) throw new Error('Root element not found');
 
 createRoot(root).render(
-  <StrictMode>
+  <React.StrictMode>
     <App />
-    <Toaster position="top-right" />
-  </StrictMode>
+  </React.StrictMode>
 );
-
-// Register the service worker for offline support
-const updateSW = registerSW({
-  onNeedRefresh() {
-    if (confirm('New content available. Reload?')) {
-      updateSW(true);
-    }
-  },
-  onOfflineReady() {
-    console.log('App ready to work offline');
-  },
-});
