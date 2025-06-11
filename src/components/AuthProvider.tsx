@@ -31,8 +31,10 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         setIsLoading(false);
+        toast.success('Signed in successfully');
       } else if (event === 'SIGNED_OUT') {
         setIsLoading(false);
+        toast.info('Signed out successfully');
       }
     });
 
