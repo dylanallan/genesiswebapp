@@ -8,7 +8,10 @@ import {
   ThumbsUp, 
   ThumbsDown,
   MessageSquare,
-  User
+  User,
+  FileText,
+  Download,
+  Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '@supabase/auth-helpers-react';
@@ -16,6 +19,7 @@ import { streamResponse } from '../lib/ai';
 import { AIMemory } from '../lib/ai-memory';
 import { supabase } from '../lib/supabase';
 import { enhancedAIAssistant } from '../lib/ai-context';
+import { ConversationSummarizer } from './ConversationSummarizer';
 
 interface ChatMessage {
   id: string;
@@ -46,6 +50,10 @@ export const Chat: React.FC<ChatProps> = ({
   const [currentModel, setCurrentModel] = useState<string>('auto');
   const [streamingContent, setStreamingContent] = useState('');
   const [sessionId] = useState(crypto.randomUUID());
+  const [showSummarizer, setShowSummarizer] = useState(false);
+  const [topicFilter, setTopicFilter] = useState<string | null>(null);
+  const [topics, setTopics] = useState<string[]>([]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const session = useSession();
   const aiMemory = useRef(new AIMemory({ sessionId }));
@@ -75,8 +83,41 @@ How can I assist you today?`,
     scrollToBottom();
   }, [messages, streamingContent]);
 
+  useEffect(() => {
+    // Extract topics from messages for filtering
+    if (messages.length > 2) {
+      extractTopics();
+    }
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const extractTopics = async () => {
+    try {
+      // Use AI to extract topics from the conversation
+      const conversation = messages
+        .map(msg => `${msg.role}: ${msg.content}`)
+        .join('\n\n');
+      
+      const prompt = `Extract 3-5 main topics from this conversation as a comma-separated list. Keep each topic to 1-3 words:\n\n${conversation}`;
+      
+      let response = '';
+      for await (const chunk of streamResponse(prompt, 'gpt-3.5-turbo')) {
+        response += chunk;
+      }
+      
+      // Parse the comma-separated list
+      const extractedTopics = response
+        .split(',')
+        .map(topic => topic.trim())
+        .filter(topic => topic.length > 0);
+      
+      setTopics(extractedTopics);
+    } catch (error) {
+      console.error('Error extracting topics:', error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,6 +170,11 @@ How can I assist you today?`,
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
+      
+      // Extract topics after new messages
+      if (messages.length > 2) {
+        extractTopics();
+      }
     } catch (error) {
       console.error('Error getting assistant response:', error);
       
@@ -186,6 +232,46 @@ How can I assist you today?`,
     }
   };
 
+  const exportConversation = (format: 'text' | 'markdown' | 'json') => {
+    try {
+      let content = '';
+      
+      switch (format) {
+        case 'text':
+          content = messages
+            .map(msg => `${msg.role.toUpperCase()} (${msg.timestamp.toLocaleString()}):\n${msg.content}\n\n`)
+            .join('');
+          break;
+        case 'markdown':
+          content = `# Conversation Export - ${new Date().toLocaleDateString()}\n\n`;
+          content += messages
+            .map(msg => `## ${msg.role === 'user' ? 'You' : 'Assistant'} - ${msg.timestamp.toLocaleString()}\n\n${msg.content}\n\n`)
+            .join('');
+          break;
+        case 'json':
+          content = JSON.stringify(messages, null, 2);
+          break;
+      }
+      
+      const element = document.createElement('a');
+      const file = new Blob([content], { type: 'text/plain' });
+      element.href = URL.createObjectURL(file);
+      element.download = `conversation-export-${new Date().toISOString().split('T')[0]}.${format === 'json' ? 'json' : format === 'markdown' ? 'md' : 'txt'}`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      
+      toast.success(`Conversation exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('Error exporting conversation:', error);
+      toast.error('Failed to export conversation');
+    }
+  };
+
+  const filteredMessages = topicFilter
+    ? messages.filter(msg => msg.content.toLowerCase().includes(topicFilter.toLowerCase()))
+    : messages;
+
   const availableModels = [
     { id: 'auto', name: 'Auto-Select', description: 'Best model for your task' },
     { id: 'gpt-4', name: 'GPT-4', description: 'Advanced reasoning' },
@@ -200,21 +286,90 @@ How can I assist you today?`,
           <Brain className="w-6 h-6 text-blue-500" />
           <span className="font-semibold">Genesis AI Assistant Pro</span>
         </div>
-        <select
-          value={currentModel}
-          onChange={(e) => setCurrentModel(e.target.value)}
-          className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-        >
-          {availableModels.map(model => (
-            <option key={model.id} value={model.id}>
-              {model.name} - {model.description}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center space-x-2">
+          <select
+            value={currentModel}
+            onChange={(e) => setCurrentModel(e.target.value)}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+          >
+            {availableModels.map(model => (
+              <option key={model.id} value={model.id}>
+                {model.name} - {model.description}
+              </option>
+            ))}
+          </select>
+          
+          <div className="relative group">
+            <button
+              className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+              title="Export conversation"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 p-2 hidden group-hover:block z-10">
+              <div className="text-sm font-medium text-gray-900 mb-2 px-2">Export as:</div>
+              <button
+                onClick={() => exportConversation('text')}
+                className="block w-full text-left px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Plain Text (.txt)
+              </button>
+              <button
+                onClick={() => exportConversation('markdown')}
+                className="block w-full text-left px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Markdown (.md)
+              </button>
+              <button
+                onClick={() => exportConversation('json')}
+                className="block w-full text-left px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              >
+                JSON (.json)
+              </button>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setShowSummarizer(true)}
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+            title="Summarize conversation"
+          >
+            <FileText className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
+      {topics.length > 0 && (
+        <div className="px-4 py-2 border-b border-gray-100 flex items-center space-x-2 overflow-x-auto">
+          <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <div className="flex space-x-1">
+            {topics.map((topic, index) => (
+              <button
+                key={index}
+                onClick={() => setTopicFilter(topicFilter === topic ? null : topic)}
+                className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                  topicFilter === topic
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {topic}
+              </button>
+            ))}
+            {topicFilter && (
+              <button
+                onClick={() => setTopicFilter(null)}
+                className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 text-xs"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, index) => (
+        {filteredMessages.map((message, index) => (
           <div key={message.id}>
             <div className={`flex items-start space-x-2 ${
               message.role === 'assistant' ? 'justify-start' : 'justify-end'
@@ -314,6 +469,14 @@ How can I assist you today?`,
           </button>
         </div>
       </form>
+
+      {/* Conversation Summarizer Modal */}
+      <ConversationSummarizer
+        isOpen={showSummarizer}
+        onClose={() => setShowSummarizer(false)}
+        sessionId={sessionId}
+        messages={messages}
+      />
     </div>
   );
 };
