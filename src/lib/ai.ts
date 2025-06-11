@@ -50,7 +50,7 @@ export async function* streamResponse(
   context?: string
 ): AsyncGenerator<string> {
   try {
-    // Ensure we have a valid session
+    // Use local mock response if no session or in development mode
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session?.access_token) {
@@ -182,11 +182,11 @@ async function* getEnhancedMockStreamResponse(prompt: string): AsyncGenerator<st
 
 I understand you're looking for business optimization guidance. Here's my comprehensive analysis:
 
-**🔄 Automation Opportunities:**
-• **Process Streamlining**: Identify repetitive tasks consuming valuable time
-• **Workflow Integration**: Connect your business tools for seamless operations  
-• **Customer Journey Optimization**: Automate lead nurturing and conversion processes
-• **Data-Driven Insights**: Implement analytics for informed decision making
+**🔄 Process Automation Opportunities:**
+• **Workflow Optimization**: Identify repetitive tasks consuming valuable time
+• **Customer Journey Automation**: Streamline lead nurturing and conversion processes
+• **Data Integration**: Connect disparate systems for unified operations  
+• **Communication Automation**: Set up intelligent notification systems
 
 **📊 Strategic Recommendations:**
 • **Quick Wins**: Start with simple automations for immediate ROI
@@ -194,7 +194,7 @@ I understand you're looking for business optimization guidance. Here's my compre
 • **Cultural Integration**: Honor traditional values while embracing innovation
 • **Performance Metrics**: Track and optimize automation effectiveness
 
-**🎯 Next Steps:**
+**🛠️ Implementation Roadmap:**
 1. **Assessment**: Document current workflows and pain points
 2. **Prioritization**: Focus on high-impact, low-effort improvements  
 3. **Implementation**: Deploy automation tools and processes
