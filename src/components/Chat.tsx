@@ -11,7 +11,9 @@ import {
   User,
   FileText,
   Download,
-  Filter
+  Filter,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '@supabase/auth-helpers-react';
@@ -20,6 +22,7 @@ import { AIMemory } from '../lib/ai-memory';
 import { supabase } from '../lib/supabase';
 import { enhancedAIAssistant } from '../lib/ai-context';
 import { ConversationSummarizer } from './ConversationSummarizer';
+import { circuitBreakerManager } from '../lib/circuit-breaker';
 
 interface ChatMessage {
   id: string;
@@ -53,10 +56,14 @@ export const Chat: React.FC<ChatProps> = ({
   const [showSummarizer, setShowSummarizer] = useState(false);
   const [topicFilter, setTopicFilter] = useState<string | null>(null);
   const [topics, setTopics] = useState<string[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'degraded' | 'offline'>('connected');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const session = useSession();
   const aiMemory = useRef(new AIMemory({ sessionId }));
+  const maxRetries = 3;
 
   useEffect(() => {
     // Add initial welcome message
@@ -77,6 +84,9 @@ How can I assist you today?`,
     
     // Store initial message in memory
     aiMemory.current.storeMessage('assistant', initialMessage.content);
+
+    // Check connection status
+    checkConnectionStatus();
   }, [userName, ancestry, businessGoals]);
 
   useEffect(() => {
@@ -89,6 +99,39 @@ How can I assist you today?`,
       extractTopics();
     }
   }, [messages]);
+
+  const checkConnectionStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setConnectionStatus('offline');
+        return;
+      }
+      
+      // Check edge function health
+      try {
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/health-check`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        });
+        
+        if (response.ok) {
+          setConnectionStatus('connected');
+        } else {
+          setConnectionStatus('degraded');
+        }
+      } catch (error) {
+        console.warn('Health check failed:', error);
+        setConnectionStatus('degraded');
+      }
+    } catch (error) {
+      console.error('Session check failed:', error);
+      setConnectionStatus('offline');
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -135,10 +178,15 @@ How can I assist you today?`,
     setInput('');
     setIsLoading(true);
     setStreamingContent('');
+    setRetryCount(0);
 
+    await processUserMessage(userMessage);
+  };
+
+  const processUserMessage = async (userMessage: ChatMessage) => {
     try {
       // Store user message in memory
-      await aiMemory.current.storeMessage('user', input);
+      await aiMemory.current.storeMessage('user', userMessage.content);
       
       // Prepare context options
       const contextOptions = {
@@ -151,49 +199,93 @@ How can I assist you today?`,
       
       let fullResponse = '';
       
-      // Stream the response using enhanced AI assistant
-      for await (const chunk of enhancedAIAssistant(input, contextOptions)) {
-        fullResponse += chunk;
-        setStreamingContent(fullResponse);
-      }
+      // Use circuit breaker for AI requests
+      const circuitBreaker = circuitBreakerManager.getBreaker('chat');
       
-      // Store assistant response in memory
-      await aiMemory.current.storeMessage('assistant', fullResponse, { model: currentModel });
-      
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: fullResponse,
-        timestamp: new Date(),
-        model: currentModel
-      };
+      try {
+        // Stream the response using enhanced AI assistant
+        for await (const chunk of await circuitBreaker.execute(() => enhancedAIAssistant(userMessage.content, contextOptions))) {
+          fullResponse += chunk;
+          setStreamingContent(fullResponse);
+        }
+        
+        // Store assistant response in memory
+        await aiMemory.current.storeMessage('assistant', fullResponse, { model: currentModel });
+        
+        const assistantMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: fullResponse,
+          timestamp: new Date(),
+          model: currentModel
+        };
 
-      setMessages(prev => [...prev, assistantMessage]);
-      setStreamingContent('');
-      
-      // Extract topics after new messages
-      if (messages.length > 2) {
-        extractTopics();
+        setMessages(prev => [...prev, assistantMessage]);
+        setStreamingContent('');
+        
+        // Reset connection status to connected
+        setConnectionStatus('connected');
+        
+        // Extract topics after new messages
+        if (messages.length > 2) {
+          extractTopics();
+        }
+      } catch (error) {
+        console.error('Error getting assistant response:', error);
+        
+        // Increment retry count
+        const newRetryCount = retryCount + 1;
+        setRetryCount(newRetryCount);
+        
+        if (newRetryCount <= maxRetries) {
+          // Try recovery
+          setIsRecovering(true);
+          toast.info(`Attempting to recover (${newRetryCount}/${maxRetries})...`);
+          
+          // Wait a moment before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * newRetryCount));
+          
+          // Try to recover the connection
+          await checkConnectionStatus();
+          
+          // Retry the request
+          setIsRecovering(false);
+          return processUserMessage(userMessage);
+        }
+        
+        // Add error message after max retries
+        const errorMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: "I'm sorry, I encountered an error processing your request. Please try again or check your connection if the issue persists.",
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+        
+        // Store error message in memory
+        await aiMemory.current.storeMessage('assistant', errorMessage.content, { error: true });
+        
+        toast.error('Failed to get response');
+        setConnectionStatus('degraded');
       }
     } catch (error) {
-      console.error('Error getting assistant response:', error);
+      console.error('Unhandled error in chat processing:', error);
       
-      // Add error message
+      // Add a generic error message
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: "I'm sorry, I encountered an error processing your request. Please try again or contact support if the issue persists.",
+        content: "I'm sorry, something went wrong. Please try again later.",
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, errorMessage]);
-      
-      // Store error message in memory
-      await aiMemory.current.storeMessage('assistant', errorMessage.content, { error: true });
-      
-      toast.error('Failed to get response');
+      toast.error('An unexpected error occurred');
     } finally {
       setIsLoading(false);
+      setIsRecovering(false);
+      setStreamingContent('');
     }
   };
 
@@ -260,6 +352,7 @@ How can I assist you today?`,
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
+      URL.revokeObjectURL(element.href);
       
       toast.success(`Conversation exported as ${format.toUpperCase()}`);
     } catch (error) {
@@ -285,6 +378,21 @@ How can I assist you today?`,
         <div className="flex items-center space-x-2">
           <Brain className="w-6 h-6 text-blue-500" />
           <span className="font-semibold">Genesis AI Assistant Pro</span>
+          {connectionStatus !== 'connected' && (
+            <div className="flex items-center space-x-1 ml-2">
+              {connectionStatus === 'degraded' ? (
+                <div className="flex items-center space-x-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Degraded Service</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Offline</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <select
@@ -336,6 +444,14 @@ How can I assist you today?`,
           >
             <FileText className="w-5 h-5" />
           </button>
+
+          <button
+            onClick={checkConnectionStatus}
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+            title="Check connection"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -369,6 +485,40 @@ How can I assist you today?`,
       )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {connectionStatus === 'offline' && (
+          <div className="bg-red-50 p-4 rounded-lg mb-4 border border-red-100">
+            <div className="flex items-start">
+              <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-2" />
+              <div>
+                <h3 className="font-medium text-red-800">Connection Error</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  You appear to be offline. Some features may not work properly. Please check your internet connection.
+                </p>
+                <button 
+                  onClick={checkConnectionStatus}
+                  className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 text-sm"
+                >
+                  Retry Connection
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {connectionStatus === 'degraded' && (
+          <div className="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-100">
+            <div className="flex items-start">
+              <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 mr-2" />
+              <div>
+                <h3 className="font-medium text-yellow-800">Degraded Service</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  The AI service is experiencing issues. Responses may be delayed or limited. We're working to resolve this.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {filteredMessages.map((message, index) => (
           <div key={message.id}>
             <div className={`flex items-start space-x-2 ${
@@ -443,7 +593,7 @@ How can I assist you today?`,
         {isLoading && !streamingContent && (
           <div className="flex items-center space-x-2 text-gray-500">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Thinking...</span>
+            <span>{isRecovering ? 'Recovering connection...' : 'Thinking...'}</span>
           </div>
         )}
         
@@ -458,11 +608,11 @@ How can I assist you today?`,
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
             className="flex-1 px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
+            disabled={isLoading || connectionStatus === 'offline'}
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || connectionStatus === 'offline'}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-5 h-5" />
