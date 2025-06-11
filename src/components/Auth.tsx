@@ -9,11 +9,7 @@ import { toast } from 'sonner';
 
 const authSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
+  password: z.string().min(6, 'Password must be at least 6 characters')
 });
 
 type AuthForm = z.infer<typeof authSchema>;
@@ -86,18 +82,13 @@ export const Auth: React.FC = () => {
           email: data.email,
           password: data.password,
           options: {
-            emailRedirectTo: `${window.location.origin}`,
-            data: {
-              email_confirmed: false
-            }
+            emailRedirectTo: `${window.location.origin}`
           }
         });
 
         if (error) throw error;
         
-        if (authData?.user && !authData?.user?.identities?.length) {
-          toast.success('Please check your email to verify your account');
-        } else if (authData?.user) {
+        if (authData?.user) {
           toast.success('Account created successfully!');
         }
         reset();
@@ -116,9 +107,6 @@ export const Auth: React.FC = () => {
         setAuthError('This email is already registered');
         toast.error('This email is already registered');
         setIsLogin(true);
-      } else if (error.message.includes('Password should be at least 6 characters')) {
-        setAuthError('Password must be at least 6 characters long');
-        toast.error('Password must be at least 6 characters long');
       } else {
         setAuthError(error.message || 'Authentication failed. Please try again.');
         toast.error(error.message || 'Authentication failed. Please try again.');
@@ -131,7 +119,7 @@ export const Auth: React.FC = () => {
   // For demo purposes, pre-fill the form
   const fillDemoCredentials = () => {
     setValue('email', 'demo@genesisheritage.com');
-    setValue('password', 'Genesis@2025');
+    setValue('password', 'password123');
   };
 
   return (
