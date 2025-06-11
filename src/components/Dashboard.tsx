@@ -31,6 +31,7 @@ import { UserProfileManager } from './UserProfileManager';
 import { toast } from 'sonner';
 import { UserProfileButton } from './UserProfileButton';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
+import { ErrorBoundary } from '../lib/error-boundary';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -118,10 +119,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
   const [activeFeature, setActiveFeature] = useState('artifacts');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   
   const { colorScheme } = preferences;
 
+  const filteredFeatures = selectedCategory === 'all' 
+    ? features 
+    : features.filter(f => f.category === selectedCategory);
+
   const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
+
+  const categories = [
+    { id: 'all', name: 'All Features', icon: Sparkles },
+    { id: 'core', name: 'Core System', icon: Brain },
+    { id: 'heritage', name: 'Heritage Tools', icon: Globe },
+    { id: 'business', name: 'Business Tools', icon: Zap }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
@@ -172,7 +185,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
-            {features.map(feature => {
+            {filteredFeatures.map(feature => {
               const Icon = feature.icon;
               return (
                 <motion.button
@@ -230,10 +243,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <ActiveComponent />
+            <ErrorBoundary>
+              <ActiveComponent />
+            </ErrorBoundary>
           </div>
           <div className="space-y-6">
-            <EnhancedAIAssistant />
+            <ErrorBoundary>
+              <EnhancedAIAssistant />
+            </ErrorBoundary>
           </div>
         </div>
       </main>

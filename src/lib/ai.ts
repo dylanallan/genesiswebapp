@@ -50,6 +50,7 @@ export async function* streamResponse(
   context?: string
 ): AsyncGenerator<string> {
   try {
+    // Ensure we have a valid session
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session?.access_token) {

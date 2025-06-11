@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       role: item.role,
       similarity: item.similarity,
       timestamp: item.created_at,
+      session_id: item.session_id,
       ...(includeContent && { content: item.content })
     })) || [];
 

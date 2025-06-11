@@ -25,6 +25,7 @@ export class AIMemory {
   private sessionId: string;
   private maxMessages: number;
   private includeSystemMessages: boolean;
+  private messageCache: Map<string, {role: string, content: string, timestamp: Date}[]> = new Map();
 
   constructor(options: {
     sessionId?: string;
@@ -64,6 +65,8 @@ export class AIMemory {
           message_index: messageIndex,
           role,
           content,
+          model_used: metadata.model,
+          tokens_used: Math.ceil(content.length / 4), // Rough estimate
           metadata: {
             ...metadata,
             timestamp: new Date().toISOString()
@@ -74,12 +77,33 @@ export class AIMemory {
 
       if (error) throw error;
       
+      // Update local cache
+      const cacheKey = this.sessionId;
+      const cachedMessages = this.messageCache.get(cacheKey) || [];
+      cachedMessages.push({
+        role,
+        content,
+        timestamp: new Date()
+      });
+      this.messageCache.set(cacheKey, cachedMessages);
+      
       return data.id;
     } catch (error) {
       console.error('Error storing message:', error);
       
       // Create a fallback in-memory storage if database fails
       console.log('Using fallback in-memory storage for message');
+      
+      // Update local cache even if database fails
+      const cacheKey = this.sessionId;
+      const cachedMessages = this.messageCache.get(cacheKey) || [];
+      cachedMessages.push({
+        role,
+        content,
+        timestamp: new Date()
+      });
+      this.messageCache.set(cacheKey, cachedMessages);
+      
       return crypto.randomUUID();
     }
   }
@@ -89,6 +113,14 @@ export class AIMemory {
    */
   async getConversationHistory(): Promise<{role: string, content: string, timestamp: Date}[]> {
     try {
+      // Try to get from cache first
+      const cacheKey = this.sessionId;
+      const cachedMessages = this.messageCache.get(cacheKey);
+      if (cachedMessages && cachedMessages.length > 0) {
+        return cachedMessages;
+      }
+      
+      // If not in cache, get from database
       let query = supabase
         .from('ai_conversation_history')
         .select('role, content, created_at')
@@ -103,11 +135,16 @@ export class AIMemory {
       
       if (error) throw error;
       
-      return (data || []).map(item => ({
+      const messages = (data || []).map(item => ({
         role: item.role,
         content: item.content,
         timestamp: new Date(item.created_at)
       }));
+      
+      // Update cache
+      this.messageCache.set(cacheKey, messages);
+      
+      return messages;
     } catch (error) {
       console.error('Error retrieving conversation history:', error);
       
@@ -205,6 +242,8 @@ export class AIMemory {
    */
   loadSession(sessionId: string): void {
     this.sessionId = sessionId;
+    // Clear cache for the previous session
+    this.messageCache.delete(this.sessionId);
   }
 
   /**

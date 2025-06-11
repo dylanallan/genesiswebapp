@@ -15,7 +15,10 @@ import {
   Zap,
   User,
   Bot,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  Search,
+  Database
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -70,6 +73,9 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     lastActive: Date;
   }[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const aiMemory = useRef<AIMemory>(new AIMemory({ sessionId }));
@@ -125,6 +131,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       
       if (!error && data?.instructions) {
         setCustomInstructions(data.instructions);
+        setSettings(prev => ({...prev, includeCustomInstructions: true}));
       }
     } catch (error) {
       console.error('Error loading custom instructions:', error);
@@ -335,6 +342,50 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       setMessages([welcomeMessage]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      // Call the memory-search edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+      
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/memory-search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: searchTerm,
+          threshold: 0.6,
+          limit: 5,
+          includeContent: true
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Search error: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      setSearchResults(result.results || []);
+      
+      if (result.results.length === 0) {
+        toast.info('No matching conversations found');
+      }
+    } catch (error) {
+      console.error('Error searching conversations:', error);
+      toast.error('Failed to search conversations');
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -639,7 +690,77 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
               </div>
 
               <div className="space-y-4">
-                {isLoadingHistory ? (
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search conversations..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    onClick={handleSearch}
+                    disabled={isSearching || !searchTerm.trim()}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 disabled:opacity-50"
+                  >
+                    {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {isSearching ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Search Results</h4>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {searchResults.map((result) => (
+                        <div 
+                          key={result.id}
+                          className="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer"
+                          onClick={() => loadSession(result.session_id)}
+                        >
+                          <div className="flex items-center space-x-2 mb-1">
+                            {result.role === 'user' ? (
+                              <User className="w-4 h-4 text-gray-600" />
+                            ) : (
+                              <Bot className="w-4 h-4 text-blue-600" />
+                            )}
+                            <span className="text-xs text-gray-500">
+                              {new Date(result.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 line-clamp-2">{result.content}</p>
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-xs text-blue-600">
+                              Match: {Math.round(result.similarity * 100)}%
+                            </span>
+                            <button
+                              className="text-xs text-blue-600 hover:text-blue-800"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                loadSession(result.session_id);
+                              }}
+                            >
+                              View Conversation
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      className="w-full mt-2 text-sm text-blue-600 hover:text-blue-800"
+                      onClick={() => {
+                        setSearchResults([]);
+                        setSearchTerm('');
+                      }}
+                    >
+                      Clear Results
+                    </button>
+                  </div>
+                ) : isLoadingHistory ? (
                   <div className="flex items-center justify-center py-8">
                     <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
                   </div>
@@ -668,8 +789,14 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
                           </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-                          <span>{conversation.messages} messages</span>
-                          <span>{conversation.lastActive.toLocaleTimeString()}</span>
+                          <div className="flex items-center space-x-1">
+                            <Database className="w-3 h-3" />
+                            <span>{conversation.messages} messages</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{conversation.lastActive.toLocaleTimeString()}</span>
+                          </div>
                         </div>
                       </button>
                     ))}
