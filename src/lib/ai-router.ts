@@ -234,20 +234,32 @@ Please try your request again in a moment, or refresh the page if issues persist
         }
 
         // Use the ai-stream edge function
-        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-stream`, {
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-router`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(request),
+          body: JSON.stringify({
+            message: request.prompt,
+            context: request.context,
+            model: request.type === 'business' ? 'gpt-4' : 
+                   request.type === 'cultural' ? 'claude-3-opus' : 
+                   'auto'
+          }),
         });
 
         if (!response.ok) {
-          throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
+          throw new Error(`AI Router error: ${response.status} ${response.statusText}`);
         }
 
-        return this.createStreamFromResponse(response);
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        return this.createTextStream(data.text);
       });
     } catch (error) {
       console.error('AI Router error:', error);
@@ -262,26 +274,11 @@ Please try your request again in a moment, or refresh the page if issues persist
     }
   }
 
-  private async* createStreamFromResponse(response: Response): AsyncGenerator<string> {
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('No response body');
-    }
-
-    const decoder = new TextDecoder();
-    
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        if (chunk) {
-          yield chunk;
-        }
-      }
-    } finally {
-      reader.releaseLock();
+  private async* createTextStream(text: string): AsyncGenerator<string> {
+    const words = text.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      yield words[i] + (i < words.length - 1 ? ' ' : '');
+      await new Promise(resolve => setTimeout(resolve, 30));
     }
   }
 

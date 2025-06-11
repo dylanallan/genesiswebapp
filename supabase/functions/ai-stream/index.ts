@@ -9,9 +9,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface AIRequest {
@@ -21,8 +21,6 @@ interface AIRequest {
   type?: string;
   maxTokens?: number;
   temperature?: number;
-  quality?: 'fast' | 'balanced' | 'premium';
-  urgency?: 'low' | 'medium' | 'high';
 }
 
 async function getAIConfig(serviceName: string) {
