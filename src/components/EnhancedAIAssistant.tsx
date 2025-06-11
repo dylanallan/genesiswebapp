@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { streamResponse } from '../lib/ai';
 import { AIMemory } from '../lib/ai-memory';
+import { enhancedAIAssistant, saveCustomInstructions, saveAIFeedback } from '../lib/ai-context';
 
 interface Message {
   id: string;
@@ -151,7 +152,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage = {
+    const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
       content: input,
@@ -181,11 +182,8 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       
       let fullResponse = '';
       
-      // Stream the response
-      for await (const chunk of streamResponse(
-        input,
-        settings.selectedModel === 'auto' ? 'auto' : settings.selectedModel
-      )) {
+      // Stream the response using enhanced AI assistant
+      for await (const chunk of enhancedAIAssistant(input, contextOptions)) {
         fullResponse += chunk;
         setStreamingContent(fullResponse);
       }
@@ -702,7 +700,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
                 </div>
 
                 {isSearching ? (
-                  <div className="flex items-center justify-center py-8">
+                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                   </div>
                 ) : searchResults.length > 0 ? (

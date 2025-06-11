@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { streamResponse } from './ai';
+import { toast } from 'sonner';
 
 export interface AIContext {
   sessionId: string;
@@ -112,21 +113,38 @@ Query: ${enhancedPrompt}`;
     // Add semantic search results if enabled
     if (semanticSearch) {
       try {
-        const { data, error } = await supabase
-          .from('ai_embeddings')
-          .select('content, content_type, content_id')
-          .limit(semanticSearchCount);
+        // Get embedding for the prompt
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (!error && data && data.length > 0) {
-          const relevantContent = data
-            .map(item => `RELEVANT CONTENT (${item.content_type}): ${item.content.substring(0, 300)}${item.content.length > 300 ? '...' : ''}`)
-            .join('\n\n');
+        if (session?.access_token) {
+          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/memory-search`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query: prompt,
+              threshold: semanticSearchThreshold,
+              limit: semanticSearchCount,
+              includeContent: true
+            }),
+          });
           
-          enhancedPrompt = `
+          if (response.ok) {
+            const result = await response.json();
+            if (result.results && result.results.length > 0) {
+              const relevantContent = result.results
+                .map((item: any) => `RELEVANT CONTENT (${item.role}): ${item.content.substring(0, 300)}${item.content.length > 300 ? '...' : ''}`)
+                .join('\n\n');
+              
+              enhancedPrompt = `
 Relevant Knowledge Base Content:
 ${relevantContent}
 
 Query: ${enhancedPrompt}`;
+            }
+          }
         }
       } catch (error) {
         console.error('Error performing semantic search:', error);
@@ -228,6 +246,32 @@ async function storeMessage(
     
     const messageIndex = lastMessage && lastMessage.length > 0 ? lastMessage[0].message_index + 1 : 0;
     
+    // Generate embedding for the message
+    let embedding = null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.access_token) {
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/generate-embedding`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: content
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          embedding = result.embedding;
+        }
+      }
+    } catch (embeddingError) {
+      console.error('Error generating embedding:', embeddingError);
+    }
+    
     // Store the message
     const { error } = await supabase
       .from('ai_conversation_history')
@@ -239,6 +283,7 @@ async function storeMessage(
         content,
         model_used: model,
         tokens_used: Math.ceil(content.length / 4), // Rough estimate
+        embedding,
         metadata: {
           timestamp: new Date().toISOString()
         }
@@ -247,7 +292,7 @@ async function storeMessage(
     if (error) throw error;
   } catch (error) {
     console.error('Error storing message:', error);
-    throw error;
+    toast.error('Failed to save conversation history');
   }
 }
 

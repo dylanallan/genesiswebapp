@@ -5,7 +5,6 @@ import {
   Bot, 
   Loader2, 
   Brain, 
-  AlertCircle, 
   ThumbsUp, 
   ThumbsDown,
   MessageSquare,
@@ -16,6 +15,7 @@ import { useSession } from '@supabase/auth-helpers-react';
 import { streamResponse } from '../lib/ai';
 import { AIMemory } from '../lib/ai-memory';
 import { supabase } from '../lib/supabase';
+import { enhancedAIAssistant } from '../lib/ai-context';
 
 interface ChatMessage {
   id: string;
@@ -99,14 +99,19 @@ How can I assist you today?`,
       // Store user message in memory
       await aiMemory.current.storeMessage('user', input);
       
+      // Prepare context options
+      const contextOptions = {
+        sessionId,
+        userContext: true,
+        conversationHistory: true,
+        customInstructions: true,
+        semanticSearch: true
+      };
+      
       let fullResponse = '';
       
-      // Stream the response
-      for await (const chunk of streamResponse(
-        input,
-        currentModel as any,
-        `User ${userName} with ancestry ${ancestry} and business goals ${businessGoals}`
-      )) {
+      // Stream the response using enhanced AI assistant
+      for await (const chunk of enhancedAIAssistant(input, contextOptions)) {
         fullResponse += chunk;
         setStreamingContent(fullResponse);
       }
