@@ -1,170 +1,280 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Loader2, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Loader2, Play, Pause, Save, Trash, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { verifyFamilyHistory } from '../lib/verification';
-import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 
 interface VoiceRecorderProps {
-  onStoryRecorded: (story: string, verification: any) => void;
+  onRecordingComplete?: (audioBlob: Blob, audioUrl: string) => void;
+  maxDuration?: number; // in seconds
+  className?: string;
 }
 
-export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onStoryRecorded }) => {
+export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
+  onRecordingComplete,
+  maxDuration = 60,
+  className
+}) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState('');
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [confidence, setConfidence] = useState(0);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-
-      recognitionRef.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        setTranscript(transcript);
-        setConfidence(event.results[0][0].confidence);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        toast.error('Speech recognition error. Please try again.');
-        stopRecording();
-      };
-    }
-
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
       }
     };
-  }, []);
+  }, [audioUrl]);
 
   const startRecording = async () => {
     try {
+      setError(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      chunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
+      
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      audioChunksRef.current = [];
+      
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
       };
-
+      
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(audioBlob);
+        
+        setAudioBlob(audioBlob);
+        setAudioUrl(url);
+        
+        if (onRecordingComplete) {
+          onRecordingComplete(audioBlob, url);
+        }
+        
+        // Stop all tracks in the stream
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
       mediaRecorderRef.current.start();
-      recognitionRef.current?.start();
       setIsRecording(true);
-      toast.success('Recording started. Share your family story...');
+      setRecordingTime(0);
+      
+      // Start timer
+      timerRef.current = window.setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev >= maxDuration) {
+            stopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+      
+      toast.success('Recording started');
     } catch (error) {
       console.error('Error starting recording:', error);
-      toast.error('Could not start recording. Please check your microphone permissions.');
+      setError('Could not access microphone. Please check your permissions.');
+      toast.error('Failed to start recording');
     }
   };
 
-  const stopRecording = async () => {
-    if (mediaRecorderRef.current && recognitionRef.current) {
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      recognitionRef.current.stop();
       setIsRecording(false);
-
-      if (transcript) {
-        setIsProcessing(true);
-        try {
-          const verification = await verifyFamilyHistory(transcript);
-          onStoryRecorded(transcript, verification);
-          
-          if (verification.confidence < 0.8) {
-            toast.info('Some details need verification. Suggested contacts have been added.');
-          } else {
-            toast.success('Story recorded and verified successfully!');
-          }
-        } catch (error) {
-          console.error('Verification error:', error);
-          toast.error('Error verifying the story. Please try again.');
-        } finally {
-          setIsProcessing(false);
-        }
+      
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
+      
+      toast.success('Recording stopped');
     }
+  };
+
+  const playRecording = () => {
+    if (!audioRef.current || !audioUrl) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch(err => {
+        console.error('Playback error:', err);
+        toast.error('Playback failed');
+      });
+      setIsPlaying(true);
+    }
+  };
+
+  const saveRecording = async () => {
+    if (!audioBlob) return;
+    
+    setIsProcessing(true);
+    try {
+      const fileName = `voice-recording-${Date.now()}.webm`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('voice-recordings')
+        .upload(fileName, audioBlob);
+      
+      if (error) throw error;
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('voice-recordings')
+        .getPublicUrl(fileName);
+      
+      toast.success('Recording saved successfully');
+      
+      // Return the public URL if needed
+      if (onRecordingComplete) {
+        onRecordingComplete(audioBlob, urlData.publicUrl);
+      }
+    } catch (error) {
+      console.error('Error saving recording:', error);
+      toast.error('Failed to save recording');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const deleteRecording = () => {
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setIsPlaying(false);
+    
+    toast.info('Recording deleted');
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Voice Story Recorder</h3>
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={isProcessing}
-          className={`p-3 rounded-full transition-colors ${
-            isRecording
-              ? 'bg-red-100 text-red-600 hover:bg-red-200'
-              : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-          }`}
-        >
-          {isRecording ? (
-            <MicOff className="w-6 h-6" />
-          ) : (
-            <Mic className="w-6 h-6" />
-          )}
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {transcript && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-4"
-          >
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Transcript:</h4>
-              <p className="text-gray-600">{transcript}</p>
-            </div>
-            
-            {confidence > 0 && (
-              <div className="mt-2 flex items-center space-x-2">
-                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                    style={{ width: `${confidence * 100}%` }}
-                  />
+    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+      <div className="p-4">
+        {error && (
+          <div className="bg-red-50 p-3 rounded-lg mb-4 flex items-start">
+            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+        
+        <div className="flex flex-col items-center justify-center">
+          {!audioUrl ? (
+            <>
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isProcessing}
+                className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                  isRecording 
+                    ? 'bg-red-500 text-white animate-pulse' 
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                } transition-colors`}
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="w-8 h-8" />
+                ) : (
+                  <Mic className="w-8 h-8" />
+                )}
+              </button>
+              
+              {isRecording && (
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-red-500">{formatTime(recordingTime)}</div>
+                  <div className="text-sm text-gray-500">
+                    {maxDuration - recordingTime} seconds remaining
+                  </div>
                 </div>
-                <span className="text-xs text-gray-500">
-                  {(confidence * 100).toFixed(0)}% confidence
-                </span>
+              )}
+              
+              {!isRecording && (
+                <p className="text-sm text-gray-500">
+                  Click to start recording (max {maxDuration} seconds)
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="w-full mb-4">
+                <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
+                
+                <div className="flex items-center justify-center space-x-4 mb-4">
+                  <button
+                    onClick={playRecording}
+                    className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                  >
+                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                  </button>
+                  
+                  <div className="text-sm text-gray-500">
+                    {formatTime(recordingTime)} recorded
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-center space-x-3">
+                  <button
+                    onClick={saveRecording}
+                    disabled={isProcessing}
+                    className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    <span>Save</span>
+                  </button>
+                  
+                  <button
+                    onClick={deleteRecording}
+                    disabled={isProcessing}
+                    className="flex items-center space-x-1 px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
+                  >
+                    <Trash className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                </div>
               </div>
-            )}
-          </motion.div>
-        )}
-
-        {isProcessing && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center justify-center space-x-2 text-gray-500"
-          >
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Verifying story...</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="text-xs text-gray-500 flex items-center space-x-1">
-        <AlertCircle className="w-4 h-4" />
-        <span>Speak clearly and provide dates and locations when possible</span>
+              
+              <button
+                onClick={() => {
+                  deleteRecording();
+                  startRecording();
+                }}
+                disabled={isProcessing}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Record again
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
