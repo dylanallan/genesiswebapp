@@ -9,8 +9,7 @@ import {
   XCircle, 
   Loader2,
   RefreshCw,
-  AlertTriangle,
-  User
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -157,7 +156,7 @@ export const BackendSetup: React.FC<BackendSetupProps> = ({ onSetupComplete }) =
               
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <User className="w-5 h-5 text-red-500" />
+                  <UserIcon className="w-5 h-5 text-red-500" />
                   <span className="font-medium">Admin Configuration</span>
                 </div>
                 <StatusIndicator isActive={true} />
@@ -191,8 +190,8 @@ export const BackendSetup: React.FC<BackendSetupProps> = ({ onSetupComplete }) =
   );
 };
 
-// User icon component
-const User = ({ className }: { className?: string }) => (
+// User icon component - renamed to UserIcon to avoid conflict
+const UserIcon = ({ className }: { className?: string }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     viewBox="0 0 24 24" 
