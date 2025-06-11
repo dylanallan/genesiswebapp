@@ -1,3 +1,5 @@
+import { toast } from 'sonner';
+
 interface CircuitBreakerConfig {
   failureThreshold: number;
   resetTimeout: number;
@@ -52,6 +54,7 @@ class CircuitBreaker {
       this.state = CircuitState.OPEN;
       this.nextAttemptTime = Date.now() + this.config.resetTimeout;
       console.warn(`🔴 Circuit breaker ${this.name} opened due to ${this.failureCount} failures`);
+      toast.error(`Service ${this.name} is temporarily unavailable. Trying alternative methods.`);
     }
   }
 

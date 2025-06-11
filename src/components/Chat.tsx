@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useSession } from '@supabase/auth-helpers-react';
 import { streamResponse } from '../lib/ai';
 import { AIMemory } from '../lib/ai-memory';
+import { supabase } from '../lib/supabase';
 
 interface ChatMessage {
   id: string;
@@ -65,6 +66,9 @@ How can I assist you today?`,
     };
     
     setMessages([initialMessage]);
+    
+    // Store initial message in memory
+    aiMemory.current.storeMessage('assistant', initialMessage.content);
   }, [userName, ancestry, businessGoals]);
 
   useEffect(() => {
@@ -124,12 +128,17 @@ How can I assist you today?`,
       console.error('Error getting assistant response:', error);
       
       // Add error message
-      setMessages(prev => [...prev, {
+      const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: "I'm sorry, I encountered an error processing your request. Please try again or contact support if the issue persists.",
         timestamp: new Date()
-      }]);
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      
+      // Store error message in memory
+      await aiMemory.current.storeMessage('assistant', errorMessage.content, { error: true });
       
       toast.error('Failed to get response');
     } finally {

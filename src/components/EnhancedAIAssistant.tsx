@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Brain, 
   Send, 
+  Bot, 
+  User, 
   Loader2, 
-  Settings, 
+  Brain, 
   ThumbsUp, 
   ThumbsDown, 
   MessageSquare, 
@@ -12,13 +13,11 @@ import {
   Save, 
   X, 
   Sparkles,
-  Zap,
-  User,
-  Bot,
-  RefreshCw,
+  Settings,
   Clock,
   Search,
-  Database
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -78,24 +77,22 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const aiMemory = useRef<AIMemory>(new AIMemory({ sessionId }));
+  const aiMemory = useRef(new AIMemory({ sessionId }));
 
   useEffect(() => {
-    // Add initial system message if provided
     if (initialContext) {
       const systemMessage = {
         id: crypto.randomUUID(),
-        role: 'system' as const,
+        role: 'system',
         content: initialContext,
         timestamp: new Date()
       };
       
       setMessages([systemMessage]);
     } else {
-      // Add default welcome message
       const welcomeMessage = {
         id: crypto.randomUUID(),
-        role: 'assistant' as const,
+        role: 'assistant',
         content: "👋 Hello! I'm your Genesis AI Assistant Pro. I can help with business automation and cultural heritage questions. How can I assist you today?",
         timestamp: new Date()
       };
@@ -103,7 +100,6 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       setMessages([welcomeMessage]);
     }
 
-    // Load custom instructions if available
     loadCustomInstructions();
   }, [initialContext]);
 
@@ -155,7 +151,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
+    const userMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content: input,
@@ -182,7 +178,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
         semanticSearchThreshold: settings.semanticSearchThreshold,
         semanticSearchCount: settings.semanticSearchCount
       };
-
+      
       let fullResponse = '';
       
       // Stream the response
@@ -209,18 +205,15 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
+      console.error('Error getting assistant response:', error);
       
       // Add error message
-      const errorMessage = {
+      setMessages(prev => [...prev, {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: "I'm sorry, I encountered an error processing your request. Please try again or contact support if the issue persists.",
-        timestamp: new Date(),
-        sessionId
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
+        timestamp: new Date()
+      }]);
       
       toast.error('Failed to get response');
     } finally {
@@ -291,7 +284,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
     
     const welcomeMessage = {
       id: crypto.randomUUID(),
-      role: 'assistant' as const,
+      role: 'assistant',
       content: "👋 Hello! I'm your Genesis AI Assistant Pro. I can help with business automation and cultural heritage questions. How can I assist you today?",
       timestamp: new Date(),
       sessionId: newSessionId
@@ -401,7 +394,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <Brain className="w-6 h-6 text-blue-500" />
-          <h2 className="text-lg font-semibold">Genesis AI Assistant Pro</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Genesis AI Assistant Pro</h2>
           <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Memory-Enabled</span>
         </div>
         
@@ -429,7 +422,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
           </button>
         </div>
       </div>
-
+      
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div key={message.id}>
@@ -511,8 +504,8 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
         )}
         
         {isLoading && !streamingContent && (
-          <div className="flex items-center justify-center space-x-2 text-gray-500">
-            <Loader2 className="w-5 h-5 animate-spin" />
+          <div className="flex items-center space-x-2 text-gray-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
             <span>Thinking...</span>
           </div>
         )}
@@ -590,7 +583,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
                       />
                       <span className="text-gray-700">Include User Context</span>
                     </label>
-                    <Zap className="w-4 h-4 text-blue-500" />
+                    <Sparkles className="w-4 h-4 text-blue-500" />
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -729,7 +722,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
                               <Bot className="w-4 h-4 text-blue-600" />
                             )}
                             <span className="text-xs text-gray-500">
-                              {new Date(result.created_at).toLocaleString()}
+                              {new Date(result.timestamp).toLocaleString()}
                             </span>
                           </div>
                           <p className="text-sm text-gray-700 line-clamp-2">{result.content}</p>
@@ -785,7 +778,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
                             </span>
                           </div>
                           <span className="text-xs text-gray-500">
-                            {conversation.lastActive.toLocaleDateString()}
+                            {new Date(conversation.lastActive).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
@@ -795,7 +788,7 @@ export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({
                           </div>
                           <div className="flex items-center space-x-1">
                             <Clock className="w-3 h-3" />
-                            <span>{conversation.lastActive.toLocaleTimeString()}</span>
+                            <span>{new Date(conversation.lastActive).toLocaleTimeString()}</span>
                           </div>
                         </div>
                       </button>
