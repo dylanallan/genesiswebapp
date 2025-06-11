@@ -14,12 +14,7 @@ import {
   Sparkles, 
   ArrowRight 
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import { cn } from '../lib/utils';
-import { streamResponse, getBestModelForTask, getMockResponse } from '../lib/ai';
-import { analyzeGenealogyData, generatePersonalizedPlan, AnalysisResult } from '../lib/analyzers';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
 
 interface Message {
   role: 'user' | 'assistant' | 'system' | 'agent';
@@ -31,35 +26,25 @@ interface Message {
   agentType?: string;
 }
 
-interface ChatProps {
-  userName: string;
-  ancestry: string;
-  businessGoals: string;
+interface AnalysisResult {
+  category: 'ancestry' | 'business' | 'education' | 'personal' | 'time' | 'growth';
+  title: string;
+  summary: string;
+  recommendations: string[];
+  pathways?: string[];
 }
 
-const agentPrompts = {
-  'Workflow Automation': (ancestry: string, businessGoals: string) => 
-    `As a Workflow Automation Specialist with expertise in business process optimization, considering your cultural background (${ancestry}) and business context (${businessGoals}), I'll help you create efficient automated workflows that respect traditional practices while maximizing productivity. Let's identify key processes that can be streamlined.`,
-  
-  'Task Management Optimization': (ancestry: string, businessGoals: string) =>
-    `As a Task Management Expert specializing in culturally-sensitive productivity systems, I understand your background (${ancestry}) and business needs (${businessGoals}). Let's create a personalized task management system that aligns with your values and maximizes efficiency.`,
-  
-  'Meeting Efficiency': (ancestry: string, businessGoals: string) =>
-    `As a Meeting Optimization Specialist with experience in diverse business cultures, I'll help you create meeting protocols that respect your cultural background (${ancestry}) while achieving your business objectives (${businessGoals}) efficiently.`,
-  
-  'Cultural Identity Exploration': (ancestry: string, businessGoals: string) =>
-    `As a Cultural Identity Guide with deep knowledge of heritage integration, I'll help you explore and integrate your rich heritage (${ancestry}) into your business practices (${businessGoals}), creating authentic connections with your roots.`,
-  
-  'Leadership Development': (ancestry: string, businessGoals: string) =>
-    `As a Leadership Development Coach with cultural expertise, I'll help you develop leadership skills that honor your heritage (${ancestry}) while advancing your business goals (${businessGoals}) using proven methodologies.`,
-  
-  'Traditional Wisdom Integration': (ancestry: string, businessGoals: string) =>
-    `As a Traditional Wisdom Integration Specialist, I'll help you incorporate ancestral knowledge (${ancestry}) into modern business practices (${businessGoals}), creating a unique competitive advantage through cultural wisdom.`
-};
+interface ChatProps {
+  userName?: string;
+  ancestry?: string;
+  businessGoals?: string;
+}
 
-const automationPathways = ['Workflow Automation', 'Task Management Optimization', 'Meeting Efficiency'];
-
-export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals }) => {
+export const Chat: React.FC<ChatProps> = ({ 
+  userName = 'User', 
+  ancestry = 'European and Asian heritage',
+  businessGoals = 'Automate marketing and preserve cultural knowledge'
+}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +73,7 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     scrollToBottom();
   }, [messages, streamingContent]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -100,37 +85,59 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setMessages(prev => [...prev, loadingMessage]);
 
     setIsLoading(true);
-    try {
-      const analysis = await analyzeGenealogyData(file);
+    
+    // Simulate file analysis
+    setTimeout(() => {
       setMessages(prev => prev.filter(msg => msg !== loadingMessage));
       
       const analysisMessage: Message = {
         role: 'system',
         content: `I've analyzed your family tree data from ${file.name}. Here's what I found:`,
         timestamp: new Date(),
-        analysis
+        analysis: [
+          {
+            category: 'ancestry',
+            title: 'Family Heritage Analysis',
+            summary: 'Based on your genealogical data, I\'ve identified key patterns and cultural significance.',
+            recommendations: [
+              'Document family stories and traditions',
+              'Connect with relatives who share similar heritage',
+              'Explore cultural practices that can benefit your business approach'
+            ],
+            pathways: [
+              'Oral History Collection',
+              'Cultural Tradition Documentation',
+              'Family Business Legacy Analysis'
+            ]
+          },
+          {
+            category: 'business',
+            title: 'Heritage-Based Business Insights',
+            summary: 'Your family history reveals potential business opportunities and strengths.',
+            recommendations: [
+              'Incorporate cultural values into business practices',
+              'Leverage traditional knowledge for innovation',
+              'Build networks within your cultural community'
+            ],
+            pathways: [
+              'Cultural Market Analysis',
+              'Traditional Business Methods Integration',
+              'Community Network Building'
+            ]
+          }
+        ]
       };
       
       setMessages(prev => [...prev, analysisMessage]);
-    } catch (error) {
-      console.error('Error analyzing file:', error);
-      setMessages(prev => [...prev.filter(msg => msg !== loadingMessage), {
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error analyzing your file. Please ensure it\'s a CSV file with family tree data and try again.',
-        timestamp: new Date()
-      }]);
-    } finally {
       setIsLoading(false);
+      
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }
+    }, 2000);
   };
 
-  const handlePathwayClick = async (pathway: string, category: string) => {
-    const agentPrompt = agentPrompts[pathway as keyof typeof agentPrompts];
-    if (!agentPrompt) return;
-
+  const handlePathwayClick = (pathway: string, category: string) => {
     const userMessage: Message = {
       role: 'user',
       content: `I'd like to explore the ${pathway} pathway`,
@@ -149,20 +156,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setIsLoading(true);
     setStreamingContent('');
 
-    try {
-      let fullResponse = '';
-      
-      for await (const chunk of streamResponse(
-        agentPrompt(ancestry, businessGoals),
-        getBestModelForTask(pathway) as any
-      )) {
-        fullResponse += chunk;
-        setStreamingContent(fullResponse);
-      }
-      
+    // Simulate AI response
+    setTimeout(() => {
       const assistantMessage: Message = {
         role: 'assistant',
-        content: fullResponse,
+        content: generatePathwayResponse(pathway, ancestry, businessGoals),
         timestamp: new Date(),
         model: currentModel,
         selectedPathway: pathway
@@ -170,22 +168,11 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
-    } catch (error: any) {
-      console.error('Error:', error);
-      
-      const fallbackResponse = await getMockResponse(agentPrompt(ancestry, businessGoals));
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: fallbackResponse,
-        timestamp: new Date(),
-        model: 'fallback'
-      }]);
-    } finally {
       setIsLoading(false);
-    }
+    }, 2000);
   };
 
-  const handleOptionClick = async (option: string) => {
+  const handleOptionClick = (option: string) => {
     const userMessage: Message = {
       role: 'user',
       content: option,
@@ -196,48 +183,24 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setIsLoading(true);
     setStreamingContent('');
 
-    try {
-      let fullResponse = '';
-      
-      const promptWithContext = `User ${userName} with ancestry ${ancestry} and business goals ${businessGoals} says: ${option}`;
-
-      for await (const chunk of streamResponse(
-        promptWithContext, 
-        getBestModelForTask(option) as any
-      )) {
-        fullResponse += chunk;
-        setStreamingContent(fullResponse);
-      }
-      
+    // Simulate AI response
+    setTimeout(() => {
       const assistantMessage: Message = {
         role: 'assistant',
-        content: fullResponse,
+        content: generateOptionResponse(option, userName, ancestry, businessGoals),
         timestamp: new Date(),
         model: currentModel
       };
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
-    } catch (error: any) {
-      console.error('Error:', error);
-      
-      const fallbackResponse = await getMockResponse(option);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: fallbackResponse,
-        timestamp: new Date(),
-        model: 'fallback'
-      }]);
-    } finally {
       setIsLoading(false);
-    }
+    }, 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    const selectedModel = currentModel === 'auto' ? getBestModelForTask(input) : currentModel;
 
     const userMessage: Message = {
       role: 'user',
@@ -250,48 +213,19 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     setIsLoading(true);
     setStreamingContent('');
 
-    try {
-      let fullResponse = '';
-      
-      const promptWithContext = `User ${userName} with ancestry ${ancestry} and business goals ${businessGoals} says: ${input}`;
-
-      for await (const chunk of streamResponse(
-        promptWithContext, 
-        selectedModel as any
-      )) {
-        fullResponse += chunk;
-        setStreamingContent(fullResponse);
-      }
-      
+    // Simulate AI response
+    setTimeout(() => {
       const assistantMessage: Message = {
         role: 'assistant',
-        content: fullResponse,
+        content: generateResponse(input, userName, ancestry, businessGoals),
         timestamp: new Date(),
-        model: selectedModel
+        model: currentModel
       };
 
       setMessages(prev => [...prev, assistantMessage]);
       setStreamingContent('');
-    } catch (error: any) {
-      console.error('Error:', error);
-      
-      // Improved error handling with more detailed fallback
-      let fallbackResponse;
-      try {
-        fallbackResponse = await getMockResponse(input);
-      } catch (fallbackError) {
-        fallbackResponse = "I apologize, but I'm experiencing technical difficulties at the moment. Please try again in a few moments.";
-      }
-      
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: fallbackResponse,
-        timestamp: new Date(),
-        model: 'fallback'
-      }]);
-    } finally {
       setIsLoading(false);
-    }
+    }, 2000);
   };
 
   const renderAnalysis = (analysis: AnalysisResult[]) => (
@@ -418,9 +352,9 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
                 message.role === 'agent' ? "bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900" :
                 "bg-blue-50 text-gray-900"
               )}>
-                <ReactMarkdown className="prose prose-sm">
+                <div className="whitespace-pre-wrap">
                   {message.content}
-                </ReactMarkdown>
+                </div>
                 {message.analysis && renderAnalysis(message.analysis)}
               </div>
               {message.role === 'user' && getMessageIcon(message)}
@@ -431,9 +365,9 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
           <div className="flex items-start space-x-2">
             <Brain className="w-6 h-6 text-blue-500 mt-2" />
             <div className="max-w-[80%] rounded-lg p-3 bg-blue-50 text-gray-900">
-              <ReactMarkdown className="prose prose-sm">
+              <div className="whitespace-pre-wrap">
                 {streamingContent}
-              </ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
@@ -481,3 +415,218 @@ export const Chat: React.FC<ChatProps> = ({ userName, ancestry, businessGoals })
     </div>
   );
 };
+
+// Helper function to generate personalized plan
+function generatePersonalizedPlan(ancestry: string, businessGoals: string): AnalysisResult[] {
+  return [
+    {
+      category: 'time',
+      title: 'Time Liberation Strategy',
+      summary: 'Customized approach to free up your time and optimize operations.',
+      recommendations: [
+        'Implement automated workflow systems',
+        'Create efficient task prioritization',
+        'Develop time-saving protocols'
+      ],
+      pathways: [
+        'Workflow Automation',
+        'Task Management Optimization',
+        'Meeting Efficiency'
+      ]
+    },
+    {
+      category: 'growth',
+      title: 'Cultural Growth Journey',
+      summary: 'Structured path for personal and professional development rooted in heritage.',
+      recommendations: [
+        'Connect with your cultural roots',
+        'Develop leadership qualities based on ancestral wisdom',
+        'Balance tradition with innovation'
+      ],
+      pathways: [
+        'Cultural Identity Exploration',
+        'Leadership Development',
+        'Traditional Wisdom Integration'
+      ]
+    },
+    {
+      category: 'business',
+      title: 'Heritage-Inspired Business Strategy',
+      summary: 'Business optimization combining modern practices with cultural wisdom.',
+      recommendations: [
+        'Implement traditional time management techniques',
+        'Create culturally-aware business processes',
+        'Develop sustainable growth strategies'
+      ],
+      pathways: [
+        'Process Automation',
+        'Cultural Marketing',
+        'Traditional Wisdom Integration'
+      ]
+    }
+  ];
+}
+
+// Helper function to generate pathway response
+function generatePathwayResponse(pathway: string, ancestry: string, businessGoals: string): string {
+  const responses: Record<string, string> = {
+    'Workflow Automation': `Based on your ${ancestry} background and goals to ${businessGoals}, I recommend these workflow automation strategies:
+
+1. **Document Processing Automation**
+   - Implement OCR for digitizing family records and business documents
+   - Create automated categorization systems based on content
+   - Set up approval workflows that respect traditional decision hierarchies
+
+2. **Communication Automation**
+   - Develop culturally-sensitive email templates
+   - Schedule communications around cultural calendar events
+   - Implement multilingual support for heritage languages
+
+3. **Data Integration**
+   - Connect your cultural heritage database with business systems
+   - Create dashboards showing both business metrics and cultural preservation metrics
+   - Implement automated backup systems for irreplaceable cultural data
+
+Would you like me to help you implement any of these specific workflow automations?`,
+
+    'Cultural Identity Exploration': `Based on your ${ancestry} background, here's how we can explore and integrate your cultural identity:
+
+1. **Heritage Mapping**
+   - Document your family's migration patterns and cultural touchpoints
+   - Identify key cultural practices that have shaped your identity
+   - Create a visual representation of your cultural influences
+
+2. **Tradition Documentation**
+   - Record oral histories from family elders
+   - Document recipes, crafts, and other traditional practices
+   - Create a digital archive of cultural artifacts and their significance
+
+3. **Modern Integration**
+   - Identify cultural values that align with your business goals of ${businessGoals}
+   - Develop strategies to incorporate traditional wisdom into modern business practices
+   - Create a personal manifesto that bridges your heritage and future vision
+
+Would you like to start with any of these specific areas?`,
+
+    'Traditional Wisdom Integration': `Drawing from your ${ancestry} heritage, here's how we can integrate traditional wisdom into your business goals of ${businessGoals}:
+
+1. **Cultural Value Assessment**
+   - Identify core values from your cultural background
+   - Map these values to modern business principles
+   - Create a framework for decision-making that honors both
+
+2. **Knowledge Preservation Systems**
+   - Develop methods to document traditional knowledge
+   - Create systems to apply ancestral wisdom to current challenges
+   - Build a knowledge base that connects heritage insights to business applications
+
+3. **Mentorship Programs**
+   - Design mentorship structures based on traditional knowledge-sharing
+   - Create cross-generational learning opportunities
+   - Develop leadership training that incorporates cultural wisdom
+
+Which of these areas would you like to explore first?`
+  };
+
+  return responses[pathway] || `I'll help you explore the ${pathway} pathway, considering your ${ancestry} background and business goals to ${businessGoals}.`;
+}
+
+// Helper function to generate option response
+function generateOptionResponse(option: string, userName: string, ancestry: string, businessGoals: string): string {
+  if (option.includes('automated workflow')) {
+    return `I'd be happy to help you implement automated workflow systems, ${userName}. Based on your ${ancestry} background and goals to ${businessGoals}, here are some tailored recommendations:
+
+1. **Start with process mapping**
+   - Document your current workflows, noting where cultural considerations are important
+   - Identify bottlenecks and repetitive tasks that can be automated
+   - Prioritize processes that will save the most time while preserving cultural integrity
+
+2. **Select appropriate automation tools**
+   - Consider n8n for workflow automation with its visual builder
+   - Zapier for connecting with 5000+ apps without coding
+   - Make for more complex automations with conditional logic
+
+3. **Implementation roadmap**
+   - Begin with a simple automation pilot (email responses, document processing)
+   - Measure time savings and cultural alignment
+   - Gradually expand to more complex workflows
+
+Would you like me to help you get started with a specific workflow?`;
+  } else if (option.includes('cultural roots')) {
+    return `Connecting with your cultural roots is a wonderful journey, ${userName}. With your ${ancestry} background in mind, here are some meaningful ways to deepen this connection:
+
+1. **Family history documentation**
+   - Record interviews with elder family members
+   - Create a digital family tree with cultural context notes
+   - Collect and digitize family photographs and documents
+
+2. **Cultural practice integration**
+   - Identify key traditions that resonate with you personally
+   - Schedule regular practice of cultural activities (cooking, language, crafts)
+   - Connect with community groups that share your heritage
+
+3. **Heritage travel planning**
+   - Research significant locations in your family history
+   - Plan visits to ancestral villages or regions
+   - Prepare by learning relevant cultural protocols and language basics
+
+Which of these approaches would you like to explore further?`;
+  } else {
+    return `I understand you'd like help with: ${option}. Based on your ${ancestry} background and business goals related to ${businessGoals}, I can provide personalized guidance in this area.
+
+Let me know if you'd like me to elaborate on any specific aspect of this topic, or if you have any questions about how to implement these ideas in your specific context.`;
+  }
+}
+
+// Helper function to generate response
+function generateResponse(input: string, userName: string, ancestry: string, businessGoals: string): string {
+  if (input.toLowerCase().includes('automation') || input.toLowerCase().includes('workflow')) {
+    return `I understand you're interested in automation, ${userName}. Based on your ${ancestry} background and goals to ${businessGoals}, here are some tailored recommendations:
+
+1. **Business Process Automation**
+   - Document current workflows with cultural considerations in mind
+   - Identify repetitive tasks that can be automated while preserving cultural integrity
+   - Implement automation tools that respect your cultural values
+
+2. **Cultural Knowledge Management**
+   - Create systems to document and preserve cultural knowledge
+   - Develop automated categorization for cultural artifacts
+   - Implement AI-assisted translation for heritage language materials
+
+3. **Customer Journey Automation**
+   - Design culturally-sensitive automated communication sequences
+   - Create personalized experiences that reflect your heritage values
+   - Develop automated follow-up systems that respect cultural communication norms
+
+Would you like me to elaborate on any of these areas?`;
+  } else if (input.toLowerCase().includes('heritage') || input.toLowerCase().includes('culture')) {
+    return `Your interest in cultural heritage is wonderful, ${userName}. With your ${ancestry} background, here are some ways to preserve and integrate your heritage:
+
+1. **Digital Heritage Preservation**
+   - Create a structured digital archive of family stories, recipes, and traditions
+   - Record oral histories from elder family members
+   - Document cultural practices with photos, videos, and detailed descriptions
+
+2. **Cultural Integration in Business**
+   - Identify cultural values that align with your business goals of ${businessGoals}
+   - Incorporate traditional design elements into your brand identity
+   - Develop products or services that honor and showcase your heritage
+
+3. **Community Connection**
+   - Find or create groups that celebrate your specific cultural background
+   - Participate in cultural events and festivals
+   - Share your heritage knowledge through workshops or social media
+
+Which aspect would you like to explore further?`;
+  } else {
+    return `Thank you for your message, ${userName}. I understand you're asking about: "${input}"
+
+As your AI assistant, I can help with both business automation and cultural heritage exploration, tailored to your ${ancestry} background and business goals of ${businessGoals}.
+
+Would you like me to provide more specific guidance on this topic, or would you prefer to explore one of the pathways I suggested earlier?`;
+  }
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(' ');
+}

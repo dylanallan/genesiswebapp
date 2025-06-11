@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Database, 
@@ -6,10 +6,8 @@ import {
   Zap, 
   Shield, 
   CheckCircle, 
-  XCircle, 
   AlertTriangle,
-  RefreshCw,
-  User
+  RefreshCw
 } from 'lucide-react';
 
 export const BackendStatusIndicator: React.FC = () => {
@@ -65,14 +63,6 @@ export const BackendStatusIndicator: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <Shield className="w-4 h-4 text-green-500" />
                   <span className="text-sm">AI Services</span>
-                </div>
-                <CheckCircle className="w-4 h-4 text-green-500" />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4 text-red-500" />
-                  <span className="text-sm">Admin Configuration</span>
                 </div>
                 <CheckCircle className="w-4 h-4 text-green-500" />
               </div>
