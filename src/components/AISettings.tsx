@@ -10,11 +10,15 @@ import {
   Shield,
   Database,
   MessageSquare,
-  Search
+  Search,
+  Edit,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { aiRouter } from '../lib/ai-router';
+import { AICustomInstructionsEditor } from './AICustomInstructionsEditor';
 
 interface AISettingsProps {
   isOpen: boolean;
@@ -26,6 +30,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [providerStatus, setProviderStatus] = useState<Map<string, any>>(new Map());
+  const [showCustomInstructionsEditor, setShowCustomInstructionsEditor] = useState(false);
   const [settings, setSettings] = useState({
     general: {
       defaultModel: 'auto',
@@ -695,6 +700,14 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                           Custom instructions help the AI provide more personalized and relevant responses
                         </p>
                       </div>
+                      
+                      <button
+                        onClick={() => setShowCustomInstructionsEditor(true)}
+                        className="w-full mt-3 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span>Edit Custom Instructions</span>
+                      </button>
                     </div>
                     
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
@@ -845,6 +858,12 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       </motion.div>
+      {showCustomInstructionsEditor && (
+        <AICustomInstructionsEditor
+          isOpen={showCustomInstructionsEditor}
+          onClose={() => setShowCustomInstructionsEditor(false)}
+        />
+      )}
     </div>
   );
 };
