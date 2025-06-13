@@ -12,7 +12,17 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "sonner": "^1.4.0",
+    "framer-motion": "^10.16.16",
+    "@supabase/auth-helpers-react": "^0.4.2",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.2.0",
+    "react-hook-form": "^7.48.2",
+    "@hookform/resolvers": "^3.3.2",
+    "zod": "^3.22.4",
+    "jotai": "^2.6.0",
+    "lucide-react": "^0.303.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
