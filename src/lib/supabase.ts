@@ -1,18 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
-// Get environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Get environment variables with fallbacks
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase configuration');
-  toast.error('Missing Supabase configuration. Please check your environment variables.');
+  const errorMessage = 'Missing Supabase configuration. Please check your environment variables.';
+  console.error(errorMessage);
+  console.error('VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
+  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Missing');
+  
+  // Only show toast if we're in a browser environment
+  if (typeof window !== 'undefined') {
+    toast.error(errorMessage);
+  }
+  
+  // Throw error to prevent creating client with invalid config
+  throw new Error(errorMessage);
 }
 
 // Create and export the Supabase client
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
