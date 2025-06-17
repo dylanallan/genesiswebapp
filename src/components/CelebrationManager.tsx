@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Search, Plus, Edit, Trash, MapPin, Users, Info, X, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface Celebration {
   id: string;
@@ -16,41 +17,7 @@ interface Celebration {
 }
 
 export const CelebrationManager: React.FC = () => {
-  const [celebrations, setCelebrations] = useState<Celebration[]>([
-    {
-      id: '1',
-      name: 'Winter Solstice Gathering',
-      description: 'Annual family gathering to celebrate the winter solstice with traditional foods and rituals.',
-      date_or_season: 'December 21',
-      significance: 'Marks the shortest day of the year and celebrates the return of light. Our family has observed this for generations.',
-      location: 'Family home',
-      participants: ['Immediate family', 'Extended family', 'Close friends'],
-      created_at: '2025-01-10T14:30:00Z',
-      updated_at: '2025-01-10T14:30:00Z'
-    },
-    {
-      id: '2',
-      name: 'Harvest Festival',
-      description: 'Community celebration of the autumn harvest with traditional foods, music, and games.',
-      date_or_season: 'Fall',
-      significance: 'Gives thanks for the year\'s bounty and celebrates agricultural traditions from our heritage.',
-      location: 'Community center',
-      participants: ['Family', 'Community members', 'Local farmers'],
-      created_at: '2025-02-15T09:45:00Z',
-      updated_at: '2025-02-15T09:45:00Z'
-    },
-    {
-      id: '3',
-      name: 'Ancestor Remembrance Day',
-      description: 'Day dedicated to honoring and remembering our ancestors through stories, photos, and traditional foods.',
-      date_or_season: 'November 1',
-      significance: 'Maintains connection with our ancestral heritage and passes down family history to younger generations.',
-      location: 'Family home',
-      participants: ['All family members'],
-      created_at: '2025-03-05T18:20:00Z',
-      updated_at: '2025-03-05T18:20:00Z'
-    }
-  ]);
+  const [celebrations, setCelebrations] = useState<Celebration[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCelebration, setSelectedCelebration] = useState<Celebration | null>(null);
@@ -64,6 +31,97 @@ export const CelebrationManager: React.FC = () => {
     location: '',
     participants: []
   });
+
+  useEffect(() => {
+    fetchCelebrations();
+  }, []);
+
+  const fetchCelebrations = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('celebrations')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setCelebrations(data || []);
+    } catch (error) {
+      toast.error('Failed to load celebrations');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name) {
+      toast.error('Name is required');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      if (showEditForm && selectedCelebration) {
+        // Update
+        const { error } = await supabase
+          .from('celebrations')
+          .update(formData)
+          .eq('id', selectedCelebration.id);
+        if (error) throw error;
+        toast.success('Celebration updated successfully');
+      } else {
+        // Add
+        const { error } = await supabase
+          .from('celebrations')
+          .insert([{ ...formData }]);
+        if (error) throw error;
+        toast.success('Celebration added successfully');
+      }
+      setShowAddForm(false);
+      setShowEditForm(false);
+      setSelectedCelebration(null);
+      setFormData({
+        name: '',
+        description: '',
+        date_or_season: '',
+        significance: '',
+        location: '',
+        participants: []
+      });
+      fetchCelebrations();
+    } catch (error) {
+      toast.error('Failed to save celebration');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEdit = (celebration: Celebration) => {
+    setFormData({
+      name: celebration.name,
+      description: celebration.description,
+      date_or_season: celebration.date_or_season,
+      significance: celebration.significance,
+      location: celebration.location,
+      participants: celebration.participants
+    });
+    setSelectedCelebration(celebration);
+    setShowEditForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this celebration?')) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('celebrations').delete().eq('id', id);
+      if (error) throw error;
+      setCelebrations(celebrations.filter(c => c.id !== id));
+      toast.success('Celebration deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete celebration');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredCelebrations = celebrations.filter(celebration => 
     celebration.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -97,78 +155,6 @@ export const CelebrationManager: React.FC = () => {
     groups[group].push(celebration);
     return groups;
   }, {} as Record<string, Celebration[]>);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name) {
-      toast.error('Name is required');
-      return;
-    }
-
-    if (showEditForm && selectedCelebration) {
-      // Update existing celebration
-      setCelebrations(celebrations.map(c => 
-        c.id === selectedCelebration.id 
-          ? { 
-              ...c, 
-              ...formData, 
-              updated_at: new Date().toISOString() 
-            } as Celebration
-          : c
-      ));
-      toast.success('Celebration updated successfully');
-    } else {
-      // Create new celebration
-      const newCelebration: Celebration = {
-        id: Date.now().toString(),
-        name: formData.name!,
-        description: formData.description || '',
-        date_or_season: formData.date_or_season || '',
-        significance: formData.significance || '',
-        location: formData.location,
-        participants: formData.participants || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      setCelebrations([newCelebration, ...celebrations]);
-      toast.success('Celebration added successfully');
-    }
-    
-    // Reset form and state
-    setFormData({
-      name: '',
-      description: '',
-      date_or_season: '',
-      significance: '',
-      location: '',
-      participants: []
-    });
-    setShowAddForm(false);
-    setShowEditForm(false);
-    setSelectedCelebration(null);
-  };
-
-  const handleEdit = (celebration: Celebration) => {
-    setFormData({
-      name: celebration.name,
-      description: celebration.description,
-      date_or_season: celebration.date_or_season,
-      significance: celebration.significance,
-      location: celebration.location,
-      participants: celebration.participants
-    });
-    setSelectedCelebration(celebration);
-    setShowEditForm(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this celebration?')) {
-      setCelebrations(celebrations.filter(c => c.id !== id));
-      toast.success('Celebration deleted successfully');
-    }
-  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

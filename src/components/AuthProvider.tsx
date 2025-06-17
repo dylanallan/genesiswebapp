@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SessionContextProvider, useSession } from '@supabase/auth-helpers-react';
+import { SessionProvider, useSession } from '../lib/session-context';
 import { supabase } from '../lib/supabase';
 import { Auth } from './Auth';
 import { toast } from 'sonner';
@@ -61,11 +61,11 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <SessionContextProvider 
+    <SessionProvider 
       supabaseClient={supabase}
       initialSession={null}
     >
       <AuthContent>{children}</AuthContent>
-    </SessionContextProvider>
+    </SessionProvider>
   );
 };

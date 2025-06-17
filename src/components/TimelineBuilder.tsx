@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Calendar, MapPin, Users, Image, Video, FileText, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface TimelineEvent {
   id: string;
@@ -19,29 +20,7 @@ interface TimelineEvent {
 }
 
 export const TimelineBuilder: React.FC = () => {
-  const [events, setEvents] = useState<TimelineEvent[]>([
-    {
-      id: '1',
-      date: '1920-03-15',
-      title: 'Great-grandmother\'s Birth',
-      description: 'Maria Elena was born in a small village in Tuscany, Italy.',
-      location: 'Tuscany, Italy',
-      people: ['Maria Elena Rodriguez'],
-      media: [],
-      category: 'birth'
-    },
-    {
-      id: '2',
-      date: '1945-06-20',
-      title: 'Immigration to America',
-      description: 'The family sailed to Ellis Island seeking new opportunities.',
-      location: 'Ellis Island, New York',
-      people: ['Maria Elena Rodriguez', 'Giuseppe Rodriguez'],
-      media: [],
-      category: 'migration'
-    }
-  ]);
-  
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [newEvent, setNewEvent] = useState<Partial<TimelineEvent>>({
@@ -53,41 +32,70 @@ export const TimelineBuilder: React.FC = () => {
     media: [],
     category: 'other'
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const addEvent = () => {
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('timeline_events')
+        .select('*')
+        .order('date', { ascending: true });
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      toast.error('Failed to load timeline events');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addEvent = async () => {
     if (!newEvent.date || !newEvent.title) {
       toast.error('Please fill in required fields');
       return;
     }
-
-    const event: TimelineEvent = {
-      id: Date.now().toString(),
-      date: newEvent.date!,
-      title: newEvent.title!,
-      description: newEvent.description || '',
-      location: newEvent.location,
-      people: newEvent.people || [],
-      media: newEvent.media || [],
-      category: newEvent.category || 'other'
-    };
-
-    setEvents(prev => [...prev, event].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
-    setNewEvent({
-      date: '',
-      title: '',
-      description: '',
-      location: '',
-      people: [],
-      media: [],
-      category: 'other'
-    });
-    setShowAddForm(false);
-    toast.success('Event added to timeline');
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('timeline_events')
+        .insert([{ ...newEvent }]);
+      if (error) throw error;
+      toast.success('Event added to timeline');
+      setShowAddForm(false);
+      setNewEvent({
+        date: '',
+        title: '',
+        description: '',
+        location: '',
+        people: [],
+        media: [],
+        category: 'other'
+      });
+      fetchEvents();
+    } catch (error) {
+      toast.error('Failed to add event');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const deleteEvent = (id: string) => {
-    setEvents(prev => prev.filter(e => e.id !== id));
-    toast.success('Event removed from timeline');
+  const deleteEvent = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('timeline_events').delete().eq('id', id);
+      if (error) throw error;
+      setEvents(prev => prev.filter(e => e.id !== id));
+      toast.success('Event removed from timeline');
+    } catch (error) {
+      toast.error('Failed to remove event');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getCategoryColor = (category: string) => {

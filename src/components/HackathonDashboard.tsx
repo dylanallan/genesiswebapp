@@ -20,7 +20,7 @@ import {
   Presentation as PresentationScreen 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSession } from '../lib/session-context';
 import { toast } from 'sonner';
 import { UserProfileButton } from './UserProfileButton';
 

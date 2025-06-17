@@ -18,7 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSession } from '../lib/session-context';
 import { useAtom } from 'jotai';
 import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';

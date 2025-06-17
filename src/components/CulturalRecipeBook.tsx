@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChefHat, Clock, Users, Star, Search, Plus, Heart, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface Recipe {
   id: string;
@@ -25,36 +26,94 @@ interface Recipe {
 }
 
 export const CulturalRecipeBook: React.FC = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>([
-    {
-      id: '1',
-      name: 'Nonna\'s Ragu Bolognese',
-      origin: 'Bologna, Italy',
-      culturalSignificance: 'Passed down through four generations, this recipe represents our family\'s Sunday tradition.',
-      ingredients: [
-        { name: 'Ground beef', amount: '500g', culturalNote: 'Always use fresh ground beef from the local butcher' },
-        { name: 'San Marzano tomatoes', amount: '400g', culturalNote: 'These tomatoes are essential for authentic flavor' },
-        { name: 'Soffritto (carrot, celery, onion)', amount: '1 cup', culturalNote: 'The holy trinity of Italian cooking' }
-      ],
-      instructions: [
-        'Prepare the soffritto by finely chopping carrots, celery, and onions',
-        'Brown the ground beef slowly, allowing the flavors to develop',
-        'Add the soffritto and cook until fragrant',
-        'Add tomatoes and simmer for 3-4 hours, stirring occasionally'
-      ],
-      prepTime: 30,
-      cookTime: 240,
-      servings: 6,
-      difficulty: 'Medium',
-      story: 'Every Sunday, Nonna would start this sauce at dawn. The aroma would fill the house, calling the family together. She believed that the secret ingredient was time and love.',
-      tags: ['traditional', 'sunday dinner', 'family recipe'],
-      rating: 5
-    }
-  ]);
-
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<Partial<Recipe>>({});
+
+  useEffect(() => {
+    fetchRecipes();
+  }, []);
+
+  const fetchRecipes = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setRecipes(data || []);
+    } catch (error) {
+      toast.error('Failed to load recipes');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddRecipe = () => {
+    setShowAddForm(true);
+    setFormData({});
+  };
+
+  const handleEditRecipe = (recipe: Recipe) => {
+    setShowAddForm(true);
+    setSelectedRecipe(recipe);
+    setFormData(recipe);
+  };
+
+  const handleDeleteRecipe = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this recipe?')) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('recipes').delete().eq('id', id);
+      if (error) throw error;
+      setRecipes(recipes.filter(r => r.id !== id));
+      setSelectedRecipe(null);
+      toast.success('Recipe deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete recipe');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.origin) {
+      toast.error('Name and origin are required');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      if (selectedRecipe) {
+        // Update
+        const { error } = await supabase
+          .from('recipes')
+          .update(formData)
+          .eq('id', selectedRecipe.id);
+        if (error) throw error;
+        toast.success('Recipe updated successfully');
+      } else {
+        // Add
+        const { error } = await supabase
+          .from('recipes')
+          .insert([{ ...formData }]);
+        if (error) throw error;
+        toast.success('Recipe added successfully');
+      }
+      setShowAddForm(false);
+      setSelectedRecipe(null);
+      setFormData({});
+      fetchRecipes();
+    } catch (error) {
+      toast.error('Failed to save recipe');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredRecipes = recipes.filter(recipe =>
     recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

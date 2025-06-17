@@ -13,8 +13,17 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { marketingAutomation } from '../lib/marketing-automation';
+import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
+
+interface Funnel {
+  id: string;
+  name: string;
+  description: string;
+  stages: any[];
+  metrics: any;
+  settings: any;
+}
 
 interface FunnelStageProps {
   stage: any;
@@ -80,7 +89,7 @@ const FunnelStage: React.FC<FunnelStageProps> = ({ stage, isActive, onClick }) =
 );
 
 export const MarketingAutomation: React.FC = () => {
-  const [funnels, setFunnels] = useState<any[]>([]);
+  const [funnels, setFunnels] = useState<Funnel[]>([]);
   const [selectedFunnel, setSelectedFunnel] = useState<string | null>(null);
   const [activeStage, setActiveStage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,10 +102,13 @@ export const MarketingAutomation: React.FC = () => {
   const loadFunnels = async () => {
     setIsLoading(true);
     try {
-      const funnelsData = await marketingAutomation.getFunnels();
-      setFunnels(funnelsData);
+      const { data, error } = await supabase
+        .from('marketing_funnels')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setFunnels(data || []);
     } catch (error) {
-      console.error('Error loading funnels:', error);
       toast.error('Failed to load marketing funnels');
     } finally {
       setIsLoading(false);
@@ -106,31 +118,65 @@ export const MarketingAutomation: React.FC = () => {
   const createFunnel = async () => {
     const name = prompt('Enter funnel name:');
     if (!name) return;
-
+    setIsLoading(true);
     try {
-      const funnelId = await marketingAutomation.createFunnel({
-        name,
-        description: 'New marketing funnel',
-        stages: [],
-        metrics: {
-          totalLeads: 0,
-          conversions: 0,
-          conversionRate: 0,
-          averageDaysToConvert: 0,
-          revenueGenerated: 0
-        },
-        settings: {
-          autoResponders: true,
-          notificationEmails: [],
-          tagging: true,
-          customFields: {}
-        }
-      });
-
+      const { error } = await supabase
+        .from('marketing_funnels')
+        .insert([{
+          name,
+          description: 'New marketing funnel',
+          stages: [],
+          metrics: {
+            totalLeads: 0,
+            conversions: 0,
+            conversionRate: 0,
+            averageDaysToConvert: 0,
+            revenueGenerated: 0
+          },
+          settings: {
+            autoResponders: true,
+            notificationEmails: [],
+            tagging: true,
+            customFields: {}
+          }
+        }]);
+      if (error) throw error;
       await loadFunnels();
-      setSelectedFunnel(funnelId);
+      // Optionally select the new funnel
     } catch (error) {
-      console.error('Error creating funnel:', error);
+      toast.error('Failed to create funnel');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const editFunnel = async (id: string, updates: Partial<Funnel>) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('marketing_funnels')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+      await loadFunnels();
+    } catch (error) {
+      toast.error('Failed to update funnel');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteFunnel = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('marketing_funnels').delete().eq('id', id);
+      if (error) throw error;
+      setFunnels(funnels.filter(f => f.id !== id));
+      toast.success('Funnel deleted');
+    } catch (error) {
+      toast.error('Failed to delete funnel');
+    } finally {
+      setIsLoading(false);
     }
   };
 

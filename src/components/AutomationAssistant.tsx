@@ -22,7 +22,7 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSession } from '../lib/session-context';
 import { streamResponse } from '../lib/ai';
 import { N8NIntegration } from './N8NIntegration';
 

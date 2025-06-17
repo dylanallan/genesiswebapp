@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Search, Plus, Edit, Trash, Phone, Mail, MapPin, Calendar, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface FamilyContact {
   id: string;
@@ -22,58 +23,7 @@ interface FamilyContact {
 }
 
 export const FamilyContactManager: React.FC = () => {
-  const [contacts, setContacts] = useState<FamilyContact[]>([
-    {
-      id: '1',
-      name: 'Maria Rodriguez',
-      relationship: 'Grandmother',
-      contact_info: {
-        phone: '(555) 123-4567',
-        email: 'maria.rodriguez@example.com',
-        address: '123 Heritage Lane, Springfield, IL'
-      },
-      birth_date: '1945-05-15',
-      location: 'Springfield, IL',
-      notes: 'Keeper of family recipes and stories. Speaks Spanish and English.',
-      related_names: ['Carlos Rodriguez', 'Elena Martinez'],
-      created_at: '2025-01-10T14:30:00Z',
-      updated_at: '2025-01-10T14:30:00Z'
-    },
-    {
-      id: '2',
-      name: 'James Chen',
-      relationship: 'Uncle',
-      contact_info: {
-        phone: '(555) 987-6543',
-        email: 'james.chen@example.com'
-      },
-      birth_date: '1968-11-23',
-      location: 'San Francisco, CA',
-      notes: 'Historian of the Chen family branch. Has extensive genealogy records.',
-      related_names: ['Li Chen', 'Sarah Chen'],
-      created_at: '2025-02-15T09:45:00Z',
-      updated_at: '2025-02-15T09:45:00Z'
-    },
-    {
-      id: '3',
-      name: 'Elena Martinez',
-      relationship: 'Cousin',
-      contact_info: {
-        phone: '(555) 456-7890',
-        email: 'elena.martinez@example.com',
-        social: {
-          facebook: 'elena.martinez',
-          instagram: '@elena_m'
-        }
-      },
-      birth_date: '1985-08-12',
-      location: 'Chicago, IL',
-      notes: 'Organizes the annual family reunion. Great resource for recent family history.',
-      related_names: ['Maria Rodriguez', 'Roberto Martinez'],
-      created_at: '2025-03-05T18:20:00Z',
-      updated_at: '2025-03-05T18:20:00Z'
-    }
-  ]);
+  const [contacts, setContacts] = useState<FamilyContact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedContact, setSelectedContact] = useState<FamilyContact | null>(null);
@@ -88,6 +38,100 @@ export const FamilyContactManager: React.FC = () => {
     notes: '',
     related_names: []
   });
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('family_contacts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setContacts(data || []);
+    } catch (error) {
+      toast.error('Failed to load contacts');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name) {
+      toast.error('Name is required');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      if (isEditing && selectedContact) {
+        // Update
+        const { error } = await supabase
+          .from('family_contacts')
+          .update(formData)
+          .eq('id', selectedContact.id);
+        if (error) throw error;
+        toast.success('Contact updated successfully');
+      } else {
+        // Add
+        const { error } = await supabase
+          .from('family_contacts')
+          .insert([{ ...formData }]);
+        if (error) throw error;
+        toast.success('Contact added successfully');
+      }
+      setShowAddForm(false);
+      setIsEditing(false);
+      setSelectedContact(null);
+      setFormData({
+        name: '',
+        relationship: '',
+        contact_info: {},
+        birth_date: '',
+        location: '',
+        notes: '',
+        related_names: []
+      });
+      fetchContacts();
+    } catch (error) {
+      toast.error('Failed to save contact');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEdit = (contact: FamilyContact) => {
+    setFormData({
+      name: contact.name,
+      relationship: contact.relationship,
+      contact_info: contact.contact_info,
+      birth_date: contact.birth_date,
+      location: contact.location,
+      notes: contact.notes,
+      related_names: contact.related_names
+    });
+    setSelectedContact(contact);
+    setIsEditing(true);
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this contact?')) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('family_contacts').delete().eq('id', id);
+      if (error) throw error;
+      setContacts(contacts.filter(c => c.id !== id));
+      toast.success('Contact deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete contact');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredContacts = contacts.filter(contact => 
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,82 +160,6 @@ export const FamilyContactManager: React.FC = () => {
     }
 
     return 'bg-gray-100 text-gray-800';
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name) {
-      toast.error('Name is required');
-      return;
-    }
-
-    if (isEditing && selectedContact) {
-      // Update existing contact
-      setContacts(contacts.map(c => 
-        c.id === selectedContact.id 
-          ? { 
-              ...c, 
-              ...formData, 
-              updated_at: new Date().toISOString() 
-            } as FamilyContact
-          : c
-      ));
-      toast.success('Contact updated successfully');
-    } else {
-      // Create new contact
-      const newContact: FamilyContact = {
-        id: Date.now().toString(),
-        name: formData.name!,
-        relationship: formData.relationship || '',
-        contact_info: formData.contact_info || {},
-        birth_date: formData.birth_date,
-        location: formData.location,
-        notes: formData.notes,
-        related_names: formData.related_names,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      setContacts([newContact, ...contacts]);
-      toast.success('Contact added successfully');
-    }
-    
-    // Reset form and state
-    setFormData({
-      name: '',
-      relationship: '',
-      contact_info: {},
-      birth_date: '',
-      location: '',
-      notes: '',
-      related_names: []
-    });
-    setShowAddForm(false);
-    setIsEditing(false);
-    setSelectedContact(null);
-  };
-
-  const handleEdit = (contact: FamilyContact) => {
-    setFormData({
-      name: contact.name,
-      relationship: contact.relationship,
-      contact_info: contact.contact_info,
-      birth_date: contact.birth_date,
-      location: contact.location,
-      notes: contact.notes,
-      related_names: contact.related_names
-    });
-    setSelectedContact(contact);
-    setIsEditing(true);
-    setShowAddForm(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this contact?')) {
-      setContacts(contacts.filter(c => c.id !== id));
-      toast.success('Contact deleted successfully');
-    }
   };
 
   return (

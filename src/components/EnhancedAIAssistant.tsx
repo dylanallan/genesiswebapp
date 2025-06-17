@@ -16,7 +16,7 @@ import {
   TestTube
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSession } from '../lib/session-context';
 import { chatApi } from '../api/chat';
 import { AICustomInstructionsEditor } from './AICustomInstructionsEditor';
 

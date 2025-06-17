@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings, User, LogOut, ChevronDown } from 'lucide-react';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSession } from '../lib/session-context';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
 export const UserProfileButton: React.FC = () => {
-  const session = useSession();
+  const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleSignOut = async () => {

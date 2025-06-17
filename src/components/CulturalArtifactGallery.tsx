@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Globe, Image, FileText, Music, Video, Search, Filter, Plus, Info, ExternalLink, Tag, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface CulturalArtifact {
   id: string;
@@ -15,66 +16,7 @@ interface CulturalArtifact {
 }
 
 export const CulturalArtifactGallery: React.FC = () => {
-  const [artifacts, setArtifacts] = useState<CulturalArtifact[]>([
-    {
-      id: '1',
-      title: 'Traditional Family Recipe Book',
-      description: 'A collection of handwritten recipes passed down through generations, showcasing our family\'s culinary heritage.',
-      category: 'document',
-      media_url: 'https://images.pexels.com/photos/4551832/pexels-photo-4551832.jpeg',
-      media_type: 'image',
-      tags: ['recipes', 'family', 'tradition', 'food'],
-      created_at: '2025-01-15T12:00:00Z'
-    },
-    {
-      id: '2',
-      title: 'Grandmother\'s Wedding Photo',
-      description: 'A photograph from my grandmother\'s wedding in 1952, showing traditional attire and customs.',
-      category: 'image',
-      media_url: 'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg',
-      media_type: 'image',
-      tags: ['wedding', 'photograph', 'tradition', 'family'],
-      created_at: '2025-02-20T14:30:00Z'
-    },
-    {
-      id: '3',
-      title: 'Traditional Folk Song Recording',
-      description: 'Audio recording of my grandfather singing a traditional folk song that has been passed down for generations.',
-      category: 'audio',
-      media_type: 'audio',
-      tags: ['music', 'folk', 'oral tradition', 'language'],
-      created_at: '2025-03-05T09:15:00Z'
-    },
-    {
-      id: '4',
-      title: 'Family Migration Map',
-      description: 'A detailed map showing our family\'s migration patterns over the last century, with annotations about key events.',
-      category: 'document',
-      media_url: 'https://images.pexels.com/photos/2859169/pexels-photo-2859169.jpeg',
-      media_type: 'image',
-      tags: ['migration', 'history', 'geography', 'family'],
-      created_at: '2025-03-18T16:45:00Z'
-    },
-    {
-      id: '5',
-      title: 'Traditional Dance Video',
-      description: 'Video recording of a traditional dance performed at our family reunion, showcasing cultural movements and music.',
-      category: 'video',
-      media_type: 'video',
-      tags: ['dance', 'tradition', 'performance', 'celebration'],
-      created_at: '2025-04-02T11:20:00Z'
-    },
-    {
-      id: '6',
-      title: 'Ancestral Home Photograph',
-      description: 'A photograph of our ancestral home in the old country, taken during a heritage trip in 2023.',
-      category: 'image',
-      media_url: 'https://images.pexels.com/photos/2079246/pexels-photo-2079246.jpeg',
-      media_type: 'image',
-      tags: ['architecture', 'heritage', 'travel', 'home'],
-      created_at: '2025-04-15T13:10:00Z'
-    }
-  ]);
+  const [artifacts, setArtifacts] = useState<CulturalArtifact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -90,6 +32,26 @@ export const CulturalArtifactGallery: React.FC = () => {
     tags: [] as string[]
   });
   const [tagInput, setTagInput] = useState('');
+
+  useEffect(() => {
+    fetchArtifacts();
+  }, []);
+
+  const fetchArtifacts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('cultural_artifacts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setArtifacts(data || []);
+    } catch (error) {
+      toast.error('Failed to load artifacts');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredArtifacts = artifacts.filter(artifact => 
     artifact.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,6 +132,7 @@ export const CulturalArtifactGallery: React.FC = () => {
 
   const handleEditArtifact = (artifact: CulturalArtifact) => {
     setShowEditForm(true);
+    setSelectedArtifact(artifact);
     setFormData({
       title: artifact.title,
       description: artifact.description,
@@ -178,60 +141,65 @@ export const CulturalArtifactGallery: React.FC = () => {
       media_type: artifact.media_type || '',
       tags: artifact.tags || []
     });
-    setSelectedArtifact(null);
   };
 
-  const handleDeleteArtifact = (id: string) => {
-    if (confirm('Are you sure you want to delete this artifact?')) {
+  const handleDeleteArtifact = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this artifact?')) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('cultural_artifacts').delete().eq('id', id);
+      if (error) throw error;
       setArtifacts(artifacts.filter(a => a.id !== id));
       setSelectedArtifact(null);
       toast.success('Artifact deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete artifact');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.title || !formData.category) {
       toast.error('Title and category are required');
       return;
     }
-    
-    if (showEditForm && selectedArtifact) {
-      // Update existing artifact
-      setArtifacts(artifacts.map(a => 
-        a.id === selectedArtifact.id 
-          ? { 
-              ...a, 
-              title: formData.title,
-              description: formData.description,
-              category: formData.category,
-              media_url: formData.media_url,
-              media_type: formData.media_type,
-              tags: formData.tags
-            } 
-          : a
-      ));
-      toast.success('Artifact updated successfully');
-    } else {
-      // Add new artifact
-      const newArtifact: CulturalArtifact = {
-        id: Date.now().toString(),
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        media_url: formData.media_url,
-        media_type: formData.media_type,
-        tags: formData.tags,
-        created_at: new Date().toISOString()
-      };
-      
-      setArtifacts([newArtifact, ...artifacts]);
-      toast.success('Artifact added successfully');
+    setIsLoading(true);
+    try {
+      if (showEditForm && selectedArtifact) {
+        // Update
+        const { error } = await supabase
+          .from('cultural_artifacts')
+          .update(formData)
+          .eq('id', selectedArtifact.id);
+        if (error) throw error;
+        toast.success('Artifact updated successfully');
+      } else {
+        // Add
+        const { error } = await supabase
+          .from('cultural_artifacts')
+          .insert([{ ...formData }]);
+        if (error) throw error;
+        toast.success('Artifact added successfully');
+      }
+      setShowAddForm(false);
+      setShowEditForm(false);
+      setSelectedArtifact(null);
+      setFormData({
+        title: '',
+        description: '',
+        category: '',
+        media_url: '',
+        media_type: '',
+        tags: []
+      });
+      fetchArtifacts();
+    } catch (error) {
+      toast.error('Failed to save artifact');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setShowAddForm(false);
-    setShowEditForm(false);
   };
 
   const addTag = () => {

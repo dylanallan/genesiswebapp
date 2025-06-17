@@ -18,7 +18,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSession } from '../lib/session-context';
 import { chatApi, ChatMessage, ChatResponse, ConversationInfo } from '../api/chat';
 import { supabase } from '../lib/supabase';
 

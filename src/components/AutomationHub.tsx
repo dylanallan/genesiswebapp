@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Workflow, 
@@ -22,9 +22,12 @@ import {
   Users,
   Filter,
   BarChart3,
-  Clock
+  Clock,
+  X,
+  Send
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface Workflow {
   id: string;
@@ -43,98 +46,7 @@ interface Workflow {
 }
 
 export const AutomationHub: React.FC = () => {
-  const [workflows, setWorkflows] = useState<Workflow[]>([
-    {
-      id: '1',
-      name: 'Customer Onboarding',
-      description: 'Automates the customer onboarding process including welcome emails, data collection, and CRM updates',
-      status: 'active',
-      lastRun: '2025-06-10T15:30:00Z',
-      nextRun: '2025-06-11T15:30:00Z',
-      tags: ['customer', 'email', 'crm'],
-      n8nUrl: 'https://n8n.yourdomain.com/workflow/1',
-      createdAt: '2025-05-15T10:00:00Z',
-      updatedAt: '2025-06-09T14:20:00Z',
-      executionCount: 342,
-      successRate: 98.5,
-      averageExecutionTime: 1.2
-    },
-    {
-      id: '2',
-      name: 'Invoice Processing',
-      description: 'Extracts data from invoices, updates accounting system, and sends payment reminders',
-      status: 'active',
-      lastRun: '2025-06-10T12:15:00Z',
-      nextRun: '2025-06-11T12:15:00Z',
-      tags: ['finance', 'accounting', 'documents'],
-      n8nUrl: 'https://n8n.yourdomain.com/workflow/2',
-      createdAt: '2025-05-20T11:30:00Z',
-      updatedAt: '2025-06-08T09:45:00Z',
-      executionCount: 156,
-      successRate: 99.2,
-      averageExecutionTime: 2.5
-    },
-    {
-      id: '3',
-      name: 'Social Media Scheduler',
-      description: 'Schedules and posts content to multiple social media platforms based on optimal timing',
-      status: 'inactive',
-      lastRun: '2025-06-05T08:00:00Z',
-      nextRun: '',
-      tags: ['marketing', 'social media', 'content'],
-      n8nUrl: 'https://n8n.yourdomain.com/workflow/3',
-      createdAt: '2025-05-25T14:20:00Z',
-      updatedAt: '2025-06-05T16:10:00Z',
-      executionCount: 87,
-      successRate: 92.1,
-      averageExecutionTime: 1.8
-    },
-    {
-      id: '4',
-      name: 'Lead Qualification',
-      description: 'Scores and qualifies leads based on behavior, engagement, and demographic data',
-      status: 'active',
-      lastRun: '2025-06-10T09:00:00Z',
-      nextRun: '2025-06-10T21:00:00Z',
-      tags: ['sales', 'leads', 'crm'],
-      n8nUrl: 'https://n8n.yourdomain.com/workflow/4',
-      createdAt: '2025-06-01T13:45:00Z',
-      updatedAt: '2025-06-07T11:30:00Z',
-      executionCount: 215,
-      successRate: 97.3,
-      averageExecutionTime: 0.9
-    },
-    {
-      id: '5',
-      name: 'Data Backup',
-      description: 'Automatically backs up critical business data to secure cloud storage',
-      status: 'draft',
-      lastRun: '',
-      nextRun: '',
-      tags: ['data', 'security', 'backup'],
-      n8nUrl: 'https://n8n.yourdomain.com/workflow/5',
-      createdAt: '2025-06-08T16:20:00Z',
-      updatedAt: '2025-06-08T16:20:00Z',
-      executionCount: 0,
-      successRate: 0,
-      averageExecutionTime: 0
-    },
-    {
-      id: '6',
-      name: 'Cultural Event Notifications',
-      description: 'Sends notifications about upcoming cultural events and heritage celebrations',
-      status: 'active',
-      lastRun: '2025-06-10T08:00:00Z',
-      nextRun: '2025-06-11T08:00:00Z',
-      tags: ['culture', 'events', 'notifications'],
-      n8nUrl: 'https://n8n.yourdomain.com/workflow/6',
-      createdAt: '2025-06-02T10:15:00Z',
-      updatedAt: '2025-06-09T11:20:00Z',
-      executionCount: 78,
-      successRate: 100,
-      averageExecutionTime: 0.7
-    }
-  ]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
@@ -143,15 +55,88 @@ export const AutomationHub: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metrics, setMetrics] = useState({
-    totalWorkflows: 6,
-    activeWorkflows: 4,
-    totalExecutions: 878,
-    successRate: 97.5,
-    averageExecutionTime: 1.42,
-    timeSaved: 127 // hours
+    totalWorkflows: 0,
+    activeWorkflows: 0,
+    totalExecutions: 0,
+    successRate: 0,
+    averageExecutionTime: 0,
+    timeSaved: 0
   });
   const [isN8NConnected, setIsN8NConnected] = useState(true);
   const [n8nUrl, setN8nUrl] = useState('https://n8n.yourdomain.com');
+
+  useEffect(() => {
+    fetchWorkflows();
+  }, []);
+
+  const fetchWorkflows = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('automation_workflows')
+        .select('*')
+        .order('createdAt', { ascending: false });
+      if (error) throw error;
+      setWorkflows(data || []);
+      // Optionally update metrics here
+    } catch (error) {
+      toast.error('Failed to load workflows');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateWorkflow = async (workflowData: Partial<Workflow>) => {
+    if (!isN8NConnected) {
+      toast.error('Please connect to n8n first');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('automation_workflows')
+        .insert([{ ...workflowData }]);
+      if (error) throw error;
+      toast.success('Workflow created');
+      setShowAddForm(false);
+      fetchWorkflows();
+    } catch (error) {
+      toast.error('Failed to create workflow');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditWorkflow = async (id: string, updates: Partial<Workflow>) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('automation_workflows')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Workflow updated');
+      fetchWorkflows();
+    } catch (error) {
+      toast.error('Failed to update workflow');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteWorkflow = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('automation_workflows').delete().eq('id', id);
+      if (error) throw error;
+      setWorkflows(workflows.filter(w => w.id !== id));
+      toast.success('Workflow deleted');
+    } catch (error) {
+      toast.error('Failed to delete workflow');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const refreshData = async () => {
     setIsRefreshing(true);
@@ -167,7 +152,7 @@ export const AutomationHub: React.FC = () => {
     }
   };
 
-  const handleCreateWorkflow = () => {
+  const handleShowCreateForm = () => {
     if (!isN8NConnected) {
       toast.error('Please connect to n8n first');
       return;
@@ -243,7 +228,7 @@ export const AutomationHub: React.FC = () => {
             <span>Automation Assistant</span>
           </button>
           <button
-            onClick={handleCreateWorkflow}
+            onClick={handleShowCreateForm}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -386,7 +371,7 @@ export const AutomationHub: React.FC = () => {
                     : 'Start by creating your first automation workflow'}
               </p>
               <button
-                onClick={handleCreateWorkflow}
+                onClick={handleShowCreateForm}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 <Plus className="w-5 h-5 mr-2" />
@@ -437,11 +422,7 @@ export const AutomationHub: React.FC = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           toast.success(`${workflow.status === 'active' ? 'Paused' : 'Activated'} ${workflow.name}`);
-                          setWorkflows(workflows.map(w => 
-                            w.id === workflow.id 
-                              ? {...w, status: w.status === 'active' ? 'inactive' : 'active'} 
-                              : w
-                          ));
+                          handleEditWorkflow(workflow.id, { status: workflow.status === 'active' ? 'inactive' : 'active' });
                         }}
                         className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                       >
@@ -509,8 +490,7 @@ export const AutomationHub: React.FC = () => {
                         <button
                           onClick={() => {
                             if (confirm('Are you sure you want to delete this workflow?')) {
-                              toast.success('Workflow deleted');
-                              setWorkflows(workflows.filter(w => w.id !== workflow.id));
+                              handleDeleteWorkflow(workflow.id);
                               setSelectedWorkflow(null);
                             }
                           }}
