@@ -338,19 +338,19 @@ CREATE TRIGGER audit_community_comments_changes
   FOR EACH ROW EXECUTE FUNCTION audit_log_changes();
 
 -- Create indexes for better performance
-CREATE INDEX idx_marketing_campaigns_user_id ON marketing_campaigns(user_id);
-CREATE INDEX idx_marketing_campaigns_status ON marketing_campaigns(status);
-CREATE INDEX idx_marketing_contacts_user_id ON marketing_contacts(user_id);
-CREATE INDEX idx_marketing_contacts_email ON marketing_contacts(email);
-CREATE INDEX idx_marketing_contacts_tags ON marketing_contacts USING gin(tags);
-CREATE INDEX idx_marketing_messages_user_id ON marketing_messages(user_id);
-CREATE INDEX idx_marketing_messages_campaign_id ON marketing_messages(campaign_id);
-CREATE INDEX idx_community_groups_owner_id ON community_groups(owner_id);
-CREATE INDEX idx_community_groups_is_public ON community_groups(is_public);
-CREATE INDEX idx_community_group_members_group_id ON community_group_members(group_id);
-CREATE INDEX idx_community_group_members_user_id ON community_group_members(user_id);
-CREATE INDEX idx_community_posts_group_id ON community_posts(group_id);
-CREATE INDEX idx_community_posts_user_id ON community_posts(user_id);
-CREATE INDEX idx_community_comments_post_id ON community_comments(post_id);
-CREATE INDEX idx_community_comments_user_id ON community_comments(user_id);
-CREATE INDEX idx_community_comments_parent_id ON community_comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_campaigns_user_id ON marketing_campaigns(user_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_campaigns_status ON marketing_campaigns(status);
+CREATE INDEX IF NOT EXISTS idx_marketing_contacts_user_id ON marketing_contacts(user_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_contacts_email ON marketing_contacts(email);
+CREATE INDEX IF NOT EXISTS idx_marketing_contacts_tags ON marketing_contacts USING gin(tags);
+CREATE INDEX IF NOT EXISTS idx_marketing_messages_user_id ON marketing_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_messages_campaign_id ON marketing_messages(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_community_groups_owner_id ON community_groups(owner_id);
+CREATE INDEX IF NOT EXISTS idx_community_groups_is_public ON community_groups(is_public);
+CREATE INDEX IF NOT EXISTS idx_community_group_members_group_id ON community_group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_community_group_members_user_id ON community_group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_posts_group_id ON community_posts(group_id);
+CREATE INDEX IF NOT EXISTS idx_community_posts_user_id ON community_posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_comments_post_id ON community_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_community_comments_user_id ON community_comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_comments_parent_id ON community_comments(parent_id);

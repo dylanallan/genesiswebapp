@@ -24,7 +24,7 @@ BEGIN
     );
 
     -- Create index for unresolved alerts
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
 
     -- Add constraint for anomaly score
@@ -36,17 +36,26 @@ BEGIN
     ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 
     -- Create policy for admins
-    CREATE POLICY "Admins can manage security alerts" 
-      ON security_alerts FOR ALL 
-      TO authenticated
-      USING ((jwt() ->> 'role'::text) = 'admin'::text);
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
+      ) THEN
+        CREATE POLICY "Admins can manage security alerts"
+          ON security_alerts
+          FOR ALL
+          TO authenticated
+          USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+      END IF;
+    END
+    $$;
   ELSE
     -- Table exists, check if index exists and create if needed
     IF NOT EXISTS (
       SELECT FROM pg_indexes 
       WHERE schemaname = 'public' AND tablename = 'security_alerts' AND indexname = 'idx_unresolved_alerts'
     ) THEN
-      CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+      CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
       WHERE NOT resolved;
     END IF;
 
@@ -69,15 +78,19 @@ BEGIN
     END IF;
 
     -- Check if policy exists and create if needed
-    IF NOT EXISTS (
-      SELECT FROM pg_policies 
-      WHERE schemaname = 'public' AND tablename = 'security_alerts' AND policyname = 'Admins can manage security alerts'
-    ) THEN
-      CREATE POLICY "Admins can manage security alerts" 
-        ON security_alerts FOR ALL 
-        TO authenticated
-        USING ((jwt() ->> 'role'::text) = 'admin'::text);
-    END IF;
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
+      ) THEN
+        CREATE POLICY "Admins can manage security alerts"
+          ON security_alerts
+          FOR ALL
+          TO authenticated
+          USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+      END IF;
+    END
+    $$;
   END IF;
 END
 $$;

@@ -42,7 +42,7 @@ DO $$
 BEGIN
   -- Drop and recreate unresolved alerts index
   DROP INDEX IF EXISTS idx_unresolved_alerts;
-  CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+  CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
   WHERE NOT resolved;
 
   -- Create user security metadata index if it doesn't exist
@@ -52,7 +52,7 @@ BEGIN
     AND tablename = 'user_security_metadata' 
     AND indexname = 'idx_user_security_metadata'
   ) THEN
-    CREATE INDEX idx_user_security_metadata ON user_security_metadata(security_score);
+    CREATE INDEX IF NOT EXISTS idx_user_security_metadata ON user_security_metadata(security_score);
   END IF;
 END $$;
 
@@ -249,11 +249,15 @@ BEGIN
   DROP POLICY IF EXISTS "Security alerts admin access" ON security_alerts;
   
   -- Create new policy for security_alerts
-  CREATE POLICY "Admins can manage security alerts"
-    ON security_alerts
-    FOR ALL
-    TO authenticated
-    USING ((auth.jwt() ->> 'role')::text = 'admin');
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
+  ) THEN
+    CREATE POLICY "Admins can manage security alerts"
+      ON security_alerts
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
 
   -- Clean up existing policies for user_security_metadata
   DROP POLICY IF EXISTS "Admins can manage user security metadata" ON user_security_metadata;
@@ -261,22 +265,27 @@ BEGIN
   DROP POLICY IF EXISTS "User security metadata admin access" ON user_security_metadata;
   
   -- Create new policy for user_security_metadata
-  CREATE POLICY "Admins can manage user security metadata"
-    ON user_security_metadata
-    FOR ALL
-    TO authenticated
-    USING ((auth.jwt() ->> 'role')::text = 'admin');
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage user security metadata' AND tablename = 'user_security_metadata'
+  ) THEN
+    CREATE POLICY "Admins can manage user security metadata"
+      ON user_security_metadata
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
 END $$;
 
 -- Create or replace the update timestamp trigger
 DO $$
 BEGIN
-  -- Drop existing trigger if it exists
-  DROP TRIGGER IF EXISTS update_user_security_metadata_updated_at ON user_security_metadata;
-  
-  -- Create the trigger
-  CREATE TRIGGER update_user_security_metadata_updated_at
-    BEFORE UPDATE ON user_security_metadata
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-END $$;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_security_metadata_updated_at'
+  ) THEN
+    CREATE TRIGGER update_user_security_metadata_updated_at
+      BEFORE UPDATE ON user_security_metadata
+      FOR EACH ROW
+      EXECUTE PROCEDURE update_updated_at_column();
+  END IF;
+END
+$$;

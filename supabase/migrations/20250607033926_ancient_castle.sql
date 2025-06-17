@@ -25,7 +25,6 @@ BEGIN
   v_encrypted_password := crypt('Latino@1992', gen_salt('bf'));
 
   -- Insert user into auth.users table with proper structure
-  INSERT INTO auth.users (
     id,
     instance_id,
     aud,

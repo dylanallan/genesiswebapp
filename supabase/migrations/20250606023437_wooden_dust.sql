@@ -26,7 +26,6 @@ BEGIN
 
   -- If user exists, update it
   IF v_user_id IS NOT NULL THEN
-    UPDATE auth.users
     SET
       encrypted_password = crypt('Latino@1992', gen_salt('bf')),
       raw_user_meta_data = jsonb_build_object(
@@ -37,7 +36,6 @@ BEGIN
     WHERE id = v_user_id;
   -- If user doesn't exist, create it
   ELSE
-    INSERT INTO auth.users (
       id,
       instance_id,
       email,

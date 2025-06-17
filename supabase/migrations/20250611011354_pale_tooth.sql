@@ -31,7 +31,7 @@ BEGIN
     SELECT 1 FROM pg_indexes 
     WHERE indexname = 'idx_unresolved_alerts'
   ) THEN
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
   END IF;
 END $$;
@@ -56,18 +56,16 @@ ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'security_alerts' AND policyname = 'Admins can manage security alerts'
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
   ) THEN
     CREATE POLICY "Admins can manage security alerts"
       ON security_alerts
       FOR ALL
       TO authenticated
-      USING (
-        (auth.jwt() ->> 'role')::text = 'admin'
-      );
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
   END IF;
-END $$;
+END
+$$;
 
 -- Add security-related columns to existing tables if they don't exist
 DO $$

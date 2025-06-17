@@ -197,11 +197,11 @@ CREATE TRIGGER audit_business_integrations_changes
   FOR EACH ROW EXECUTE FUNCTION audit_log_changes();
 
 -- Create indexes for better performance
-CREATE INDEX idx_automation_workflows_user_id ON automation_workflows(user_id);
-CREATE INDEX idx_workflow_steps_workflow_id ON workflow_steps(workflow_id);
-CREATE INDEX idx_workflow_executions_workflow_id ON workflow_executions(workflow_id);
-CREATE INDEX idx_workflow_executions_user_id ON workflow_executions(user_id);
-CREATE INDEX idx_workflow_executions_status ON workflow_executions(status);
-CREATE INDEX idx_workflow_triggers_workflow_id ON workflow_triggers(workflow_id);
-CREATE INDEX idx_business_integrations_user_id ON business_integrations(user_id);
-CREATE INDEX idx_business_integrations_service_type ON business_integrations(service_type);
+CREATE INDEX IF NOT EXISTS idx_automation_workflows_user_id ON automation_workflows(user_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_steps_workflow_id ON workflow_steps(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_workflow_id ON workflow_executions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_user_id ON workflow_executions(user_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_status ON workflow_executions(status);
+CREATE INDEX IF NOT EXISTS idx_workflow_triggers_workflow_id ON workflow_triggers(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_business_integrations_user_id ON business_integrations(user_id);
+CREATE INDEX IF NOT EXISTS idx_business_integrations_service_type ON business_integrations(service_type);

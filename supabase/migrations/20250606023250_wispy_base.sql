@@ -12,7 +12,6 @@
 */
 
 -- Create admin user with UUID
-INSERT INTO auth.users (
   id,
   instance_id,
   email,

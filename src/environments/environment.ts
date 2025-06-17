@@ -8,9 +8,9 @@ export const environment = {
     anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY
   },
   apiEndpoints: {
-    chat: '/api/chat',
-    documents: '/api/documents',
-    auth: '/api/auth',
-    users: '/api/users'
+    chat: '/functions/v1/chat',
+    documents: '/functions/v1/documents',
+    auth: '/functions/v1/auth',
+    users: '/functions/v1/users'
   }
 };

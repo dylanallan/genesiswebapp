@@ -120,12 +120,12 @@ CREATE POLICY "Users can manage their AR markers"
   USING (auth.uid() = user_id);
 
 -- Create indexes for performance
-CREATE INDEX idx_voice_profiles_user_id ON voice_profiles(user_id);
-CREATE INDEX idx_voice_generations_profile_id ON voice_generations(voice_profile_id);
-CREATE INDEX idx_dna_analysis_user_id ON dna_analysis(user_id);
-CREATE INDEX idx_timeline_events_user_date ON timeline_events(user_id, event_date);
-CREATE INDEX idx_cultural_recipes_user_id ON cultural_recipes(user_id);
-CREATE INDEX idx_ar_markers_location ON ar_heritage_markers(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_voice_profiles_user_id ON voice_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_voice_generations_profile_id ON voice_generations(voice_profile_id);
+CREATE INDEX IF NOT EXISTS idx_dna_analysis_user_id ON dna_analysis(user_id);
+CREATE INDEX IF NOT EXISTS idx_timeline_events_user_date ON timeline_events(user_id, event_date);
+CREATE INDEX IF NOT EXISTS idx_cultural_recipes_user_id ON cultural_recipes(user_id);
+CREATE INDEX IF NOT EXISTS idx_ar_markers_location ON ar_heritage_markers(latitude, longitude);
 
 -- Create updated_at triggers
 CREATE TRIGGER update_voice_profiles_updated_at

@@ -175,13 +175,16 @@ export const BackendSetup: React.FC<BackendSetupProps> = ({ onSetupComplete }) =
             </div>
             
             <div className="flex space-x-3">
-              <Button
+              <button
                 onClick={handleInitialize}
-                className="flex-1"
-                isLoading={isInitializing}
+                disabled={isInitializing}
+                className="flex-1 bg-genesis-600 text-white px-4 py-2 rounded-lg hover:bg-genesis-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
+                {isInitializing && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
                 {isInitializing ? 'Initializing...' : 'Initialize Backend'}
-              </Button>
+              </button>
             </div>
           </>
         )}

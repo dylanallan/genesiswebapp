@@ -12,7 +12,6 @@ BEGIN
 
   -- If user doesn't exist, create them
   IF v_user_id IS NULL THEN
-    INSERT INTO auth.users (
       email,
       encrypted_password,
       email_confirmed_at,

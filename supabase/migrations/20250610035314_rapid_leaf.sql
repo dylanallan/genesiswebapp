@@ -92,7 +92,7 @@ BEGIN
     SELECT 1 FROM pg_indexes 
     WHERE indexname = 'idx_unresolved_alerts'
   ) THEN
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
   END IF;
 END

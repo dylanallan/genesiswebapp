@@ -54,10 +54,10 @@ CREATE POLICY "Users can view their own activity"
   USING (auth.uid() = user_id);
 
 -- Create indexes
-CREATE INDEX idx_user_sessions_user ON user_sessions(user_id);
-CREATE INDEX idx_user_sessions_last_active ON user_sessions(last_active);
-CREATE INDEX idx_user_activity_type ON user_activity_log(activity_type);
-CREATE INDEX idx_user_activity_created ON user_activity_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_last_active ON user_sessions(last_active);
+CREATE INDEX IF NOT EXISTS idx_user_activity_type ON user_activity_log(activity_type);
+CREATE INDEX IF NOT EXISTS idx_user_activity_created ON user_activity_log(created_at);
 
 -- Create function to update session
 CREATE OR REPLACE FUNCTION update_session()

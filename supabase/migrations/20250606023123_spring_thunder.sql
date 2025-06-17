@@ -4,7 +4,6 @@ DECLARE
   v_user_id uuid;
 BEGIN
   -- Update existing admin user if exists
-  UPDATE auth.users
   SET 
     email = 'dylltoamill2gmail.com',
     encrypted_password = crypt('Latino@1992', gen_salt('bf')),
@@ -17,7 +16,6 @@ BEGIN
 
   -- If user doesn't exist, create them
   IF v_user_id IS NULL THEN
-    INSERT INTO auth.users (
       email,
       encrypted_password,
       email_confirmed_at,

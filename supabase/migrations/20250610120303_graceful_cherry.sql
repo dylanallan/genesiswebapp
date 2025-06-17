@@ -185,14 +185,14 @@ CREATE TRIGGER audit_dna_analysis_changes
   FOR EACH ROW EXECUTE FUNCTION audit_log_changes();
 
 -- Create indexes for better performance
-CREATE INDEX idx_family_members_user_id ON family_members(user_id);
-CREATE INDEX idx_family_members_name ON family_members(name);
-CREATE INDEX idx_family_relationships_user_id ON family_relationships(user_id);
-CREATE INDEX idx_family_relationships_person1_id ON family_relationships(person1_id);
-CREATE INDEX idx_family_relationships_person2_id ON family_relationships(person2_id);
-CREATE INDEX idx_family_events_user_id ON family_events(user_id);
-CREATE INDEX idx_family_events_event_type ON family_events(event_type);
-CREATE INDEX idx_family_events_event_date ON family_events(event_date);
-CREATE INDEX idx_family_documents_user_id ON family_documents(user_id);
-CREATE INDEX idx_family_documents_document_type ON family_documents(document_type);
-CREATE INDEX idx_dna_analysis_user_id ON dna_analysis(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_members_user_id ON family_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_members_name ON family_members(name);
+CREATE INDEX IF NOT EXISTS idx_family_relationships_user_id ON family_relationships(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_relationships_person1_id ON family_relationships(person1_id);
+CREATE INDEX IF NOT EXISTS idx_family_relationships_person2_id ON family_relationships(person2_id);
+CREATE INDEX IF NOT EXISTS idx_family_events_user_id ON family_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_events_event_type ON family_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_family_events_event_date ON family_events(event_date);
+CREATE INDEX IF NOT EXISTS idx_family_documents_user_id ON family_documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_documents_document_type ON family_documents(document_type);
+CREATE INDEX IF NOT EXISTS idx_dna_analysis_user_id ON dna_analysis(user_id);

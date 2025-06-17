@@ -49,11 +49,19 @@ CREATE TABLE IF NOT EXISTS cultural_artifacts (
 
 ALTER TABLE cultural_artifacts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their own artifacts"
-  ON cultural_artifacts
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can manage their own artifacts' AND tablename = 'cultural_artifacts'
+  ) THEN
+    CREATE POLICY "Users can manage their own artifacts"
+      ON cultural_artifacts
+      FOR ALL
+      TO authenticated
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Celebrations Table
 CREATE TABLE IF NOT EXISTS celebrations (
@@ -65,18 +73,26 @@ CREATE TABLE IF NOT EXISTS celebrations (
   significance text,
   location text,
   participants text[],
-  related_artifacts uuid[] REFERENCES cultural_artifacts(id),
+  related_artifacts uuid[],
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
 
 ALTER TABLE celebrations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their celebrations"
-  ON celebrations
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can manage their celebrations' AND tablename = 'celebrations'
+  ) THEN
+    CREATE POLICY "Users can manage their celebrations"
+      ON celebrations
+      FOR ALL
+      TO authenticated
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Traditions Table
 CREATE TABLE IF NOT EXISTS traditions (
@@ -89,18 +105,26 @@ CREATE TABLE IF NOT EXISTS traditions (
   modern_application text,
   frequency text,
   participants text[],
-  related_artifacts uuid[] REFERENCES cultural_artifacts(id),
+  related_artifacts uuid[],
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
 
 ALTER TABLE traditions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their traditions"
-  ON traditions
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can manage their traditions' AND tablename = 'traditions'
+  ) THEN
+    CREATE POLICY "Users can manage their traditions"
+      ON traditions
+      FOR ALL
+      TO authenticated
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Family Contacts Table
 CREATE TABLE IF NOT EXISTS family_contacts (
@@ -119,11 +143,19 @@ CREATE TABLE IF NOT EXISTS family_contacts (
 
 ALTER TABLE family_contacts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their family contacts"
-  ON family_contacts
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can manage their family contacts' AND tablename = 'family_contacts'
+  ) THEN
+    CREATE POLICY "Users can manage their family contacts"
+      ON family_contacts
+      FOR ALL
+      TO authenticated
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Recipes Table
 CREATE TABLE IF NOT EXISTS recipes (
@@ -139,18 +171,26 @@ CREATE TABLE IF NOT EXISTS recipes (
   preparation_time interval,
   difficulty_level text,
   tags text[],
-  images uuid[] REFERENCES cultural_artifacts(id),
+  images uuid[],
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
 
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their recipes"
-  ON recipes
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can manage their recipes' AND tablename = 'recipes'
+  ) THEN
+    CREATE POLICY "Users can manage their recipes"
+      ON recipes
+      FOR ALL
+      TO authenticated
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Cultural Stories Table
 CREATE TABLE IF NOT EXISTS cultural_stories (
@@ -166,18 +206,26 @@ CREATE TABLE IF NOT EXISTS cultural_stories (
   translation text,
   verification_status text DEFAULT 'unverified',
   verification_details jsonb DEFAULT '{}',
-  related_artifacts uuid[] REFERENCES cultural_artifacts(id),
+  related_artifacts uuid[],
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
 
 ALTER TABLE cultural_stories ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their cultural stories"
-  ON cultural_stories
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can manage their cultural stories' AND tablename = 'cultural_stories'
+  ) THEN
+    CREATE POLICY "Users can manage their cultural stories"
+      ON cultural_stories
+      FOR ALL
+      TO authenticated
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_artifacts_category ON cultural_artifacts USING btree (category);
@@ -204,32 +252,80 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_cultural_artifacts_updated_at
-    BEFORE UPDATE ON cultural_artifacts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_cultural_artifacts_updated_at'
+  ) THEN
+    CREATE TRIGGER update_cultural_artifacts_updated_at
+      BEFORE UPDATE ON cultural_artifacts
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END
+$$;
 
-CREATE TRIGGER update_celebrations_updated_at
-    BEFORE UPDATE ON celebrations
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_celebrations_updated_at'
+  ) THEN
+    CREATE TRIGGER update_celebrations_updated_at
+      BEFORE UPDATE ON celebrations
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END
+$$;
 
-CREATE TRIGGER update_traditions_updated_at
-    BEFORE UPDATE ON traditions
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_traditions_updated_at'
+  ) THEN
+    CREATE TRIGGER update_traditions_updated_at
+      BEFORE UPDATE ON traditions
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END
+$$;
 
-CREATE TRIGGER update_family_contacts_updated_at
-    BEFORE UPDATE ON family_contacts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_family_contacts_updated_at'
+  ) THEN
+    CREATE TRIGGER update_family_contacts_updated_at
+      BEFORE UPDATE ON family_contacts
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END
+$$;
 
-CREATE TRIGGER update_recipes_updated_at
-    BEFORE UPDATE ON recipes
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_recipes_updated_at'
+  ) THEN
+    CREATE TRIGGER update_recipes_updated_at
+      BEFORE UPDATE ON recipes
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END
+$$;
 
-CREATE TRIGGER update_cultural_stories_updated_at
-    BEFORE UPDATE ON cultural_stories
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_cultural_stories_updated_at'
+  ) THEN
+    CREATE TRIGGER update_cultural_stories_updated_at
+      BEFORE UPDATE ON cultural_stories
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END
+$$;

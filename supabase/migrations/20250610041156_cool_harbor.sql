@@ -3,7 +3,7 @@
 
   1. New Tables
     - Ensures security_alerts table exists
-    - Adds security-related columns to auth.users
+    - Creates user_metadata table linked to auth.users
   
   2. Security
     - Creates RLS policies for security alerts
@@ -45,7 +45,7 @@ BEGIN
     SELECT 1 FROM pg_indexes 
     WHERE indexname = 'idx_unresolved_alerts'
   ) THEN
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
   END IF;
 END
@@ -55,20 +55,44 @@ $$;
 ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 
 -- Create policy for security alerts
-CREATE POLICY "Admins can manage security alerts"
-  ON security_alerts
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
+  ) THEN
+    CREATE POLICY "Admins can manage security alerts"
+      ON security_alerts
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
+END
+$$;
+
+-- Create user_metadata table if it doesn't exist
+CREATE TABLE IF NOT EXISTS user_metadata (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  last_security_check timestamptz,
+  security_score numeric DEFAULT 0.5,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS on user_metadata table
+ALTER TABLE user_metadata ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for user_metadata
+CREATE POLICY "Users can view their own metadata"
+  ON user_metadata
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can manage all user metadata"
+  ON user_metadata
   FOR ALL
   TO authenticated
-  USING (
-    (auth.jwt() ->> 'role'::text) = 'admin'::text
-  );
-
--- Add security-related columns to auth.users
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS
-  last_security_check timestamptz;
-
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS
-  security_score numeric DEFAULT 0.5;
+  USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
 
 -- Create function to update security scores
 CREATE OR REPLACE FUNCTION update_security_scores()
@@ -77,10 +101,14 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  UPDATE auth.users
-  SET 
-    security_score = calculate_security_score(id),
-    last_security_check = now();
+  INSERT INTO user_metadata (user_id, security_score, last_security_check)
+  SELECT id, calculate_security_score(id), now()
+  FROM auth.users
+  ON CONFLICT (user_id) 
+  DO UPDATE SET 
+    security_score = calculate_security_score(user_metadata.user_id),
+    last_security_check = now(),
+    updated_at = now();
 END;
 $$;
 
@@ -98,4 +126,4 @@ BEGIN
   score := 0.5;
   RETURN score;
 END;
-$$;
+$$; 

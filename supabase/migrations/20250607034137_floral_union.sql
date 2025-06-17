@@ -39,7 +39,6 @@ BEGIN
     -- Create new user
     v_user_id := gen_random_uuid();
     
-    INSERT INTO auth.users (
       id,
       instance_id,
       email,

@@ -1,20 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Brain, 
-  Activity, 
-  Cpu, 
-  Bell, 
-  X, 
-  Zap, 
-  Globe, 
+  Home, 
   Users, 
-  BookOpen, 
-  ChefHat, 
-  Calendar,
-  Database,
-  Sparkles
+  Calendar, 
+  FileText, 
+  Globe, 
+  Settings, 
+  Plus,
+  Search,
+  Bell,
+  User,
+  LogOut,
+  ChevronDown,
+  Menu,
+  X
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { EnhancedAIAssistant } from './EnhancedAIAssistant';
+import UniversalSearch from './UniversalSearch';
+import { DataSourceAdmin } from './DataSourceAdmin';
+// import { CulturalArtifactGallery } from './CulturalArtifactGallery';
+// import { TraditionsManager } from './TraditionsManager';
+// import { FamilyContactManager } from './FamilyContactManager';
+// import { CelebrationManager } from './CelebrationManager';
+// import { CulturalStoryLibrary } from './CulturalStoryLibrary';
+// import { CulturalRecipeBook } from './CulturalRecipeBook';
+// import { TimelineBuilder } from './TimelineBuilder';
+// import { AutomationHub } from './AutomationHub';
+// import { UserProfileManager } from './UserProfileManager';
 import { useSession } from '@supabase/auth-helpers-react';
 import { useAtom } from 'jotai';
 import { userPreferencesAtom } from '../lib/store';
@@ -28,10 +43,9 @@ import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
 import { AutomationHub } from './AutomationHub';
 import { UserProfileManager } from './UserProfileManager';
-import { toast } from 'sonner';
 import { UserProfileButton } from './UserProfileButton';
-import { EnhancedAIAssistant } from './EnhancedAIAssistant';
 import { ErrorBoundary } from '../lib/error-boundary';
+import { chatApi } from '../api/chat';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -39,75 +53,19 @@ interface DashboardProps {
 
 const features = [
   {
-    id: 'artifacts',
-    name: 'Cultural Artifacts',
-    icon: Globe,
-    component: CulturalArtifactGallery,
-    description: 'Main AI-powered automation hub',
+    id: 'search',
+    name: 'Universal Search',
+    icon: Search,
+    component: UniversalSearch,
+    description: 'Search across all data sources',
     category: 'core'
   },
   {
-    id: 'traditions',
-    name: 'Traditions',
-    icon: BookOpen,
-    component: TraditionsManager,
-    description: 'Real-time system optimization and monitoring',
-    category: 'core'
-  },
-  {
-    id: 'contacts',
-    name: 'Family Contacts',
-    icon: Users,
-    component: FamilyContactManager,
-    description: 'AI-powered insights and predictive analytics',
-    category: 'core'
-  },
-  {
-    id: 'celebrations',
-    name: 'Celebrations',
-    icon: Calendar,
-    component: CelebrationManager,
-    description: 'Clone and preserve ancestral voices',
-    category: 'heritage'
-  },
-  {
-    id: 'stories',
-    name: 'Cultural Stories',
-    icon: BookOpen,
-    component: CulturalStoryLibrary,
-    description: 'Augmented reality heritage exploration',
-    category: 'heritage'
-  },
-  {
-    id: 'recipes',
-    name: 'Cultural Recipes',
-    icon: ChefHat,
-    component: CulturalRecipeBook,
-    description: 'Comprehensive genetic heritage insights',
-    category: 'heritage'
-  },
-  {
-    id: 'timeline',
-    name: 'Family Timeline',
-    icon: Calendar,
-    component: TimelineBuilder,
-    description: 'Interactive family history timeline',
-    category: 'heritage'
-  },
-  {
-    id: 'automation',
-    name: 'Business Automation',
-    icon: Zap,
-    component: AutomationHub,
-    description: 'Traditional family recipes and stories',
-    category: 'business'
-  },
-  {
-    id: 'profile',
-    name: 'User Profile',
-    icon: Users,
-    component: UserProfileManager,
-    description: 'User profile management',
+    id: 'data',
+    name: 'Data Sources',
+    icon: FileText,
+    component: DataSourceAdmin,
+    description: 'Manage data sources and integrations',
     category: 'core'
   }
 ];
@@ -118,8 +76,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
-  const [activeFeature, setActiveFeature] = useState('artifacts');
+  const [activeFeature, setActiveFeature] = useState('search');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [testResult, setTestResult] = useState<string>('');
   
   const { colorScheme } = preferences;
 
@@ -130,11 +89,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
   const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
 
   const categories = [
-    { id: 'all', name: 'All Features', icon: Sparkles },
-    { id: 'core', name: 'Core System', icon: Brain },
+    { id: 'all', name: 'All Features', icon: Plus },
+    { id: 'core', name: 'Core System', icon: Home },
     { id: 'heritage', name: 'Heritage Tools', icon: Globe },
-    { id: 'business', name: 'Business Tools', icon: Zap }
+    { id: 'business', name: 'Business Tools', icon: Plus }
   ];
+
+  const testChatAPI = async () => {
+    try {
+      console.log('🧪 Testing Chat API...');
+      const response = await chatApi.sendMessage('Hello! Can you help me with genealogy research?');
+      console.log('✅ Test result:', response);
+      setTestResult(`✅ Success! Provider: ${response.provider}, Model: ${response.model}, Response: ${response.response.substring(0, 100)}...`);
+      toast.success('Chat API test successful!');
+    } catch (error: any) {
+      console.error('❌ Test failed:', error);
+      setTestResult(`❌ Error: ${error.message || 'Unknown error'}`);
+      toast.error('Chat API test failed');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
@@ -146,7 +119,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <Brain className="w-6 h-6 text-genesis-600" />
+                <Home className="w-6 h-6 text-genesis-600" />
                 <h1 className="text-lg font-medium text-gray-900">
                   Genesis Heritage
                 </h1>
@@ -157,6 +130,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             </div>
 
             <div className="flex items-center space-x-2">
+              <button
+                onClick={testChatAPI}
+                className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
+                title="Test Chat API"
+              >
+                Test Chat
+              </button>
+              
               <div className="relative">
                 <button
                   onClick={() => onViewModeChange('enterprise')}
@@ -226,7 +207,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               animate={{ scale: 1, opacity: 1 }}
               className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
             >
-              <Activity className="w-4 h-4 text-green-500" />
+              <Home className="w-4 h-4 text-green-500" />
               <span>All Systems Active</span>
             </motion.div>
             <motion.div
@@ -235,7 +216,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               transition={{ delay: 0.1 }}
               className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
             >
-              <Cpu className="w-4 h-4" />
+              <FileText className="w-4 h-4" />
               <span>Processing Optimized</span>
             </motion.div>
           </div>
@@ -244,8 +225,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <ErrorBoundary>
-              <ActiveComponent />
+              {typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
+                <div className="p-6 bg-red-100 text-red-800 rounded-lg">
+                  <h2 className="text-xl font-bold mb-2">Component Error</h2>
+                  <p>Feature component is not available or is not a valid React component.</p>
+                </div>
+              )}
             </ErrorBoundary>
+            
+            {/* Test Results Display */}
+            {testResult && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+                <h3 className="font-semibold mb-2">Chat API Test Result:</h3>
+                <p className="text-sm">{testResult}</p>
+                <button
+                  onClick={() => setTestResult('')}
+                  className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
           </div>
           <div className="space-y-6">
             <ErrorBoundary>
@@ -263,7 +263,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Sparkles className="w-6 h-6" />
+            <Plus className="w-6 h-6" />
           </motion.button>
           
           <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">

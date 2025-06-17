@@ -8,39 +8,12 @@ CREATE TABLE IF NOT EXISTS system_performance_logs (
   metadata jsonb DEFAULT '{}'::jsonb
 );
 
--- Create hypertable for performance logs
-SELECT create_hypertable('system_performance_logs', 'timestamp',
-  chunk_time_interval => interval '1 day',
-  if_not_exists => TRUE
-);
+-- Create indexes for efficient querying (no TimescaleDB)
+CREATE INDEX IF NOT EXISTS idx_perf_logs_ts_component 
+ON system_performance_logs (timestamp, component);
 
--- Create indexes for efficient querying
-CREATE INDEX IF NOT EXISTS idx_perf_logs_component_ts 
-ON system_performance_logs (component, timestamp DESC);
-
-CREATE INDEX IF NOT EXISTS idx_perf_logs_metric_ts 
-ON system_performance_logs (metric_type, timestamp DESC);
-
--- Create monitoring view
-CREATE MATERIALIZED VIEW IF NOT EXISTS system_performance_summary
-WITH (timescaledb.continuous) AS
-SELECT
-  time_bucket('5 minutes', timestamp) as bucket,
-  component,
-  metric_type,
-  avg(value) as avg_value,
-  min(value) as min_value,
-  max(value) as max_value,
-  count(*) as sample_count
-FROM system_performance_logs
-GROUP BY bucket, component, metric_type
-WITH NO DATA;
-
--- Add retention policy
-SELECT add_retention_policy('system_performance_logs',
-  INTERVAL '7 days',
-  if_not_exists => TRUE
-);
+CREATE INDEX IF NOT EXISTS idx_perf_logs_ts_metric 
+ON system_performance_logs (timestamp, metric_type);
 
 -- Create function to log system performance
 CREATE OR REPLACE FUNCTION log_system_performance(

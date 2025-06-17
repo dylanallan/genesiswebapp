@@ -22,7 +22,6 @@ BEGIN
     v_user_id := gen_random_uuid();
     
     -- Insert new user into auth.users table
-    INSERT INTO auth.users (
       id,
       instance_id,
       aud,

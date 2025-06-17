@@ -7,7 +7,6 @@ DECLARE
   v_user_id uuid := gen_random_uuid();
 BEGIN
   -- Insert into auth.users with all required fields
-  INSERT INTO auth.users (
     id,
     instance_id,
     email,

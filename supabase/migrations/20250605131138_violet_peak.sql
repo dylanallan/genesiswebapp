@@ -40,12 +40,12 @@ CREATE TRIGGER update_api_keys_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Insert API keys (encrypted)
-INSERT INTO api_keys (key_name, encrypted_key) VALUES
-  ('OPENAI_API_KEY', pgp_sym_encrypt(current_setting('app.settings.openai_key'), current_setting('app.settings.encryption_key'))),
-  ('GEMINI_API_KEY', pgp_sym_encrypt(current_setting('app.settings.gemini_key'), current_setting('app.settings.encryption_key'))),
-  ('ANTHROPIC_API_KEY', pgp_sym_encrypt(current_setting('app.settings.anthropic_key'), current_setting('app.settings.encryption_key'))),
-  ('GOOGLE_VISION_API_KEY', pgp_sym_encrypt(current_setting('app.settings.google_vision_key'), current_setting('app.settings.encryption_key')));
+-- Insert API keys (encrypted) - COMMENTED OUT due to configuration parameter issues
+-- INSERT INTO api_keys (key_name, encrypted_key) VALUES
+--   ('OPENAI_API_KEY', pgp_sym_encrypt(current_setting('app.settings.openai_key'), current_setting('app.settings.encryption_key'))),
+--   ('GEMINI_API_KEY', pgp_sym_encrypt(current_setting('app.settings.gemini_key'), current_setting('app.settings.encryption_key'))),
+--   ('ANTHROPIC_API_KEY', pgp_sym_encrypt(current_setting('app.settings.anthropic_key'), current_setting('app.settings.encryption_key'))),
+--   ('GOOGLE_VISION_API_KEY', pgp_sym_encrypt(current_setting('app.settings.google_vision_key'), current_setting('app.settings.encryption_key')));
 
 -- Create function to safely retrieve API keys
 CREATE OR REPLACE FUNCTION get_api_key(key_name text)
@@ -63,10 +63,7 @@ BEGIN
   END IF;
 
   RETURN (
-    SELECT pgp_sym_decrypt(
-      encrypted_key::bytea,
-      current_setting('app.settings.encryption_key')
-    )::text
+    SELECT encrypted_key
     FROM api_keys
     WHERE key_name = $1
   );

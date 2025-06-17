@@ -13,28 +13,14 @@ import {
   Download,
   Filter,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '@supabase/auth-helpers-react';
-import { streamResponse } from '../lib/ai';
-import { AIMemory } from '../lib/ai-memory';
+import { chatApi, ChatMessage, ChatResponse, ConversationInfo } from '../api/chat';
 import { supabase } from '../lib/supabase';
-import { enhancedAIAssistant } from '../lib/ai-context';
-import { ConversationSummarizer } from './ConversationSummarizer';
-import { circuitBreakerManager } from '../lib/circuit-breaker';
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  model?: string;
-  feedback?: {
-    rating: number;
-    text?: string;
-  };
-}
 
 interface ChatProps {
   userName?: string;
@@ -50,56 +36,23 @@ export const Chat: React.FC<ChatProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
   const [currentModel, setCurrentModel] = useState<string>('auto');
-  const [streamingContent, setStreamingContent] = useState('');
-  const [sessionId] = useState(crypto.randomUUID());
-  const [showSummarizer, setShowSummarizer] = useState(false);
-  const [topicFilter, setTopicFilter] = useState<string | null>(null);
-  const [topics, setTopics] = useState<string[]>([]);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRecovering, setIsRecovering] = useState(false);
+  const [currentProvider, setCurrentProvider] = useState<'openai' | 'anthropic' | 'gemini' | 'auto'>('auto');
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [conversations, setConversations] = useState<ConversationInfo[]>([]);
+  const [showConversations, setShowConversations] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'degraded' | 'offline'>('connected');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const session = useSession();
-  const aiMemory = useRef(new AIMemory({ sessionId }));
-  const maxRetries = 3;
 
   useEffect(() => {
-    // Add initial welcome message
-    const initialMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `👋 Hello ${userName}! I'm your AI assistant. Based on your profile, I can help with:
-
-- Business automation strategies for ${businessGoals}
-- Exploring your ${ancestry} background
-- Connecting cultural heritage with modern business practices
-
-How can I assist you today?`,
-      timestamp: new Date()
-    };
-    
-    setMessages([initialMessage]);
-    
-    // Store initial message in memory
-    aiMemory.current.storeMessage('assistant', initialMessage.content);
-
-    // Check connection status
+    loadConversations();
     checkConnectionStatus();
-  }, [userName, ancestry, businessGoals]);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingContent]);
-
-  useEffect(() => {
-    // Extract topics from messages for filtering
-    if (messages.length > 2) {
-      extractTopics();
-    }
   }, [messages]);
 
   const checkConnectionStatus = async () => {
@@ -111,24 +64,7 @@ How can I assist you today?`,
         return;
       }
       
-      // Check edge function health
-      try {
-        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/health-check`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          signal: AbortSignal.timeout(5000) // 5 second timeout
-        });
-        
-        if (response.ok) {
-          setConnectionStatus('connected');
-        } else {
-          setConnectionStatus('degraded');
-        }
-      } catch (error) {
-        console.warn('Health check failed:', error);
-        setConnectionStatus('degraded');
-      }
+      setConnectionStatus('connected');
     } catch (error) {
       console.error('Session check failed:', error);
       setConnectionStatus('offline');
@@ -139,29 +75,67 @@ How can I assist you today?`,
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const extractTopics = async () => {
+  const loadConversations = async () => {
     try {
-      // Use AI to extract topics from the conversation
-      const conversation = messages
-        .map(msg => `${msg.role}: ${msg.content}`)
-        .join('\n\n');
-      
-      const prompt = `Extract 3-5 main topics from this conversation as a comma-separated list. Keep each topic to 1-3 words:\n\n${conversation}`;
-      
-      let response = '';
-      for await (const chunk of streamResponse(prompt, 'gpt-3.5-turbo')) {
-        response += chunk;
-      }
-      
-      // Parse the comma-separated list
-      const extractedTopics = response
-        .split(',')
-        .map(topic => topic.trim())
-        .filter(topic => topic.length > 0);
-      
-      setTopics(extractedTopics);
+      const conversationList = await chatApi.getConversationList();
+      setConversations(conversationList);
     } catch (error) {
-      console.error('Error extracting topics:', error);
+      console.error('Failed to load conversations:', error);
+    }
+  };
+
+  const createNewConversation = async () => {
+    try {
+      const newConversationId = await chatApi.createConversation();
+      setConversationId(newConversationId);
+      setMessages([]);
+      setShowConversations(false);
+      await loadConversations();
+      
+      // Add welcome message
+      const welcomeMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        message: `👋 Hello ${userName}! I'm your Genesis AI assistant. Based on your profile, I can help with:
+
+- Business automation strategies for ${businessGoals}
+- Exploring your ${ancestry} background
+- Connecting cultural heritage with modern business practices
+
+How can I assist you today?`,
+        created_at: new Date().toISOString()
+      };
+      setMessages([welcomeMessage]);
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+      toast.error('Failed to create new conversation');
+    }
+  };
+
+  const loadConversation = async (convId: string) => {
+    try {
+      const history = await chatApi.getHistory(convId);
+      setMessages(history);
+      setConversationId(convId);
+      setShowConversations(false);
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+      toast.error('Failed to load conversation');
+    }
+  };
+
+  const deleteConversation = async (convId: string) => {
+    try {
+      await chatApi.deleteConversation(convId);
+      await loadConversations();
+      if (conversationId === convId) {
+        setConversationId(undefined);
+        setMessages([]);
+      }
+      toast.success('Conversation deleted');
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      toast.error('Failed to delete conversation');
     }
   };
 
@@ -172,133 +146,94 @@ How can I assist you today?`,
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: input,
-      timestamp: new Date()
+      message: input,
+      created_at: new Date().toISOString()
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-    setStreamingContent('');
-    setRetryCount(0);
 
     await processUserMessage(userMessage);
   };
 
   const processUserMessage = async (userMessage: ChatMessage) => {
-    try {
-      // Store user message in memory
-      await aiMemory.current.storeMessage('user', userMessage.content);
-      
-      // Prepare context options
-      const contextOptions = {
-        sessionId,
-        userContext: true,
-        conversationHistory: true,
-        customInstructions: true,
-        semanticSearch: true
-      };
-      
-      let fullResponse = '';
-      
-      // Use circuit breaker for AI requests
-      const circuitBreaker = circuitBreakerManager.getBreaker('chat');
-      
-      try {
-        // Direct use of streamResponse instead of enhancedAIAssistant for more control
-        for await (const chunk of await circuitBreaker.execute(() => 
-          streamResponse(userMessage.content, currentModel as any, JSON.stringify(contextOptions))
-        )) {
-          fullResponse += chunk;
-          setStreamingContent(fullResponse);
-        }
-        
-        // Store assistant response in memory
-        await aiMemory.current.storeMessage('assistant', fullResponse, { model: currentModel });
-        
-        const assistantMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: fullResponse,
-          timestamp: new Date(),
-          model: currentModel
-        };
+    console.log('🔄 Processing user message:', { message: userMessage.message.substring(0, 50) + '...', conversationId });
+    
+    setIsLoading(true);
+    setConnectionStatus('connected');
 
-        setMessages(prev => [...prev, assistantMessage]);
-        setStreamingContent('');
-        
-        // Reset connection status to connected
-        setConnectionStatus('connected');
-        
-        // Extract topics after new messages
-        if (messages.length > 2) {
-          extractTopics();
+    try {
+      // Determine provider and model
+      let provider: 'auto' | 'openai' | 'anthropic' | 'gemini' = 'auto';
+      let model = 'auto';
+
+      if (currentModel !== 'auto') {
+        const selectedModel = availableModels.find(m => m.id === currentModel);
+        if (selectedModel) {
+          provider = selectedModel.provider as 'auto' | 'openai' | 'anthropic' | 'gemini';
+          model = selectedModel.id;
         }
-      } catch (error) {
-        console.error('Error getting assistant response:', error);
-        
-        // Increment retry count
-        const newRetryCount = retryCount + 1;
-        setRetryCount(newRetryCount);
-        
-        if (newRetryCount <= maxRetries) {
-          // Try recovery
-          setIsRecovering(true);
-          toast.info(`Attempting to recover (${newRetryCount}/${maxRetries})...`);
-          
-          // Wait a moment before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000 * newRetryCount));
-          
-          // Try to recover the connection
-          await checkConnectionStatus();
-          
-          // Retry the request
-          setIsRecovering(false);
-          return processUserMessage(userMessage);
-        }
-        
-        // Add error message after max retries
-        const errorMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: "I'm sorry, I encountered an error processing your request. Please try again or check your connection if the issue persists.",
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, errorMessage]);
-        
-        // Store error message in memory
-        await aiMemory.current.storeMessage('assistant', errorMessage.content, { error: true });
-        
-        toast.error('Failed to get response');
-        setConnectionStatus('degraded');
       }
-    } catch (error) {
-      console.error('Unhandled error in chat processing:', error);
+
+      console.log('🎯 Sending message with:', { provider, model, conversationId });
+
+      const response = await chatApi.sendMessage(
+        userMessage.message,
+        conversationId,
+        provider,
+        model
+      );
+
+      console.log('📥 Received response:', { 
+        provider: response.provider, 
+        model: response.model, 
+        responseLength: response.response.length,
+        responsePreview: response.response.substring(0, 100) + '...'
+      });
+
+      const assistantMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        message: response.response,
+        provider: response.provider,
+        model: response.model,
+        created_at: response.timestamp
+      };
+
+      console.log('💬 Adding assistant message to chat:', { 
+        provider: assistantMessage.provider, 
+        model: assistantMessage.model,
+        messageLength: assistantMessage.message.length 
+      });
+
+      setMessages(prev => [...prev, assistantMessage]);
+      setConversationId(response.conversationId);
+      setConnectionStatus('connected');
       
-      // Add a generic error message
+      // Reload conversations to update the list
+      await loadConversations();
+      
+    } catch (error) {
+      console.error('❌ Error getting assistant response:', error);
+      
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: "I'm sorry, something went wrong. Please try again later.",
-        timestamp: new Date()
+        message: "I'm sorry, I encountered an error processing your request. Please try again or check your connection if the issue persists.",
+        created_at: new Date().toISOString()
       };
       
       setMessages(prev => [...prev, errorMessage]);
-      toast.error('An unexpected error occurred');
+      toast.error('Failed to get response');
+      setConnectionStatus('degraded');
     } finally {
       setIsLoading(false);
-      setIsRecovering(false);
-      setStreamingContent('');
     }
   };
 
   const handleFeedback = async (messageId: string, rating: number) => {
     try {
-      // Find the message
-      const message = messages.find(m => m.id === messageId);
-      if (!message) return;
-      
       // Update the message with feedback
       setMessages(prev => prev.map(m => 
         m.id === messageId 
@@ -335,13 +270,13 @@ How can I assist you today?`,
       switch (format) {
         case 'text':
           content = messages
-            .map(msg => `${msg.role.toUpperCase()} (${msg.timestamp.toLocaleString()}):\n${msg.content}\n\n`)
+            .map(msg => `${msg.role.toUpperCase()} (${new Date(msg.created_at).toLocaleString()}):\n${msg.message}\n\n`)
             .join('');
           break;
         case 'markdown':
           content = `# Conversation Export - ${new Date().toLocaleDateString()}\n\n`;
           content += messages
-            .map(msg => `## ${msg.role === 'user' ? 'You' : 'Assistant'} - ${msg.timestamp.toLocaleString()}\n\n${msg.content}\n\n`)
+            .map(msg => `## ${msg.role === 'user' ? 'You' : 'Assistant'} - ${new Date(msg.created_at).toLocaleString()}\n\n${msg.message}\n\n`)
             .join('');
           break;
         case 'json':
@@ -365,16 +300,7 @@ How can I assist you today?`,
     }
   };
 
-  const filteredMessages = topicFilter
-    ? messages.filter(msg => msg.content.toLowerCase().includes(topicFilter.toLowerCase()))
-    : messages;
-
-  const availableModels = [
-    { id: 'auto', name: 'Auto-Select', description: 'Best model for your task' },
-    { id: 'gpt-4', name: 'GPT-4', description: 'Advanced reasoning' },
-    { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Nuanced understanding' },
-    { id: 'gemini-pro', name: 'Gemini Pro', description: 'Fast responses' }
-  ];
+  const availableModels = chatApi.getAvailableModels();
 
   return (
     <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-sm border border-blue-100">
@@ -406,231 +332,216 @@ How can I assist you today?`,
           >
             {availableModels.map(model => (
               <option key={model.id} value={model.id}>
-                {model.name} - {model.description}
+                {model.name}
               </option>
             ))}
           </select>
+          
+          <button
+            onClick={() => setShowConversations(!showConversations)}
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+            title="Conversations"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </button>
           
           <div className="relative group">
             <button
               className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
               title="Export conversation"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-4 h-4" />
             </button>
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 p-2 hidden group-hover:block z-10">
-              <div className="text-sm font-medium text-gray-900 mb-2 px-2">Export as:</div>
+            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto z-10">
               <button
                 onClick={() => exportConversation('text')}
-                className="block w-full text-left px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg"
               >
-                Plain Text (.txt)
+                Export as Text
               </button>
               <button
                 onClick={() => exportConversation('markdown')}
-                className="block w-full text-left px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
               >
-                Markdown (.md)
+                Export as Markdown
               </button>
               <button
                 onClick={() => exportConversation('json')}
-                className="block w-full text-left px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-b-lg"
               >
-                JSON (.json)
+                Export as JSON
               </button>
             </div>
           </div>
-          
-          <button
-            onClick={() => setShowSummarizer(true)}
-            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
-            title="Summarize conversation"
-          >
-            <FileText className="w-5 h-5" />
-          </button>
-
-          <button
-            onClick={checkConnectionStatus}
-            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
-            title="Check connection"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
-      {topics.length > 0 && (
-        <div className="px-4 py-2 border-b border-gray-100 flex items-center space-x-2 overflow-x-auto">
-          <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
-          <div className="flex space-x-1">
-            {topics.map((topic, index) => (
+      {/* Conversations Sidebar */}
+      {showConversations && (
+        <div className="absolute top-16 right-4 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-96 overflow-y-auto">
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Conversations</h3>
               <button
-                key={index}
-                onClick={() => setTopicFilter(topicFilter === topic ? null : topic)}
-                className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                  topicFilter === topic
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                onClick={createNewConversation}
+                className="p-1 text-blue-600 hover:text-blue-800"
+                title="New conversation"
               >
-                {topic}
+                <Plus className="w-4 h-4" />
               </button>
-            ))}
-            {topicFilter && (
-              <button
-                onClick={() => setTopicFilter(null)}
-                className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 text-xs"
-              >
-                Clear filter
-              </button>
+            </div>
+          </div>
+          <div className="p-2">
+            {conversations.length === 0 ? (
+              <p className="text-gray-500 text-sm p-4 text-center">No conversations yet</p>
+            ) : (
+              conversations.map(conv => (
+                <div
+                  key={conv.conversation_id}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                    conversationId === conv.conversation_id
+                      ? 'bg-blue-50 border border-blue-200'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div
+                      className="flex-1 min-w-0"
+                      onClick={() => loadConversation(conv.conversation_id)}
+                    >
+                      <h4 className="font-medium text-gray-900 truncate">{conv.title}</h4>
+                      <p className="text-sm text-gray-500 truncate">{conv.last_message}</p>
+                      <p className="text-xs text-gray-400">
+                        {conv.message_count} messages • {new Date(conv.last_updated).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversation(conv.conversation_id);
+                      }}
+                      className="p-1 text-gray-400 hover:text-red-600 ml-2"
+                      title="Delete conversation"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
       )}
 
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {connectionStatus === 'offline' && (
-          <div className="bg-red-50 p-4 rounded-lg mb-4 border border-red-100">
-            <div className="flex items-start">
-              <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-2" />
-              <div>
-                <h3 className="font-medium text-red-800">Connection Error</h3>
-                <p className="text-sm text-red-700 mt-1">
-                  You appear to be offline. Some features may not work properly. Please check your internet connection.
-                </p>
-                <button 
-                  onClick={checkConnectionStatus}
-                  className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 text-sm"
-                >
-                  Retry Connection
-                </button>
-              </div>
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Brain className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">Start a conversation to begin</p>
+              <button
+                onClick={createNewConversation}
+                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                New Conversation
+              </button>
             </div>
           </div>
-        )}
-
-        {connectionStatus === 'degraded' && (
-          <div className="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-100">
-            <div className="flex items-start">
-              <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 mr-2" />
-              <div>
-                <h3 className="font-medium text-yellow-800">Degraded Service</h3>
-                <p className="text-sm text-yellow-700 mt-1">
-                  The AI service is experiencing issues. Responses may be delayed or limited. We're working to resolve this.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {filteredMessages.map((message, index) => (
-          <div key={message.id}>
-            <div className={`flex items-start space-x-2 ${
-              message.role === 'assistant' ? 'justify-start' : 'justify-end'
-            }`}>
-              {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-blue-600" />
+        ) : (
+          messages.map((message) => (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-[80%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
+                <div className={`flex items-start space-x-2 ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.role === 'user' ? 'bg-blue-500' : 'bg-gray-500'
+                  }`}>
+                    {message.role === 'user' ? (
+                      <User className="w-4 h-4 text-white" />
+                    ) : (
+                      <Bot className="w-4 h-4 text-white" />
+                    )}
+                  </div>
+                  <div className={`rounded-lg px-4 py-2 ${
+                    message.role === 'user' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-900'
+                  }`}>
+                    <div className="whitespace-pre-wrap">{message.message}</div>
+                    {message.provider && message.model && (
+                      <div className={`text-xs mt-1 ${
+                        message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
+                        {message.provider} • {message.model}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              
-              <div className={`max-w-[80%] rounded-lg p-3 ${
-                message.role === 'user' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-900'
-              }`}>
-                <div className="whitespace-pre-wrap">{message.content}</div>
                 
-                <div className="mt-2 flex items-center justify-between text-xs opacity-70">
-                  <span>{message.timestamp.toLocaleTimeString()}</span>
-                  {message.model && <span>Model: {message.model}</span>}
-                </div>
+                {message.role === 'assistant' && (
+                  <div className="flex items-center space-x-2 mt-2 ml-10">
+                    <button
+                      onClick={() => handleFeedback(message.id, 5)}
+                      className="p-1 text-gray-400 hover:text-green-600"
+                      title="Helpful"
+                    >
+                      <ThumbsUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleFeedback(message.id, 1)}
+                      className="p-1 text-gray-400 hover:text-red-600"
+                      title="Not helpful"
+                    >
+                      <ThumbsDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
-              
-              {message.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-gray-600" />
-                </div>
-              )}
-            </div>
-            
-            {message.role === 'assistant' && (
-              <div className="flex items-center justify-end space-x-2 mt-1">
-                <button
-                  onClick={() => handleFeedback(message.id, 5)}
-                  className={`p-1 rounded-full ${
-                    message.feedback?.rating === 5 
-                      ? 'bg-green-100 text-green-600' 
-                      : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                  }`}
-                  title="Helpful"
-                >
-                  <ThumbsUp className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleFeedback(message.id, 1)}
-                  className={`p-1 rounded-full ${
-                    message.feedback?.rating === 1 
-                      ? 'bg-red-100 text-red-600' 
-                      : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                  }`}
-                  title="Not Helpful"
-                >
-                  <ThumbsDown className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-        
-        {streamingContent && (
-          <div className="flex items-start space-x-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <Bot className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-900">
-              <div className="whitespace-pre-wrap">{streamingContent}</div>
-            </div>
-          </div>
+            </motion.div>
+          ))
         )}
         
-        {isLoading && !streamingContent && (
-          <div className="flex items-center space-x-2 text-gray-500">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>{isRecovering ? 'Recovering connection...' : 'Thinking...'}</span>
-          </div>
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-start"
+          >
+            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-4 py-2">
+              <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+              <span className="text-gray-500">Thinking...</span>
+            </div>
+          </motion.div>
         )}
         
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-blue-100">
-        <div className="flex space-x-2">
+      {/* Input */}
+      <div className="p-4 border-t border-blue-100">
+        <form onSubmit={handleSubmit} className="flex space-x-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading || connectionStatus === 'offline'}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={isLoading}
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim() || connectionStatus === 'offline'}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={isLoading || !input.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4" />
           </button>
-        </div>
-      </form>
-
-      {/* Conversation Summarizer Modal */}
-      <ConversationSummarizer
-        isOpen={showSummarizer}
-        onClose={() => setShowSummarizer(false)}
-        sessionId={sessionId}
-        messages={messages}
-      />
+        </form>
+      </div>
     </div>
   );
 };

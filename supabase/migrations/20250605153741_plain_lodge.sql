@@ -7,7 +7,6 @@ DECLARE
   v_user_id uuid := gen_random_uuid();
 BEGIN
   -- Insert user into auth.users table with all required fields
-  INSERT INTO auth.users (
     id,
     instance_id,
     email,
@@ -102,7 +101,6 @@ BEGIN
   );
 
   -- Update user metadata to include admin status
-  UPDATE auth.users
   SET raw_user_meta_data = raw_user_meta_data || '{"is_admin": true}'::jsonb
   WHERE id = v_user_id;
 END;

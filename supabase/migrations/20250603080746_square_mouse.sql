@@ -19,11 +19,11 @@ CREATE TABLE IF NOT EXISTS user_security_metadata (
 );
 
 -- Create index for unresolved alerts
-CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
 WHERE NOT resolved;
 
 -- Create index for user security metadata
-CREATE INDEX idx_user_security_metadata ON user_security_metadata(security_score);
+CREATE INDEX IF NOT EXISTS idx_user_security_metadata ON user_security_metadata(security_score);
 
 -- Create function for emergency security measures
 CREATE OR REPLACE FUNCTION enable_emergency_security_measures()
@@ -43,22 +43,34 @@ ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_security_metadata ENABLE ROW LEVEL SECURITY;
 
 -- Create policy using auth.jwt() for admin access to security alerts
-CREATE POLICY "Admins can manage security alerts"
-  ON security_alerts
-  FOR ALL
-  TO authenticated
-  USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
+  ) THEN
+    CREATE POLICY "Admins can manage security alerts"
+      ON security_alerts
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
+END
+$$;
 
 -- Create policy for user security metadata
-CREATE POLICY "Admins can manage user security metadata"
-  ON user_security_metadata
-  FOR ALL
-  TO authenticated
-  USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage user security metadata' AND tablename = 'user_security_metadata'
+  ) THEN
+    CREATE POLICY "Admins can manage user security metadata"
+      ON user_security_metadata
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
+END
+$$;
 
 -- Create function to update security scores
 CREATE OR REPLACE FUNCTION update_security_scores()
@@ -100,7 +112,15 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_user_security_metadata_updated_at
-  BEFORE UPDATE ON user_security_metadata
-  FOR EACH ROW
-  EXECUTE PROCEDURE update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_security_metadata_updated_at'
+  ) THEN
+    CREATE TRIGGER update_user_security_metadata_updated_at
+      BEFORE UPDATE ON user_security_metadata
+      FOR EACH ROW
+      EXECUTE PROCEDURE update_updated_at_column();
+  END IF;
+END
+$$;

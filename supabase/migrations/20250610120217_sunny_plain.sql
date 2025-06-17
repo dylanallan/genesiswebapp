@@ -176,13 +176,13 @@ CREATE TRIGGER audit_ai_feedback_changes
   FOR EACH ROW EXECUTE FUNCTION audit_log_changes();
 
 -- Create indexes for better performance
-CREATE INDEX idx_ai_prompts_user_id ON ai_prompts(user_id);
-CREATE INDEX idx_ai_prompts_category ON ai_prompts(category);
-CREATE INDEX idx_ai_conversations_user_id ON ai_conversations(user_id);
-CREATE INDEX idx_ai_messages_conversation_id ON ai_messages(conversation_id);
-CREATE INDEX idx_ai_messages_user_id ON ai_messages(user_id);
-CREATE INDEX idx_ai_feedback_message_id ON ai_feedback(message_id);
-CREATE INDEX idx_ai_feedback_user_id ON ai_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_prompts_user_id ON ai_prompts(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_prompts_category ON ai_prompts(category);
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_id ON ai_conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation_id ON ai_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_ai_messages_user_id ON ai_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_feedback_message_id ON ai_feedback(message_id);
+CREATE INDEX IF NOT EXISTS idx_ai_feedback_user_id ON ai_feedback(user_id);
 
 -- Insert default AI models
 INSERT INTO ai_models (name, provider, model_type, capabilities, max_tokens, token_cost, configuration)

@@ -32,7 +32,7 @@ BEGIN
     SELECT 1 FROM pg_indexes 
     WHERE indexname = 'idx_unresolved_alerts'
   ) THEN
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
   END IF;
 END $$;
@@ -57,17 +57,16 @@ ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'security_alerts' 
-    AND policyname = 'Admins can manage security alerts'
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
   ) THEN
     CREATE POLICY "Admins can manage security alerts"
       ON security_alerts
       FOR ALL
       TO authenticated
-      USING ((jwt() ->> 'role'::text) = 'admin'::text);
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
   END IF;
-END $$;
+END
+$$;
 
 -- Add security-related columns to existing tables
 DO $$
@@ -137,17 +136,16 @@ ALTER TABLE user_security_metadata ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'user_security_metadata' 
-    AND policyname = 'Admins can manage user security metadata'
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage user security metadata' AND tablename = 'user_security_metadata'
   ) THEN
     CREATE POLICY "Admins can manage user security metadata"
       ON user_security_metadata
       FOR ALL
       TO authenticated
-      USING ((jwt() ->> 'role'::text) = 'admin'::text);
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
   END IF;
-END $$;
+END
+$$;
 
 -- Create trigger for updating timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -161,7 +159,15 @@ $$ LANGUAGE plpgsql;
 -- Add trigger to user_security_metadata
 DROP TRIGGER IF EXISTS update_user_security_metadata_updated_at ON user_security_metadata;
 
-CREATE TRIGGER update_user_security_metadata_updated_at
-BEFORE UPDATE ON user_security_metadata
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_security_metadata_updated_at'
+  ) THEN
+    CREATE TRIGGER update_user_security_metadata_updated_at
+      BEFORE UPDATE ON user_security_metadata
+      FOR EACH ROW
+      EXECUTE PROCEDURE update_updated_at_column();
+  END IF;
+END
+$$;

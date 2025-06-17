@@ -61,7 +61,6 @@ BEGIN
   ON CONFLICT (user_id) DO NOTHING;
 
   -- Update user metadata
-  UPDATE auth.users
   SET raw_user_meta_data = 
     COALESCE(raw_user_meta_data, '{}'::jsonb) || 
     jsonb_build_object('is_admin', true)
@@ -91,7 +90,6 @@ BEGIN
   WHERE user_id = target_user_id;
 
   -- Update user metadata
-  UPDATE auth.users
   SET raw_user_meta_data = 
     COALESCE(raw_user_meta_data, '{}'::jsonb) - 'is_admin'
   WHERE id = target_user_id;
@@ -129,7 +127,6 @@ BEGIN
   ON CONFLICT (user_id) DO NOTHING;
 
   -- Update user metadata
-  UPDATE auth.users
   SET raw_user_meta_data = 
     COALESCE(raw_user_meta_data, '{}'::jsonb) || 
     jsonb_build_object('is_admin', true)

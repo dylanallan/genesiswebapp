@@ -4,7 +4,6 @@ DECLARE
   v_user_id uuid;
 BEGIN
   -- Insert user into auth.users table
-  INSERT INTO auth.users (
     email,
     encrypted_password,
     email_confirmed_at,

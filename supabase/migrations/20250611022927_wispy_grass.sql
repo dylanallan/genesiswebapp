@@ -43,4 +43,4 @@ CREATE TRIGGER update_ai_custom_instructions_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- Create index on user_id and is_active for faster lookups
-CREATE INDEX idx_ai_custom_instructions_user_active ON public.ai_custom_instructions(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_ai_custom_instructions_user_active ON public.ai_custom_instructions(user_id, is_active);

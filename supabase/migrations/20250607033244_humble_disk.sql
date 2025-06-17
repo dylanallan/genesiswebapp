@@ -53,7 +53,7 @@ BEGIN
     AND tablename = 'security_alerts' 
     AND indexname = 'idx_unresolved_alerts'
   ) THEN
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
   END IF;
 
@@ -64,7 +64,7 @@ BEGIN
     AND tablename = 'user_security_metadata' 
     AND indexname = 'idx_user_security_metadata'
   ) THEN
-    CREATE INDEX idx_user_security_metadata ON user_security_metadata(security_score);
+    CREATE INDEX IF NOT EXISTS idx_user_security_metadata ON user_security_metadata(security_score);
   END IF;
 END
 $$;
@@ -120,22 +120,26 @@ BEGIN
   DROP POLICY IF EXISTS "Admins can manage user security metadata" ON user_security_metadata;
   
   -- Create admin policy for security alerts
-  CREATE POLICY "Admins can manage security alerts"
-    ON security_alerts
-    FOR ALL
-    TO authenticated
-    USING (
-      (auth.jwt() ->> 'role')::text = 'admin'
-    );
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
+  ) THEN
+    CREATE POLICY "Admins can manage security alerts"
+      ON security_alerts
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
 
   -- Create admin policy for user security metadata
-  CREATE POLICY "Admins can manage user security metadata"
-    ON user_security_metadata
-    FOR ALL
-    TO authenticated
-    USING (
-      (auth.jwt() ->> 'role')::text = 'admin'
-    );
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage user security metadata' AND tablename = 'user_security_metadata'
+  ) THEN
+    CREATE POLICY "Admins can manage user security metadata"
+      ON user_security_metadata
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
 END
 $$;
 
@@ -230,14 +234,14 @@ $$ LANGUAGE 'plpgsql';
 -- Create trigger with proper conflict handling
 DO $$
 BEGIN
-  -- Drop existing trigger if it exists
-  DROP TRIGGER IF EXISTS update_user_security_metadata_updated_at ON user_security_metadata;
-  
-  -- Create the trigger
-  CREATE TRIGGER update_user_security_metadata_updated_at
-    BEFORE UPDATE ON user_security_metadata
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_security_metadata_updated_at'
+  ) THEN
+    CREATE TRIGGER update_user_security_metadata_updated_at
+      BEFORE UPDATE ON user_security_metadata
+      FOR EACH ROW
+      EXECUTE PROCEDURE update_updated_at_column();
+  END IF;
 END
 $$;
 

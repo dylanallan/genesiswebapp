@@ -44,7 +44,7 @@ BEGIN
     SELECT 1 FROM pg_indexes 
     WHERE indexname = 'idx_unresolved_alerts'
   ) THEN
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
   END IF;
 END
@@ -57,9 +57,7 @@ ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'security_alerts' 
-    AND policyname = 'Admins can manage security alerts'
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
   ) THEN
     CREATE POLICY "Admins can manage security alerts"
       ON security_alerts
@@ -71,10 +69,8 @@ END
 $$;
 
 -- Add security-related columns to auth.users
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS
   last_security_check timestamptz;
 
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS
   security_score numeric DEFAULT 0.5;
 
 -- Create function to update security scores
@@ -84,7 +80,6 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  UPDATE auth.users
   SET 
     security_score = calculate_security_score(id),
     last_security_check = now();

@@ -65,7 +65,9 @@ CREATE INDEX IF NOT EXISTS idx_sacred_content_trgm
 ON sacred_content USING gin (content gin_trgm_ops);
 
 -- Create materialized view for AI system insights
-CREATE MATERIALIZED VIEW IF NOT EXISTS ai_system_insights AS
+DROP MATERIALIZED VIEW IF EXISTS ai_system_insights CASCADE;
+DROP VIEW IF EXISTS ai_system_insights CASCADE;
+CREATE VIEW ai_system_insights AS
 WITH model_stats AS (
   SELECT 
     model_id,

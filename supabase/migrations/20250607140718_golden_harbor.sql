@@ -195,7 +195,7 @@ DECLARE
 BEGIN
   -- Create analytics indexes if they don't exist
   BEGIN
-    EXECUTE 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_analytics_events_timestamp ON analytics_events(timestamp DESC)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS CONCURRENTLY IF NOT EXISTS idx_analytics_events_timestamp ON analytics_events(timestamp DESC)';
     optimizations := array_append(optimizations, 'analytics_timestamp_index');
   EXCEPTION
     WHEN OTHERS THEN
@@ -204,7 +204,7 @@ BEGIN
 
   -- Create system health metrics indexes
   BEGIN
-    EXECUTE 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_system_health_ts_metric ON system_health_metrics(ts DESC, metric_name)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS CONCURRENTLY IF NOT EXISTS idx_system_health_ts_metric ON system_health_metrics(ts DESC, metric_name)';
     optimizations := array_append(optimizations, 'system_health_index');
   EXCEPTION
     WHEN OTHERS THEN
@@ -213,7 +213,7 @@ BEGIN
 
   -- Create AI request logs indexes
   BEGIN
-    EXECUTE 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ai_logs_provider_time ON ai_request_logs(provider_id, created_at DESC)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS CONCURRENTLY IF NOT EXISTS idx_ai_logs_provider_time ON ai_request_logs(provider_id, created_at DESC)';
     optimizations := array_append(optimizations, 'ai_logs_provider_index');
   EXCEPTION
     WHEN OTHERS THEN
@@ -517,10 +517,10 @@ CREATE TABLE IF NOT EXISTS analytics_insights (
 );
 
 -- Create indexes for better performance
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_system_optimization_logs_component ON system_optimization_logs(component, applied_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_analytics_events_user_timestamp ON analytics_events(user_id, timestamp DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_analytics_metrics_category_timestamp ON analytics_metrics(category, timestamp DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_analytics_insights_impact_created ON analytics_insights(impact, created_at DESC);
+CREATE INDEX IF NOT EXISTS CONCURRENTLY IF NOT EXISTS idx_system_optimization_logs_component ON system_optimization_logs(component, applied_at DESC);
+CREATE INDEX IF NOT EXISTS CONCURRENTLY IF NOT EXISTS idx_analytics_events_user_timestamp ON analytics_events(user_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS CONCURRENTLY IF NOT EXISTS idx_analytics_metrics_category_timestamp ON analytics_metrics(category, timestamp DESC);
+CREATE INDEX IF NOT EXISTS CONCURRENTLY IF NOT EXISTS idx_analytics_insights_impact_created ON analytics_insights(impact, created_at DESC);
 
 -- Insert initial system health metrics
 INSERT INTO system_health_metrics (metric_name, metric_value, metadata, ts)

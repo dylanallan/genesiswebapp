@@ -95,9 +95,9 @@ CREATE POLICY "Admins can view all AI request logs"
   USING ((auth.jwt() ->> 'role')::text = 'admin');
 
 -- Create indexes for performance
-CREATE INDEX idx_ai_request_logs_user_id ON ai_request_logs(user_id);
-CREATE INDEX idx_ai_request_logs_provider_id ON ai_request_logs(provider_id);
-CREATE INDEX idx_ai_request_logs_created_at ON ai_request_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_request_logs_user_id ON ai_request_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_request_logs_provider_id ON ai_request_logs(provider_id);
+CREATE INDEX IF NOT EXISTS idx_ai_request_logs_created_at ON ai_request_logs(created_at);
 
 -- Create function to log AI requests
 CREATE OR REPLACE FUNCTION log_ai_request(

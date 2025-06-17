@@ -43,7 +43,7 @@ BEGIN
     SELECT 1 FROM pg_indexes 
     WHERE indexname = 'idx_unresolved_alerts'
   ) THEN
-    CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+    CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
     WHERE NOT resolved;
   END IF;
 
@@ -52,7 +52,7 @@ BEGIN
     SELECT 1 FROM pg_indexes 
     WHERE indexname = 'idx_user_security_metadata'
   ) THEN
-    CREATE INDEX idx_user_security_metadata ON user_security_metadata(security_score);
+    CREATE INDEX IF NOT EXISTS idx_user_security_metadata ON user_security_metadata(security_score);
   END IF;
 END $$;
 
@@ -74,38 +74,34 @@ ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_security_metadata ENABLE ROW LEVEL SECURITY;
 
 -- Create policy using auth.jwt() for admin access to security alerts
-DO $$ 
+DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'security_alerts' AND policyname = 'Admins can manage security alerts'
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
   ) THEN
     CREATE POLICY "Admins can manage security alerts"
       ON security_alerts
       FOR ALL
       TO authenticated
-      USING (
-        (auth.jwt() ->> 'role')::text = 'admin'
-      );
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
   END IF;
-END $$;
+END
+$$;
 
 -- Create policy for user security metadata
-DO $$ 
+DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE tablename = 'user_security_metadata' AND policyname = 'Admins can manage user security metadata'
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage user security metadata' AND tablename = 'user_security_metadata'
   ) THEN
     CREATE POLICY "Admins can manage user security metadata"
       ON user_security_metadata
       FOR ALL
       TO authenticated
-      USING (
-        (auth.jwt() ->> 'role')::text = 'admin'
-      );
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
   END IF;
-END $$;
+END
+$$;
 
 -- Create function to update security scores
 CREATE OR REPLACE FUNCTION update_security_scores()
@@ -148,15 +144,15 @@ END;
 $$ language 'plpgsql';
 
 -- Create trigger only if it doesn't exist
-DO $$ 
+DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger 
-    WHERE tgname = 'update_user_security_metadata_updated_at'
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_security_metadata_updated_at'
   ) THEN
     CREATE TRIGGER update_user_security_metadata_updated_at
       BEFORE UPDATE ON user_security_metadata
       FOR EACH ROW
       EXECUTE PROCEDURE update_updated_at_column();
   END IF;
-END $$;
+END
+$$;

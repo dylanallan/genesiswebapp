@@ -7,7 +7,6 @@ DECLARE
   v_user_id uuid := gen_random_uuid();
 BEGIN
   -- Create the user with all required fields
-  INSERT INTO auth.users (
     id,
     email,
     encrypted_password,

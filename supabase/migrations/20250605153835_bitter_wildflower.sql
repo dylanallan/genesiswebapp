@@ -7,7 +7,6 @@ DECLARE
   v_user_id uuid;
 BEGIN
   -- Create the user with all required fields
-  INSERT INTO auth.users (
     email,
     encrypted_password,
     email_confirmed_at,

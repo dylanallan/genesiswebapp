@@ -190,9 +190,9 @@ CREATE TRIGGER audit_user_heritage_changes
   FOR EACH ROW EXECUTE FUNCTION audit_log_changes();
 
 -- Create indexes for better performance
-CREATE INDEX idx_heritage_regions_name ON heritage_regions(name);
-CREATE INDEX idx_heritage_traditions_name ON heritage_traditions(name);
-CREATE INDEX idx_heritage_stories_title ON heritage_stories(title);
-CREATE INDEX idx_heritage_artifacts_name ON heritage_artifacts(name);
-CREATE INDEX idx_user_heritage_user_id ON user_heritage(user_id);
-CREATE INDEX idx_user_heritage_region_id ON user_heritage(region_id);
+CREATE INDEX IF NOT EXISTS idx_heritage_regions_name ON heritage_regions(name);
+CREATE INDEX IF NOT EXISTS idx_heritage_traditions_name ON heritage_traditions(name);
+CREATE INDEX IF NOT EXISTS idx_heritage_stories_title ON heritage_stories(title);
+CREATE INDEX IF NOT EXISTS idx_heritage_artifacts_name ON heritage_artifacts(name);
+CREATE INDEX IF NOT EXISTS idx_user_heritage_user_id ON user_heritage(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_heritage_region_id ON user_heritage(region_id);

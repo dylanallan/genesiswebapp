@@ -35,12 +35,21 @@ CREATE TABLE IF NOT EXISTS api_keys (
 -- Enable RLS
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 
--- Create policy for admin access
-CREATE POLICY "Admins can manage API keys"
-  ON api_keys
-  FOR ALL
-  TO authenticated
-  USING ((auth.jwt() ->> 'role')::text = 'admin');
+-- Create policy for admin access (with existence check)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'api_keys' 
+    AND policyname = 'Admins can manage API keys'
+  ) THEN
+    CREATE POLICY "Admins can manage API keys"
+      ON api_keys
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role')::text = 'admin');
+  END IF;
+END $$;
 
 -- Create updated_at trigger
 CREATE TRIGGER update_api_keys_updated_at

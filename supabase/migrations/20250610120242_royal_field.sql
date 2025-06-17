@@ -132,15 +132,15 @@ CREATE TRIGGER audit_security_settings_changes
   FOR EACH ROW EXECUTE FUNCTION audit_log_changes();
 
 -- Create indexes for better performance
-CREATE INDEX idx_analytics_events_user_id ON analytics_events(user_id);
-CREATE INDEX idx_analytics_events_event_type ON analytics_events(event_type);
-CREATE INDEX idx_analytics_events_created_at ON analytics_events(created_at);
-CREATE INDEX idx_analytics_metrics_metric_name ON analytics_metrics(metric_name);
-CREATE INDEX idx_analytics_metrics_dimension ON analytics_metrics(dimension, dimension_value);
-CREATE INDEX idx_security_alerts_user_id ON security_alerts(user_id);
-CREATE INDEX idx_security_alerts_alert_type ON security_alerts(alert_type);
-CREATE INDEX idx_security_alerts_is_resolved ON security_alerts(is_resolved);
-CREATE INDEX idx_security_settings_user_id ON security_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_user_id ON analytics_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_event_type ON analytics_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_metrics_metric_name ON analytics_metrics(metric_name);
+CREATE INDEX IF NOT EXISTS idx_analytics_metrics_dimension ON analytics_metrics(dimension, dimension_value);
+CREATE INDEX IF NOT EXISTS idx_security_alerts_user_id ON security_alerts(user_id);
+CREATE INDEX IF NOT EXISTS idx_security_alerts_alert_type ON security_alerts(alert_type);
+CREATE INDEX IF NOT EXISTS idx_security_alerts_is_resolved ON security_alerts(is_resolved);
+CREATE INDEX IF NOT EXISTS idx_security_settings_user_id ON security_settings(user_id);
 
 -- Create function to track user activity
 CREATE OR REPLACE FUNCTION track_user_activity(

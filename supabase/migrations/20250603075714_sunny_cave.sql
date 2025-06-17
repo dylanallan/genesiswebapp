@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS security_alerts (
 );
 
 -- Create index for unresolved alerts
-CREATE INDEX idx_unresolved_alerts ON security_alerts(resolved, timestamp)
+CREATE INDEX IF NOT EXISTS idx_unresolved_alerts ON security_alerts(resolved, timestamp)
 WHERE NOT resolved;
 
 -- Create function for emergency security measures
@@ -54,20 +54,26 @@ $$;
 ALTER TABLE security_alerts ENABLE ROW LEVEL SECURITY;
 
 -- Create policy using auth.jwt() instead of checking is_admin
-CREATE POLICY "Admins can manage security alerts"
-  ON security_alerts
-  FOR ALL
-  TO authenticated
-  USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage security alerts' AND tablename = 'security_alerts'
+  ) THEN
+    CREATE POLICY "Admins can manage security alerts"
+      ON security_alerts
+      FOR ALL
+      TO authenticated
+      USING ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+  END IF;
+END
+$$;
 
--- Add security-related columns to existing tables
-ALTER TABLE users ADD COLUMN IF NOT EXISTS
-  last_security_check timestamptz;
-
-ALTER TABLE users ADD COLUMN IF NOT EXISTS
-  security_score numeric DEFAULT 0.5;
+-- Create user_metadata table for extra user data
+CREATE TABLE IF NOT EXISTS user_metadata (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  last_security_check timestamptz,
+  security_score numeric DEFAULT 0.5
+);
 
 -- Create function to update security scores
 CREATE OR REPLACE FUNCTION update_security_scores()
@@ -76,9 +82,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  UPDATE users
+  UPDATE user_metadata
   SET 
-    security_score = calculate_security_score(id),
+    security_score = calculate_security_score(user_id),
     last_security_check = now();
 END;
 $$;
