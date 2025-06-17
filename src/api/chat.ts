@@ -7,7 +7,7 @@ const GEMINI_MODEL = 'models/gemini-1.5-flash';
 const OPENAI_MODEL = 'gpt-3.5-turbo';
 
 // For Anthropic - This needs a valid key
-const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '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';
+const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 export interface ChatMessage {
   id: string;
