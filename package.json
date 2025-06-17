@@ -13,6 +13,7 @@
     "@hookform/resolvers": "^3.3.2",
     "@supabase/auth-helpers-react": "^0.4.2",
     "@supabase/supabase-js": "^2.39.0",
+    "@tensorflow/tfjs": "^4.15.0",
     "clsx": "^2.0.0",
     "elevenlabs": "^1.59.0",
     "framer-motion": "^10.16.16",
