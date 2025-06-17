@@ -25,8 +25,7 @@ export const Auth: React.FC = () => {
     handleSubmit,
     formState: { errors },
     reset,
-    resetField,
-    setValue
+    resetField
   } = useForm<AuthForm>({
     resolver: zodResolver(authSchema),
     defaultValues: {
@@ -97,8 +96,8 @@ export const Auth: React.FC = () => {
       console.error('Auth error:', error);
       
       if (error.message.includes('Invalid login credentials')) {
-        setAuthError('Invalid email or password');
-        toast.error('Invalid email or password');
+        setAuthError('Invalid email or password. Please check your credentials or create a new account.');
+        toast.error('Invalid email or password. Please check your credentials or create a new account.');
         resetField('password');
       } else if (error.message.includes('Email not confirmed')) {
         setAuthError('Please verify your email before signing in');
@@ -114,12 +113,6 @@ export const Auth: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // For demo purposes, pre-fill the form
-  const fillDemoCredentials = () => {
-    setValue('email', 'demo@genesisheritage.com');
-    setValue('password', 'password123');
   };
 
   return (
@@ -250,7 +243,7 @@ export const Auth: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-center space-y-3">
+        <div className="text-center">
           <button
             type="button"
             onClick={() => {
@@ -261,14 +254,6 @@ export const Auth: React.FC = () => {
             className="text-sm text-genesis-600 hover:text-genesis-500 transition-colors"
           >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-          </button>
-          
-          <button
-            type="button"
-            onClick={fillDemoCredentials}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            Use demo credentials
           </button>
         </div>
       </motion.div>
