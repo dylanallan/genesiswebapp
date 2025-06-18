@@ -166,26 +166,197 @@ class AutomationEngine {
   }
 
   private checkScheduleTrigger(parameters: any): boolean {
-    // Implement schedule trigger logic
-    return false;
+    try {
+      const { schedule, timezone = 'UTC' } = parameters;
+      
+      if (!schedule) return false;
+      
+      const now = new Date();
+      const currentTime = now.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        timeZone: timezone 
+      });
+      
+      // Check if current time matches the schedule
+      if (schedule.type === 'daily' && schedule.time) {
+        return currentTime === schedule.time;
+      }
+      
+      if (schedule.type === 'weekly' && schedule.day && schedule.time) {
+        const currentDay = now.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          timeZone: timezone 
+        }).toLowerCase();
+        return currentDay === schedule.day.toLowerCase() && currentTime === schedule.time;
+      }
+      
+      if (schedule.type === 'monthly' && schedule.day && schedule.time) {
+        const currentDay = now.getDate().toString();
+        return currentDay === schedule.day && currentTime === schedule.time;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking schedule trigger:', error);
+      return false;
+    }
   }
 
   private async checkEventTrigger(parameters: any): Promise<boolean> {
-    // Implement event trigger logic
-    return false;
+    try {
+      const { eventType, conditions } = parameters;
+      
+      if (!eventType) return false;
+      
+      // Check for specific event types
+      switch (eventType) {
+        case 'user_login':
+          // This would be triggered by auth events
+          return false; // Handled by auth hooks
+          
+        case 'data_change':
+          if (conditions && conditions.table && conditions.field) {
+            // Check if data has changed in the specified table/field
+            const { data, error } = await supabase
+              .from(conditions.table)
+              .select(conditions.field)
+              .order('updated_at', { ascending: false })
+              .limit(1);
+              
+            if (!error && data && data.length > 0) {
+              const lastUpdate = new Date(data[0].updated_at);
+              const timeSinceUpdate = Date.now() - lastUpdate.getTime();
+              return timeSinceUpdate < (conditions.timeWindow || 60000); // Default 1 minute
+            }
+          }
+          return false;
+          
+        case 'ai_request':
+          // Check if AI has been used recently
+          const { data, error } = await supabase
+            .from('ai_request_logs')
+            .select('created_at')
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (!error && data && data.length > 0) {
+            const lastRequest = new Date(data[0].created_at);
+            const timeSinceRequest = Date.now() - lastRequest.getTime();
+            return timeSinceRequest < (conditions?.timeWindow || 300000); // Default 5 minutes
+          }
+          return false;
+          
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.error('Error checking event trigger:', error);
+      return false;
+    }
   }
 
   private async checkDataCondition(parameters: any): Promise<boolean> {
-    // Implement data condition logic
-    return false;
+    try {
+      const { table, field, operator, value, conditions } = parameters;
+      
+      if (!table || !field || !operator || value === undefined) return false;
+      
+      let query = supabase.from(table).select(field);
+      
+      // Apply additional conditions if provided
+      if (conditions) {
+        Object.entries(conditions).forEach(([key, val]) => {
+          query = query.eq(key, val);
+        });
+      }
+      
+      const { data, error } = await query;
+      
+      if (error || !data || data.length === 0) return false;
+      
+      const fieldValue = data[0][field];
+      
+      // Apply the operator
+      switch (operator) {
+        case 'equals':
+          return fieldValue === value;
+        case 'not_equals':
+          return fieldValue !== value;
+        case 'greater_than':
+          return fieldValue > value;
+        case 'less_than':
+          return fieldValue < value;
+        case 'contains':
+          return String(fieldValue).includes(String(value));
+        case 'not_contains':
+          return !String(fieldValue).includes(String(value));
+        case 'is_empty':
+          return !fieldValue || fieldValue === '';
+        case 'is_not_empty':
+          return fieldValue && fieldValue !== '';
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.error('Error checking data condition:', error);
+      return false;
+    }
   }
 
   private async sendEmail(parameters: any): Promise<void> {
-    // Implement email sending logic
+    try {
+      const { to, subject, template, data } = parameters;
+      
+      // Use Supabase Edge Function for email sending
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.access_token) {
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to,
+            subject,
+            template,
+            data
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to send email');
+        }
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw error;
+    }
   }
 
   private async updateData(parameters: any): Promise<void> {
-    // Implement data update logic
+    try {
+      const { table, updates, conditions } = parameters;
+      
+      if (!table || !updates) return;
+      
+      let query = supabase.from(table).update(updates);
+      
+      // Apply conditions if provided
+      if (conditions) {
+        Object.entries(conditions).forEach(([key, val]) => {
+          query = query.eq(key, val);
+        });
+      }
+      
+      const { error } = await query;
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating data:', error);
+      throw error;
+    }
   }
 
   private async processWithAI(parameters: any): Promise<void> {

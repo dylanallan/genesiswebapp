@@ -157,7 +157,6 @@ export const AutomationHub: React.FC = () => {
       toast.error('Please connect to n8n first');
       return;
     }
-    
     setShowAddForm(true);
   };
 

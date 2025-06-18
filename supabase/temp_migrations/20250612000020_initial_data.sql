@@ -1,7 +1,7 @@
 -- Initial data population for essential tables
 
 -- Insert default system settings
-INSERT INTO system_settings (key, value, description, is_public) VALUES
+INSERT INTO system_settings (setting_key, setting_value, description, is_public) VALUES
 ('site_name', '"Genesis LMS"', 'The name of the application', true),
 ('site_description', '"A comprehensive learning management system for cultural heritage preservation"', 'The description of the application', true),
 ('default_language', '"en"', 'Default language for the application', true),
@@ -15,11 +15,11 @@ INSERT INTO system_settings (key, value, description, is_public) VALUES
   "available_models": ["gpt-4", "gpt-3.5-turbo", "claude-3-opus"]
 }', 'Default AI model settings', false);
 
--- Insert default AI models
-INSERT INTO ai_models (name, provider, model_type, capabilities, max_tokens, token_cost, is_active, configuration) VALUES
-('gpt-4', 'openai', 'chat', ARRAY['text', 'code', 'analysis'], 8192, 0.03, true, '{"temperature": 0.7, "top_p": 1}'),
-('gpt-3.5-turbo', 'openai', 'chat', ARRAY['text', 'code'], 4096, 0.002, true, '{"temperature": 0.7, "top_p": 1}'),
-('claude-3-opus', 'anthropic', 'chat', ARRAY['text', 'code', 'analysis'], 100000, 0.015, true, '{"temperature": 0.7}');
+-- Insert default AI models (updated to match correct table structure)
+INSERT INTO ai_models (name, model_type, description, provider, version, capabilities, parameters, performance_metrics) VALUES
+('gpt-4', 'language_model', 'OpenAI GPT-4 for general text processing and analysis', 'openai', '4.0', '{"capabilities": ["text", "code", "analysis"]}'::jsonb, '{"temperature": 0.7, "max_tokens": 8192, "top_p": 1}'::jsonb, '{"accuracy": 0.95, "response_time": 2.0}'::jsonb),
+('gpt-3.5-turbo', 'language_model', 'OpenAI GPT-3.5 Turbo for faster text processing', 'openai', '3.5', '{"capabilities": ["text", "code"]}'::jsonb, '{"temperature": 0.7, "max_tokens": 4096, "top_p": 1}'::jsonb, '{"accuracy": 0.90, "response_time": 1.0}'::jsonb),
+('claude-3-opus', 'language_model', 'Anthropic Claude 3 Opus for advanced text analysis', 'anthropic', '3.0', '{"capabilities": ["text", "code", "analysis"]}'::jsonb, '{"temperature": 0.7, "max_tokens": 100000}'::jsonb, '{"accuracy": 0.93, "response_time": 3.0}'::jsonb);
 
 -- Insert default categories for cultural artifacts
 INSERT INTO cultural_artifacts (user_id, title, description, category, media_type, tags)

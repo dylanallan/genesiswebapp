@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Dna, Globe, Users, TrendingUp, MapPin, Calendar, Heart } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface DNAResult {
+  id?: string;
+  user_id?: string;
   ethnicity: {
     region: string;
     percentage: number;
@@ -26,6 +29,8 @@ interface DNAResult {
     sharedDNA: number;
     location: string;
   }[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const DNAInsights: React.FC = () => {
@@ -33,13 +38,49 @@ export const DNAInsights: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'ethnicity' | 'health' | 'migration' | 'relatives'>('ethnicity');
 
+  useEffect(() => {
+    fetchDNAData();
+  }, []);
+
+  const fetchDNAData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('dna_insights')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        throw error;
+      }
+
+      if (data) {
+        setDnaData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching DNA data:', error);
+      toast.error('Failed to load DNA insights');
+    }
+  };
+
   const uploadDNAFile = async (file: File) => {
     setIsLoading(true);
     try {
-      // Simulate DNA analysis
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Simulate DNA analysis (in a real app, this would call an AI service)
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      const mockData: DNAResult = {
+      const dnaResult: DNAResult = {
+        user_id: user.id,
         ethnicity: [
           { region: 'Western Europe', percentage: 45, confidence: 95 },
           { region: 'Eastern Europe', percentage: 30, confidence: 92 },
@@ -61,7 +102,14 @@ export const DNAInsights: React.FC = () => {
         ]
       };
 
-      setDnaData(mockData);
+      // Save to Supabase
+      const { error } = await supabase
+        .from('dna_insights')
+        .insert([dnaResult]);
+
+      if (error) throw error;
+
+      setDnaData(dnaResult);
       toast.success('DNA analysis complete!');
     } catch (error) {
       console.error('DNA analysis error:', error);
@@ -75,6 +123,29 @@ export const DNAInsights: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       uploadDNAFile(file);
+    }
+  };
+
+  const deleteDNAData = async () => {
+    if (!dnaData?.id) return;
+    
+    if (!confirm('Are you sure you want to delete your DNA insights? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('dna_insights')
+        .delete()
+        .eq('id', dnaData.id);
+
+      if (error) throw error;
+
+      setDnaData(null);
+      toast.success('DNA insights deleted successfully');
+    } catch (error) {
+      console.error('Error deleting DNA data:', error);
+      toast.error('Failed to delete DNA insights');
     }
   };
 
