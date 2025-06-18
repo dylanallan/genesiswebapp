@@ -1,0 +1,1 @@
+{Previous content of AutomationWebsite.tsx with updated branding}

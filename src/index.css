@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Basic reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+@layer base {
+  :root {
+    --genesis-50: 240 247 255;
+    --genesis-100: 224 239 254;
+    --genesis-200: 186 224 253;
+    --genesis-300: 124 197 251;
+    --genesis-400: 54 169 247;
+    --genesis-500: 12 142 232;
+    --genesis-600: 2 112 197;
+    --genesis-700: 4 89 160;
+    --genesis-800: 10 75 133;
+    --genesis-900: 13 64 110;
+    --genesis-950: 8 40 71;
+
+    --spiritual-50: 253 248 241;
+    --spiritual-100: 249 237 217;
+    --spiritual-200: 242 216 176;
+    --spiritual-300: 234 187 125;
+    --spiritual-400: 227 150 71;
+    --spiritual-500: 221 122 37;
+    --spiritual-600: 198 93 27;
+    --spiritual-700: 165 69 24;
+    --spiritual-800: 134 55 26;
+    --spiritual-900: 111 47 24;
+    --spiritual-950: 61 22 9;
+  }
+}
+
+/* Custom animations */
+@keyframes slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+/* Hide scrollbar for clean UI */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}

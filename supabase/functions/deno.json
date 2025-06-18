@@ -1,0 +1,59 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["https://deno.land/x/deno@v1.37.1/mod.d.ts"]
+  },
+  "importMap": {
+    "imports": {
+      "std/": "https://deno.land/std@0.168.0/",
+      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+      "@anthropic-ai/sdk": "https://esm.sh/@anthropic-ai/sdk@0.7.0",
+      "openai": "https://esm.sh/openai@4.0.0",
+      "@google/generative-ai": "https://esm.sh/@google/generative-ai@0.1.0"
+    }
+  },
+  "tasks": {
+    "start": "deno run --allow-net --allow-env --allow-read index.ts",
+    "deploy": "supabase functions deploy dna-analysis-processor --project-ref your-project-ref"
+  },
+  "lint": {
+    "files": {
+      "include": ["**/*.ts"],
+      "exclude": ["**/*.test.ts"]
+    },
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "files": {
+      "include": ["**/*.ts"],
+      "exclude": ["**/*.test.ts"]
+    },
+    "options": {
+      "useTabs": false,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "singleQuote": true,
+      "proseWrap": "preserve"
+    }
+  }
+} 
