@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, ReactNode } from 'react';
 import { SessionProvider, useSession } from '../lib/session-context';
 import { supabase } from '../lib/supabase';
 import { Auth } from './Auth';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { initializeBackend } from '../lib/initialize-backend';
 
-const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AuthContent: React.FC<{ children: ReactNode }> = ({ children }) => {
   const session = useSession();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,10 +29,11 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       if (event === 'SIGNED_IN') {
         setIsLoading(false);
         toast.success('Signed in successfully');
+        await initializeBackend();
       } else if (event === 'SIGNED_OUT') {
         setIsLoading(false);
         toast.info('Signed out successfully');
@@ -40,6 +42,12 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (session) {
+      initializeBackend();
+    }
+  }, [session]);
 
   if (isLoading) {
     return (
@@ -59,7 +67,7 @@ const AuthContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <SessionProvider 
       supabaseClient={supabase}

@@ -1,4 +1,27 @@
-# Deployment Guide
+# Deployment Guide: Genesis Web App
+
+## 1. Prerequisites
+- GitHub repository with your code
+- Supabase project with schema applied (see schema.sql)
+
+## 2. Vercel/Netlify Setup
+1. Go to [Vercel](https://vercel.com/) or [Netlify](https://netlify.com/)
+2. Create a new project and connect your GitHub repo
+3. Set the following environment variables in the dashboard:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy the project
+
+## 3. Post-Deploy Checklist
+- Visit your deployed site
+- Sign up, login, and test all features
+- Check browser console for errors
+- Check Supabase dashboard for new user data
+
+## 4. Troubleshooting
+- If you see 'Missing Supabase configuration', check your environment variables
+- If features are missing, ensure your Supabase schema is up to date
+- For help, see the QA_CHECKLIST.md file
 
 ## Prerequisites
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Dashboard } from './Dashboard';
 import { SystemDashboard } from './SystemDashboard';
 import { AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
 import { VoiceCloning } from './VoiceCloning';
@@ -27,14 +26,6 @@ import {
 } from 'lucide-react';
 
 const features = [
-  {
-    id: 'dashboard',
-    name: 'AI Dashboard',
-    icon: Brain,
-    component: Dashboard,
-    description: 'Main AI-powered automation hub',
-    category: 'core'
-  },
   {
     id: 'system-dashboard',
     name: 'System Monitor',
@@ -97,7 +88,7 @@ export const SuperchargedDashboard: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState('system-dashboard');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const ActiveComponent = features.find(f => f.id === activeFeature)?.component || Dashboard;
+  const ActiveComponent = features.find(f => f.id === activeFeature)?.component || SystemDashboard;
 
   const categories = [
     { id: 'all', name: 'All Features', icon: Sparkles },

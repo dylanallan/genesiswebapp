@@ -1,14 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
-// Get environment variables with fallbacks
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yomgwdeqsvbapvqpuspq.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbWd3ZGVxc3ZiYXB2cXB1c3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2MDIzNjUsImV4cCI6MjA2NDE3ODM2NX0.HBjnzvpUBuPdTkFkJDwu673d0BqsJanaoMFkhTwEdvk';
+// Get environment variables ONLY (no hardcoded fallback)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase configuration');
-  toast.error('Missing Supabase configuration. Please check your environment variables.');
+  const errorMsg = 'Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.';
+  console.error(errorMsg);
+  toast.error(errorMsg);
+  throw new Error(errorMsg);
 }
 
 // Create and export the Supabase client with error handling
@@ -30,17 +32,7 @@ try {
 } catch (error) {
   console.error('Error creating Supabase client:', error);
   toast.error('Failed to initialize Supabase client');
-  
-  // Create a fallback client
-  supabase = {
-    auth: {
-      signInWithPassword: async () => ({ error: { message: 'Supabase not initialized' } }),
-      signUp: async () => ({ error: { message: 'Supabase not initialized' } }),
-      signOut: async () => ({ error: { message: 'Supabase not initialized' } }),
-      getUser: async () => ({ data: { user: null }, error: null }),
-      refreshSession: async () => ({ data: { session: null }, error: null })
-    }
-  };
+  throw error;
 }
 
 export { supabase };
