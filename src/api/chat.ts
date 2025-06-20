@@ -153,7 +153,7 @@ export const chatApi = {
   async sendMessage(
     message: string, 
     conversationId?: string,
-    provider?: 'openai' | 'anthropic' | 'gemini' | 'auto',
+    provider?: 'openai' | 'gemini' | 'auto',
     model?: string
   ): Promise<ChatResponse> {
     console.log('📤 Chat API sendMessage called:', { message: message.substring(0, 50) + '...', conversationId, provider, model });
@@ -208,8 +208,10 @@ export const chatApi = {
             provider: aiResult.provider,
             model: aiResult.model
           });
+
+        console.log('✅ Messages stored in database');
       } catch (dbError) {
-        console.warn('Database storage failed, but continuing:', dbError);
+        console.warn('⚠️ Database storage failed, but continuing:', dbError);
       }
 
       return {
@@ -219,8 +221,9 @@ export const chatApi = {
         model: aiResult.model,
         timestamp: new Date().toISOString()
       };
+
     } catch (error) {
-      console.error('Chat API error:', error);
+      console.error('❌ Chat API error:', error);
       throw error;
     }
   },
@@ -232,20 +235,26 @@ export const chatApi = {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await supabase.rpc('get_chat_history', {
-        user_uuid: user.id,
-        conversation_id: conversationId || null
-      });
+      let query = supabase
+        .from('ai_conversation_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (conversationId) {
+        query = query.eq('conversation_id', conversationId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
-        console.error('Chat history RPC error:', error);
-        throw new Error('Failed to fetch chat history');
+        throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Chat API error:', error);
-      throw error;
+      console.error('Error fetching chat history:', error);
+      return [];
     }
   },
 
@@ -256,44 +265,45 @@ export const chatApi = {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await supabase.rpc('get_conversation_list', {
-        user_uuid: user.id
-      });
+      const { data, error } = await supabase
+        .from('ai_conversation_history')
+        .select('conversation_id, message, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Conversation list RPC error:', error);
-        throw new Error('Failed to fetch conversation list');
+        throw error;
       }
 
-      return data || [];
+      // Group by conversation_id and get the latest message for each
+      const conversations = new Map<string, ConversationInfo>();
+      
+      data?.forEach((row: { conversation_id: string; message: string; created_at: string }) => {
+        if (!conversations.has(row.conversation_id)) {
+          conversations.set(row.conversation_id, {
+            conversation_id: row.conversation_id,
+            title: `Conversation ${row.conversation_id.slice(0, 8)}`,
+            last_message: row.message,
+            message_count: 1,
+            last_updated: row.created_at
+          });
+        } else {
+          const conv = conversations.get(row.conversation_id)!;
+          conv.message_count++;
+        }
+      });
+
+      return Array.from(conversations.values());
     } catch (error) {
-      console.error('Chat API error:', error);
-      throw error;
+      console.error('Error fetching conversation list:', error);
+      return [];
     }
   },
 
   async createConversation(title?: string): Promise<string> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const { data, error } = await supabase.rpc('create_conversation', {
-        user_uuid: user.id,
-        title: title || null
-      });
-
-      if (error) {
-        console.error('Create conversation RPC error:', error);
-        throw new Error('Failed to create conversation');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Chat API error:', error);
-      throw error;
-    }
+    const conversationId = crypto.randomUUID();
+    console.log('📝 Created new conversation:', conversationId);
+    return conversationId;
   },
 
   async deleteConversation(conversationId: string): Promise<boolean> {
@@ -303,34 +313,28 @@ export const chatApi = {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await supabase.rpc('delete_conversation', {
-        user_uuid: user.id,
-        conversation_id: conversationId
-      });
+      const { error } = await supabase
+        .from('ai_conversation_history')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('conversation_id', conversationId);
 
       if (error) {
-        console.error('Delete conversation RPC error:', error);
-        throw new Error('Failed to delete conversation');
+        throw error;
       }
 
-      return data;
+      console.log('🗑️ Deleted conversation:', conversationId);
+      return true;
     } catch (error) {
-      console.error('Chat API error:', error);
-      throw error;
+      console.error('Error deleting conversation:', error);
+      return false;
     }
   },
 
-  // Get available AI models
   getAvailableModels() {
-    return [
-      { id: 'auto', name: 'Auto-Select (Best Available)', description: 'Automatically chooses the best AI provider', provider: 'auto' },
-      { id: 'gpt-4', name: 'GPT-4', description: 'Advanced reasoning and analysis', provider: 'openai' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient', provider: 'openai' },
-      { id: 'models/gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast and versatile', provider: 'gemini' },
-      { id: 'models/gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Advanced capabilities', provider: 'gemini' },
-      { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Nuanced understanding (requires valid key)', provider: 'anthropic' },
-      { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced performance (requires valid key)', provider: 'anthropic' },
-      { id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast responses (requires valid key)', provider: 'anthropic' }
-    ];
+    return {
+      openai: ['gpt-3.5-turbo', 'gpt-4'],
+      gemini: ['models/gemini-1.5-flash', 'models/gemini-1.5-pro']
+    };
   }
 };
