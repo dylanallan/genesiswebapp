@@ -6,8 +6,10 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 # AI Service API Keys
 VITE_OPENAI_API_KEY=your_openai_api_key_here
-VITE_GEMINI_API_KEY=AIzaSyB90pAbcSbOxGMJM1feRKJCihtevglM_v0
-VITE_ANTHROPIC_API_KEY=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
+// Replace with your real API keys in your .env file, not in source code!
+VITE_GEMINI_API_KEY=GOOGLE_API_KEY_HERE
+// Replace with your real API keys in your .env file, not in source code!
+VITE_ANTHROPIC_API_KEY=ANTHROPIC_API_KEY_HERE
 
 # Optional: Analytics and Monitoring
 VITE_POSTHOG_KEY=your_posthog_key_here

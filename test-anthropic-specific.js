@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const anthropicKey = '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';
+// Replace with your real Anthropic API key in your .env file, not in source code!
+const anthropicKey = 'ANTHROPIC_API_KEY_HERE';
 
 console.log('🧠 Testing Anthropic API Key...\n');
 console.log('Key starts with:', anthropicKey.substring(0, 20) + '...');

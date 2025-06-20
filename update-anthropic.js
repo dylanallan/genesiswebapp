@@ -1,6 +1,7 @@
 import fs from 'fs';
 
-const newAnthropicKey = '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';
+// Replace with your real Anthropic API key in your .env file, not in source code!
+const newAnthropicKey = 'ANTHROPIC_API_KEY_HERE';
 
 // Read current .env file
 const envPath = '.env';

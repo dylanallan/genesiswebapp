@@ -126,7 +126,7 @@ INSERT INTO api_key_management (
 ) VALUES 
     (
         'openai_api_key',
-        encrypt_api_key('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'),
+        encrypt_api_key('OPENAI_API_KEY_HERE'),
         'openai',
         100,  -- Rate limit
         interval '1 minute',  -- Rate limit period
@@ -137,7 +137,7 @@ INSERT INTO api_key_management (
     ),
     (
         'anthropic_api_key',
-        encrypt_api_key('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'),
+        encrypt_api_key('ANTHROPIC_API_KEY_HERE'),
         'anthropic',
         100,  -- Rate limit
         interval '1 minute',  -- Rate limit period
@@ -148,7 +148,7 @@ INSERT INTO api_key_management (
     ),
     (
         'google_api_key',
-        encrypt_api_key('AIzaSyAykdwrfLMPkJ7m9H6_5gTGVq5LKkEI4iI'),
+        encrypt_api_key('GOOGLE_API_KEY_HERE'),
         'google',
         100,  -- Rate limit
         interval '1 minute',  -- Rate limit period

@@ -45,7 +45,7 @@ BEGIN
     (
         'openai',
         'llm',
-        encrypt('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', encryption_key),
+        encrypt('OPENAI_API_KEY_HERE', encryption_key),
         NULL,
         'production',
         true,
@@ -61,7 +61,7 @@ BEGIN
     (
         'anthropic',
         'llm',
-        encrypt('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', encryption_key),
+        encrypt('ANTHROPIC_API_KEY_HERE', encryption_key),
         NULL,
         'production',
         true,
@@ -77,7 +77,7 @@ BEGIN
     (
         'google-ai',
         'llm',
-        encrypt('AIzaSyAykdwrfLMPkJ7m9H6_5gTGVq5LKkEI4iI', encryption_key),
+        encrypt('GOOGLE_API_KEY_HERE', encryption_key),
         NULL,
         'production',
         true,
@@ -115,9 +115,9 @@ BEGIN
         updated_at = now();
 
     -- Set environment variables in Supabase
-    PERFORM set_config('app.settings.openai_api_key', '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', false);
-    PERFORM set_config('app.settings.anthropic_api_key', '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', false);
-    PERFORM set_config('app.settings.gemini_api_key', 'AIzaSyAykdwrfLMPkJ7m9H6_5gTGVq5LKkEI4iI', false);
+    PERFORM set_config('app.settings.openai_api_key', 'OPENAI_API_KEY_HERE', false);
+    PERFORM set_config('app.settings.anthropic_api_key', 'ANTHROPIC_API_KEY_HERE', false);
+    PERFORM set_config('app.settings.gemini_api_key', 'GOOGLE_API_KEY_HERE', false);
     PERFORM set_config('app.settings.google_client_id', '1097107540373-3c2pnab29djjn7fqnf36gk8sh3n8rdoi.apps.googleusercontent.com', false);
     PERFORM set_config('app.settings.google_client_secret', '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', false);
 

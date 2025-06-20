@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const testKey = 'AIzaSyB90pAbcSbOxGMJM1feRKJCihtevglM_v0';
+// Replace with your real Gemini API key in your .env file, not in source code!
+const testKey = 'GOOGLE_API_KEY_HERE';
 
 console.log('🔍 Testing Google API Key...\n');
 

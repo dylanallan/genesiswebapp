@@ -1,9 +1,9 @@
 -- Update all API keys in the system
 DO $$
 DECLARE
-    v_openai_key text := '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';
-    v_anthropic_key text := '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';
-    v_google_key text := 'AIzaSyAykdwrfLMPkJ7m9H6_5gTGVq5LKkEI4iI';
+    v_openai_key text := 'OPENAI_API_KEY_HERE';
+    v_anthropic_key text := 'ANTHROPIC_API_KEY_HERE';
+    v_google_key text := 'GOOGLE_API_KEY_HERE';
     v_google_client_id text := '1097107540373-3c2pnab29djjn7fqnf36gk8sh3n8rdoi.apps.googleusercontent.com';
     v_google_client_secret text := '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';
 BEGIN
