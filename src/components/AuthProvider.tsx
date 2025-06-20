@@ -51,9 +51,9 @@ const AuthContent: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50 flex items-center justify-center">
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-genesis-600 mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -69,10 +69,7 @@ const AuthContent: React.FC<{ children: ReactNode }> = ({ children }) => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
-    <SessionProvider 
-      supabaseClient={supabase}
-      initialSession={null}
-    >
+    <SessionProvider>
       <AuthContent>{children}</AuthContent>
     </SessionProvider>
   );

@@ -34,17 +34,31 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session with timeout
     const getInitialSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
+        console.log('Getting initial session...');
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+        } else {
+          console.log('Initial session:', initialSession);
+          setSession(initialSession);
+        }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('Unexpected error getting session:', error);
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
       }
     };
+
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log('Session timeout reached, setting loading to false');
+      setLoading(false);
+    }, 3000); // 3 second timeout
 
     getInitialSession();
 
@@ -53,10 +67,14 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       async (event: string, session: Session | null) => {
         console.log('Auth state changed:', event, session);
         setSession(session);
+        setLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
