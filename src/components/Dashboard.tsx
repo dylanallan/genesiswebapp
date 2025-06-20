@@ -172,7 +172,6 @@ import { PaymentForm } from './PaymentForm';
 import { ProfileEditor } from './ProfileEditor';
 import { ProfileHistoryViewer } from './ProfileHistoryViewer';
 import { SEO } from './SEO';
-import { SuperchargedDashboard } from './SuperchargedDashboard';
 import { SystemDashboard } from './SystemDashboard';
 import { UserProfile } from './UserProfile';
 import { UserSettings } from './UserSettings';
@@ -705,14 +704,6 @@ const features = [
   },
 
   // Additional Tools
-  {
-    id: 'supercharged-dashboard',
-    name: 'Supercharged Dashboard',
-    icon: Zap,
-    component: SuperchargedDashboard,
-    description: 'Enhanced dashboard experience',
-    category: 'tools'
-  },
   {
     id: 'system-dashboard',
     name: 'System Dashboard',
