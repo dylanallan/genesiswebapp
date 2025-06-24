@@ -75,7 +75,7 @@ export const AutomationHub: React.FC = () => {
       const { data, error } = await supabase
         .from('automation_workflows')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
       if (error) throw error;
       setWorkflows(data || []);
       // Optionally update metrics here
