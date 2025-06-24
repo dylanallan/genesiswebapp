@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { useSession } from '../lib/session-context';
 import { chatApi, ChatMessage, ChatResponse, ConversationInfo } from '../api/chat';
 import { supabase } from '../lib/supabase';
+import VoicePlayer from './VoicePlayer';
 
 interface ChatProps {
   userName?: string;
@@ -36,11 +37,7 @@ const availableModels = [
   { id: 'gemini-pro', name: 'Gemini Pro (Google)', provider: 'gemini' as const }
 ];
 
-export const Chat: React.FC<ChatProps> = ({ 
-  userName = 'User', 
-  ancestry = 'European and Asian heritage',
-  businessGoals = 'Automate marketing and preserve cultural knowledge'
-}) => {
+export const Chat: React.FC<ChatProps> = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -92,35 +89,8 @@ export const Chat: React.FC<ChatProps> = ({
     }
   };
 
-  const createNewConversation = async () => {
-    try {
-      const newConversationId = await chatApi.createConversation();
-      setConversationId(newConversationId);
-      setMessages([]);
-      setShowConversations(false);
-      await loadConversations();
-      
-      // Add welcome message
-      const welcomeMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        message: `👋 Hello ${userName}! I'm your Genesis AI assistant. Based on your profile, I can help with:
-
-- Business automation strategies for ${businessGoals}
-- Exploring your ${ancestry} background
-- Connecting cultural heritage with modern business practices
-
-How can I assist you today?`,
-        created_at: new Date().toISOString()
-      };
-      setMessages([welcomeMessage]);
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-      toast.error('Failed to create new conversation');
-    }
-  };
-
-  const loadConversation = async (convId: string) => {
+  const loadConversation = async (convId: string | undefined) => {
+    if (typeof convId !== 'string') return;
     try {
       const history = await chatApi.getHistory(convId);
       setMessages(history);
@@ -132,21 +102,6 @@ How can I assist you today?`,
     }
   };
 
-  const deleteConversation = async (convId: string) => {
-    try {
-      await chatApi.deleteConversation(convId);
-      await loadConversations();
-      if (conversationId === convId) {
-        setConversationId(undefined);
-        setMessages([]);
-      }
-      toast.success('Conversation deleted');
-    } catch (error) {
-      console.error('Failed to delete conversation:', error);
-      toast.error('Failed to delete conversation');
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -154,8 +109,9 @@ How can I assist you today?`,
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      message: input,
-      created_at: new Date().toISOString()
+      content: input,
+      created_at: new Date().toISOString(),
+      conversation_id: conversationId || ''
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -166,7 +122,7 @@ How can I assist you today?`,
   };
 
   const processUserMessage = async (userMessage: ChatMessage) => {
-    console.log('🔄 Processing user message:', { message: userMessage.message.substring(0, 50) + '...', conversationId });
+    console.log('🔄 Processing user message:', { content: userMessage.content.substring(0, 50) + '...', conversationId });
     
     setIsLoading(true);
     setConnectionStatus('connected');
@@ -186,12 +142,7 @@ How can I assist you today?`,
 
       console.log('🎯 Sending message with:', { provider, model, conversationId });
 
-      const response = await chatApi.sendMessage(
-        userMessage.message,
-        conversationId,
-        provider,
-        model
-      );
+      const response = await chatApi.sendMessage(userMessage.content, conversationId);
 
       console.log('📥 Received response:', { 
         provider: response.provider, 
@@ -203,16 +154,13 @@ How can I assist you today?`,
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        message: response.response,
-        provider: response.provider,
-        model: response.model,
-        created_at: response.timestamp
+        content: response.response,
+        created_at: response.timestamp,
+        conversation_id: response.conversationId || conversationId || ''
       };
 
       console.log('💬 Adding assistant message to chat:', { 
-        provider: assistantMessage.provider, 
-        model: assistantMessage.model,
-        messageLength: assistantMessage.message.length 
+        messageLength: assistantMessage.content.length 
       });
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -228,8 +176,9 @@ How can I assist you today?`,
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        message: "I'm sorry, I encountered an error processing your request. Please try again or check your connection if the issue persists.",
-        created_at: new Date().toISOString()
+        content: "I'm sorry, I encountered an error processing your request. Please try again or check your connection if the issue persists.",
+        created_at: new Date().toISOString(),
+        conversation_id: conversationId || ''
       };
       
       setMessages(prev => [...prev, errorMessage]);
@@ -278,13 +227,13 @@ How can I assist you today?`,
       switch (format) {
         case 'text':
           content = messages
-            .map(msg => `${msg.role.toUpperCase()} (${new Date(msg.created_at).toLocaleString()}):\n${msg.message}\n\n`)
+            .map(msg => `${msg.role.toUpperCase()} (${new Date(msg.created_at).toLocaleString()}):\n${msg.content}\n\n`)
             .join('');
           break;
         case 'markdown':
           content = `# Conversation Export - ${new Date().toLocaleDateString()}\n\n`;
           content += messages
-            .map(msg => `## ${msg.role === 'user' ? 'You' : 'Assistant'} - ${new Date(msg.created_at).toLocaleString()}\n\n${msg.message}\n\n`)
+            .map(msg => `## ${msg.role === 'user' ? 'You' : 'Assistant'} - ${new Date(msg.created_at).toLocaleString()}\n\n${msg.content}\n\n`)
             .join('');
           break;
         case 'json':
@@ -388,49 +337,36 @@ How can I assist you today?`,
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Conversations</h3>
-              <button
+              {/* <button
                 onClick={createNewConversation}
                 className="p-1 text-blue-600 hover:text-blue-800"
                 title="New conversation"
               >
                 <Plus className="w-4 h-4" />
-              </button>
+              </button> */}
             </div>
           </div>
           <div className="p-2">
             {conversations.length === 0 ? (
               <p className="text-gray-500 text-sm p-4 text-center">No conversations yet</p>
             ) : (
-              conversations.map(conv => (
+              conversations.filter(conv => typeof conv.id === 'string' && conv.id).map(conv => (
                 <div
-                  key={conv.conversation_id}
+                  key={conv.id}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    conversationId === conv.conversation_id
+                    conversationId === conv.id
                       ? 'bg-blue-50 border border-blue-200'
                       : 'hover:bg-gray-50'
                   }`}
+                  onClick={() => { if (typeof conv.id === 'string') loadConversation(conv.id); }}
                 >
                   <div className="flex items-center justify-between">
-                    <div
-                      className="flex-1 min-w-0"
-                      onClick={() => loadConversation(conv.conversation_id)}
-                    >
+                    <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-gray-900 truncate">{conv.title}</h4>
-                      <p className="text-sm text-gray-500 truncate">{conv.last_message}</p>
                       <p className="text-xs text-gray-400">
-                        {conv.message_count} messages • {new Date(conv.last_updated).toLocaleDateString()}
+                        {new Date(conv.last_updated).toLocaleDateString()}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteConversation(conv.conversation_id);
-                      }}
-                      className="p-1 text-gray-400 hover:text-red-600 ml-2"
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
                   </div>
                 </div>
               ))
@@ -446,60 +382,53 @@ How can I assist you today?`,
             <div className="text-center">
               <Brain className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">Start a conversation to begin</p>
-              <button
+              {/* <button
                 onClick={createNewConversation}
                 className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 New Conversation
-              </button>
+              </button> */}
             </div>
           </div>
         ) : (
-          messages.map((message) => (
+          messages.map((msg, idx) => (
             <motion.div
-              key={message.id}
+              key={msg.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[80%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
-                <div className={`flex items-start space-x-2 ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+              <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
+                <div className={`flex items-start space-x-2 ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    message.role === 'user' ? 'bg-blue-500' : 'bg-gray-500'
+                    msg.role === 'user' ? 'bg-blue-500' : 'bg-gray-500'
                   }`}>
-                    {message.role === 'user' ? (
+                    {msg.role === 'user' ? (
                       <User className="w-4 h-4 text-white" />
                     ) : (
                       <Bot className="w-4 h-4 text-white" />
                     )}
                   </div>
                   <div className={`rounded-lg px-4 py-2 ${
-                    message.role === 'user' 
+                    msg.role === 'user' 
                       ? 'bg-blue-500 text-white' 
                       : 'bg-gray-100 text-gray-900'
                   }`}>
-                    <div className="whitespace-pre-wrap">{message.message}</div>
-                    {message.provider && message.model && (
-                      <div className={`text-xs mt-1 ${
-                        message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
-                        {message.provider} • {message.model}
-                      </div>
-                    )}
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
                   </div>
                 </div>
                 
-                {message.role === 'assistant' && (
+                {msg.role === 'assistant' && (
                   <div className="flex items-center space-x-2 mt-2 ml-10">
                     <button
-                      onClick={() => handleFeedback(message.id, 5)}
+                      onClick={() => handleFeedback(msg.id, 5)}
                       className="p-1 text-gray-400 hover:text-green-600"
                       title="Helpful"
                     >
                       <ThumbsUp className="w-3 h-3" />
                     </button>
                     <button
-                      onClick={() => handleFeedback(message.id, 1)}
+                      onClick={() => handleFeedback(msg.id, 1)}
                       className="p-1 text-gray-400 hover:text-red-600"
                       title="Not helpful"
                     >
@@ -508,6 +437,9 @@ How can I assist you today?`,
                   </div>
                 )}
               </div>
+              {msg.role === 'assistant' && (
+                <VoicePlayer text={msg.content} />
+              )}
             </motion.div>
           ))
         )}

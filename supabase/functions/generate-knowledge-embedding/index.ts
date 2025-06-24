@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json();
+    const { text, metadata: requestMetadata } = await req.json();
 
     if (!text) {
       throw new Error("Missing 'text' in request body");
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
         content_length: text.length,
         content_tokens: Math.round(text.length / 4), // Estimate tokens
         embedding: embedding,
-        metadata: { source: 'api' }
+        metadata: requestMetadata || { source: 'api' }
       })
       .select()
       .single();
