@@ -15,6 +15,8 @@ import { ARHeritageViewer } from './components/ARHeritageViewer';
 import { TimelineBuilder } from './components/TimelineBuilder';
 import { CulturalRecipeBook } from './components/CulturalRecipeBook';
 import { MarketingAutomation } from './components/MarketingAutomation';
+import { EnterpriseEnhancements } from './components/EnterpriseEnhancements';
+import { AICulturalIntelligence } from './components/AICulturalIntelligence';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -81,6 +83,28 @@ const ComprehensiveDashboard: React.FC = () => {
         </div>
       ),
       description: 'Advanced conversational AI for genealogy research'
+    },
+    {
+      id: 'enterprise-intelligence',
+      name: 'Enterprise Intelligence',
+      icon: '👑',
+      component: () => (
+        <div className="h-full">
+          <EnterpriseEnhancements />
+        </div>
+      ),
+      description: 'AI-powered cultural & business insights with enterprise analytics'
+    },
+    {
+      id: 'cultural-intelligence',
+      name: 'Cultural Intelligence',
+      icon: '🧠',
+      component: () => (
+        <div className="h-full">
+          <AICulturalIntelligence />
+        </div>
+      ),
+      description: 'Real-time cultural pattern recognition & predictive analytics'
     },
     {
       id: 'dna-insights',
