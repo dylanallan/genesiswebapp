@@ -7,8 +7,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase configuration');
-  toast.error('Missing Supabase configuration. Please check your environment variables.');
+  console.warn('Missing Supabase configuration - using fallback mode');
 }
 
 // Create and export the Supabase client with error handling
@@ -29,17 +28,32 @@ try {
   console.log('Supabase client created successfully');
 } catch (error) {
   console.error('Error creating Supabase client:', error);
-  toast.error('Failed to initialize Supabase client');
+  console.warn('Using fallback Supabase client');
   
-  // Create a fallback client
+  // Create a fallback client that won't break the app
   supabase = {
     auth: {
       signInWithPassword: async () => ({ error: { message: 'Supabase not initialized' } }),
       signUp: async () => ({ error: { message: 'Supabase not initialized' } }),
       signOut: async () => ({ error: { message: 'Supabase not initialized' } }),
       getUser: async () => ({ data: { user: null }, error: null }),
-      refreshSession: async () => ({ data: { session: null }, error: null })
-    }
+      getSession: async () => ({ data: { session: null }, error: null }),
+      refreshSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: (callback: any) => ({
+        data: {
+          subscription: {
+            unsubscribe: () => {}
+          }
+        }
+      })
+    },
+    from: () => ({
+      select: () => ({ data: [], error: null }),
+      insert: () => ({ data: null, error: { message: 'Supabase not initialized' } }),
+      update: () => ({ data: null, error: { message: 'Supabase not initialized' } }),
+      delete: () => ({ data: null, error: { message: 'Supabase not initialized' } })
+    }),
+    rpc: () => ({ data: null, error: { message: 'Supabase not initialized' } })
   };
 }
 

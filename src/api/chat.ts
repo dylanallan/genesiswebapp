@@ -9,7 +9,7 @@ const OPENAI_MODEL = 'gpt-3.5-turbo';
 // For Anthropic - This needs a valid key
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 if (!ANTHROPIC_API_KEY) {
-  throw new Error('Anthropic API key not configured. Set VITE_ANTHROPIC_API_KEY in your .env file.');
+  console.warn('Anthropic API key not configured. Set VITE_ANTHROPIC_API_KEY in your .env file for full functionality.');
 }
 
 export interface ChatMessage {

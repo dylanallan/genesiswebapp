@@ -37,10 +37,16 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
+        if (supabase?.auth?.getSession) {
+          const { data: { session: initialSession } } = await supabase.auth.getSession();
+          setSession(initialSession);
+        } else {
+          console.warn('Supabase auth not available, using fallback session');
+          setSession(null);
+        }
       } catch (error) {
         console.error('Error getting initial session:', error);
+        setSession(null);
       } finally {
         setLoading(false);
       }
@@ -49,14 +55,28 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     getInitialSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, session: Session | null) => {
-        console.log('Auth state changed:', event, session);
-        setSession(session);
+    let subscription: any = null;
+    try {
+      if (supabase?.auth?.onAuthStateChange) {
+        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+          async (event: string, session: Session | null) => {
+            console.log('Auth state changed:', event, session);
+            setSession(session);
+          }
+        );
+        subscription = authSubscription;
+      } else {
+        console.warn('Supabase auth onAuthStateChange not available');
       }
-    );
+    } catch (error) {
+      console.error('Error setting up auth state listener:', error);
+    }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   return (

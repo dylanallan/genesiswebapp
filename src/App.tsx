@@ -6,6 +6,7 @@ import { SessionProvider } from './lib/session-context';
 import { Dashboard } from './components/Dashboard';
 import { AuthProvider } from './components/AuthProvider';
 import { useSession } from './lib/session-context';
+import { ErrorBoundary } from './lib/error-boundary';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -20,6 +21,8 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { session, loading } = useSession();
 
+  console.log('🔍 AppContent render:', { session: !!session, loading });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
@@ -32,32 +35,42 @@ function AppContent() {
     );
   }
 
+  console.log('🎯 Rendering main app content:', { hasSession: !!session });
+
   return (
     <div className="App">
       {session ? (
-        <Dashboard onViewModeChange={() => {}} />
+        <ErrorBoundary>
+          <Dashboard onViewModeChange={() => {}} />
+        </ErrorBoundary>
       ) : (
-        <AuthProvider />
+        <ErrorBoundary>
+          <AuthProvider />
+        </ErrorBoundary>
       )}
     </div>
   );
 }
 
 function App() {
+  console.log('🚀 App component rendering');
+  
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <Router>
-          <AppContent />
-        </Router>
-      </SessionProvider>
-      <Toaster 
-        position="top-right"
-        richColors
-        closeButton
-        duration={4000}
-      />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </SessionProvider>
+        <Toaster 
+          position="top-right"
+          richColors
+          closeButton
+          duration={4000}
+        />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
