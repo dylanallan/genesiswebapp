@@ -417,3 +417,18 @@ declare global {
     __APP_STATE__?: Record<string, any>;
   }
 }
+
+// ---
+// To create the error_recovery_logs table in Supabase, run:
+//
+// CREATE TABLE error_recovery_logs (
+//   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+//   component text,
+//   error_message text,
+//   stack_trace text,
+//   recovery_strategy text,
+//   timestamp timestamptz,
+//   user_agent text,
+//   user_id uuid
+// );
+// ---

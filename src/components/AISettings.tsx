@@ -76,7 +76,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
         .from('user_data')
         .select('preferences')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+        .maybeSingle();
       
       if (!userError && userData?.preferences?.aiSettings) {
         setSettings(userData.preferences.aiSettings);

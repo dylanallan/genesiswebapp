@@ -73,7 +73,7 @@ export class AIMemory {
           }
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       

@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { withCors } from '../_shared/cors.ts'
-import { withErrorHandling } from '../_shared/error-handling.ts'
+import { withErrorHandling } from '../_shared/error-handler.ts'
 import { initLogger } from '../_shared/logger.ts'
 
 const logger = initLogger('health-check')

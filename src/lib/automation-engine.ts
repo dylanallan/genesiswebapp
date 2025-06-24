@@ -377,7 +377,7 @@ class AutomationEngine {
           is_active: rule.isActive
         }])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

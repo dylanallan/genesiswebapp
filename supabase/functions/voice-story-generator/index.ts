@@ -1,6 +1,6 @@
-import { serve } from 'std/http/server.ts'
-import { createClient } from '@supabase/supabase-js'
-import { TextToSpeechClient } from '@google-cloud/text-to-speech'
+import { serve } from 'https://deno.land/std/http/server.ts'
+import { createClient } from 'npm:@supabase/supabase-js'
+import { TextToSpeechClient } from 'npm:@google-cloud/text-to-speech'
 import { AIService } from '../shared/ai-utils.ts'
 import { withCors } from '../shared/cors.ts'
 import { withErrorHandling, AppError } from '../shared/error-handler.ts'
@@ -349,38 +349,13 @@ async function generateAudio(ssml: string, options: VoiceStoryRequest['options']
   const duration = calculateAudioDuration(ssml, options?.speakingRate ?? DEFAULT_SPEAKING_RATE)
   
   if (duration > MAX_AUDIO_DURATION) {
-// Voice selection and caching
-function selectVoice(options: VoiceStoryRequest['options']): {
-  name: string
-  language: string
-  gender: string
-} {
-  const language = options?.voice?.language || 'en-US'
-  const gender = options?.voice?.gender || 'neutral'
-  const cacheKey = `${language}-${gender}`
-  
-  // Check cache first
-  const cached = voiceCache.get(cacheKey)
-  if (cached && Date.now() - cached.lastUsed < 3600000) { // 1 hour cache
-    cached.lastUsed = Date.now()
-    return cached
+    throw new AppError(ERROR_MESSAGES.VALIDATION.AUDIO_TOO_LONG, 400)
   }
   
-  // Select appropriate voice
-  const voices = SUPPORTED_VOICES[language] || SUPPORTED_VOICES['en-US']
-  const voiceName = options?.voice?.name || voices[Math.floor(Math.random() * voices.length)]
-  
-  const voiceConfig = {
-    name: voiceName,
-    language,
-    gender,
-    lastUsed: Date.now()
+  return {
+    audioContent: response.audioContent,
+    duration
   }
-  
-  // Update cache
-  voiceCache.set(cacheKey, voiceConfig)
-  
-  return voiceConfig
 }
 
 // Main handler

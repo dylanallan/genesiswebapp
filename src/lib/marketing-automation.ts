@@ -146,7 +146,7 @@ export class MarketingAutomation {
         .from('marketing_funnels')
         .insert([funnel])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -165,7 +165,7 @@ export class MarketingAutomation {
         .from('lead_magnets')
         .insert([leadMagnet])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -184,7 +184,7 @@ export class MarketingAutomation {
         .from('email_sequences')
         .insert([sequence])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -203,7 +203,7 @@ export class MarketingAutomation {
         .from('automation_workflows')
         .insert([workflow])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -245,7 +245,7 @@ export class MarketingAutomation {
         .from('funnel_performance_summary')
         .select('*')
         .eq('funnel_id', funnelId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -283,7 +283,7 @@ export class MarketingAutomation {
           )
         `)
         .eq('client_email', clientEmail)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

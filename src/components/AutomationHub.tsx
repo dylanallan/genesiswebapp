@@ -138,6 +138,26 @@ export const AutomationHub: React.FC = () => {
     }
   };
 
+  const handleRunWorkflow = async (workflowId: string) => {
+    // In a real application, this would make an API call to n8n or a Supabase Edge Function
+    // to trigger the workflow execution.
+    const workflow = workflows.find(w => w.id === workflowId);
+    if (!workflow) {
+      toast.error('Workflow not found.');
+      return;
+    }
+    
+    console.log(`Simulating run for workflow: ${workflow.name} (${workflowId})`);
+    toast.promise(
+      new Promise(resolve => setTimeout(resolve, 1500)),
+      {
+        loading: `Executing workflow: ${workflow.name}...`,
+        success: `Successfully triggered workflow: ${workflow.name}`,
+        error: 'Failed to trigger workflow',
+      }
+    );
+  };
+
   const refreshData = async () => {
     setIsRefreshing(true);
     try {

@@ -30,7 +30,7 @@ export async function processImage(imageFile: File) {
         }
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -36,7 +36,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
           .from('user_data')
           .select('preferences')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
         if (!error && data) {
           setUserProfile(data.preferences);

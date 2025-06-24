@@ -40,7 +40,7 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
         .from('ai_custom_instructions')
         .select('instructions, is_active')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+        .maybeSingle();
       
       if (!error && data) {
         setInstructions(data.instructions || '');

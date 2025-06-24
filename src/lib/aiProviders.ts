@@ -37,7 +37,7 @@ async function getApiKey(provider: string): Promise<string> {
       .select('api_key')
       .eq('service_name', provider)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     
     if (error || !data?.api_key) {
       throw new Error(`${provider} API key not configured`);

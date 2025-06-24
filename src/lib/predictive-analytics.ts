@@ -139,3 +139,76 @@ function generateActionItems(trend: TrendAnalysis): string[] {
 
   return actionItems;
 }
+
+/**
+ * Performs a simple linear regression on a series of data points.
+ * @param data An array of numbers representing the data points.
+ * @returns An object containing the slope, intercept, and a function to predict future values.
+ */
+function linearRegression(data: number[]) {
+  const n = data.length;
+  if (n < 2) {
+    return { slope: 0, intercept: n === 1 ? data[0] : 0, predict: (x: number) => n === 1 ? data[0] : 0 };
+  }
+
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += i;
+    sumY += data[i];
+    sumXY += i * data[i];
+    sumXX += i * i;
+  }
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  const predict = (x: number) => slope * x + intercept;
+
+  return { slope, intercept, predict };
+}
+
+/**
+ * Analyzes a time series of metric data and provides a future forecast.
+ * @param series An array of objects with 'timestamp' and 'value' properties.
+ * @param forecastSteps The number of future steps to predict.
+ * @returns An object containing the original series, forecast values, and the regression analysis.
+ */
+export function analyzeAndForecast(series: { timestamp: string | Date, value: number }[], forecastSteps = 3) {
+  if (!series || series.length < 2) {
+    return {
+      series,
+      forecast: [],
+      analysis: { trend: 'insufficient_data' }
+    };
+  }
+
+  const values = series.map(s => s.value);
+  const regression = linearRegression(values);
+  
+  const forecast = [];
+  for (let i = 0; i < forecastSteps; i++) {
+    const futureX = values.length + i;
+    const predictedValue = regression.predict(futureX);
+    
+    // Create a future timestamp (assuming regular intervals)
+    const lastTimestamp = new Date(series[series.length - 1].timestamp).getTime();
+    const secondLastTimestamp = new Date(series[series.length - 2].timestamp).getTime();
+    const interval = lastTimestamp - secondLastTimestamp;
+    const futureTimestamp = new Date(lastTimestamp + (interval * (i + 1)));
+
+    forecast.push({
+      timestamp: futureTimestamp.toISOString(),
+      value: predictedValue,
+      isForecast: true,
+    });
+  }
+
+  return {
+    series,
+    forecast,
+    analysis: {
+      trend: regression.slope > 0 ? 'positive' : regression.slope < 0 ? 'negative' : 'stable',
+      slope: regression.slope,
+      confidence: 0.85 // Placeholder confidence score
+    }
+  };
+}

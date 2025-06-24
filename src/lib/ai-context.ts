@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { streamResponse } from './ai';
 import { toast } from 'sonner';
+import { circuitBreakerManager } from './circuit-breaker';
 
 export interface AIContext {
   sessionId: string;
@@ -76,7 +77,7 @@ User Context:
         if (!error && data && data.length > 0) {
           const history = data
             .reverse()
-            .map(msg => `${msg.role}: ${msg.content}`)
+            .map((msg: any) => `${msg.role}: ${msg.content}`)
             .join('\n\n');
           
           enhancedPrompt = `
@@ -97,7 +98,7 @@ Current Query: ${enhancedPrompt}`;
           .from('ai_custom_instructions')
           .select('instructions')
           .eq('is_active', true)
-          .single();
+          .maybeSingle();
         
         if (!error && data && data.instructions) {
           enhancedPrompt = `
@@ -317,3 +318,83 @@ Our team has been notified of this issue and is working to resolve it.`;
     await new Promise(resolve => setTimeout(resolve, 30));
   }
 }
+
+async function generateEmbedding(text: string): Promise<number[] | null> {
+  const embeddingBreaker = circuitBreakerManager.getBreaker('openai-embedding', {
+    failureThreshold: 3,
+    resetTimeout: 60000,
+    monitoringPeriod: 10000,
+  });
+
+  try {
+    const embedding = await embeddingBreaker.execute(async () => {
+      const { data, error } = await supabase.functions.invoke('generate-knowledge-embedding', {
+        body: { text }
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.data?.embedding) throw new Error('Invalid embedding response from edge function.');
+      
+      return data.data.embedding;
+    });
+    return embedding;
+  } catch (error) {
+    console.error('Failed to generate embedding after multiple retries:', error);
+    return null;
+  }
+}
+
+class AIContextManager {
+  private settings: any = {
+    systemPrompt: "You are Genesis, an AI assistant specializing in cultural heritage and business innovation.",
+    useSemanticMemory: true,
+  };
+
+  async buildContext(messages: any[]): Promise<any[]> {
+    const context: any[] = [];
+    const mostRecentMessage = messages.length > 0 ? messages[messages.length - 1].content : '';
+
+    context.push({
+      role: 'system',
+      content: this.settings.systemPrompt
+    });
+
+    if (this.settings.useSemanticMemory && mostRecentMessage) {
+      try {
+        console.log('🧠 Searching semantic memory...');
+        const embedding = await generateEmbedding(mostRecentMessage);
+
+        if (embedding) {
+          const { data: results, error } = await supabase.rpc('match_knowledge', {
+            query_embedding: embedding,
+            match_threshold: 0.75,
+            match_count: 5
+          });
+
+          if (error) {
+            console.error('Error searching knowledge base:', error);
+          } else if (results && results.length > 0) {
+            const semanticContext = results.map((r: any) => r.content).join('\n\n');
+            context.push({
+              role: 'system',
+              content: `[Relevant background information from knowledge base]:\n${semanticContext}`
+            });
+            console.log(`✅ Found ${results.length} relevant documents from knowledge base.`);
+          }
+        }
+      } catch (e) {
+        console.warn('Semantic memory search failed:', e);
+      }
+    }
+
+    // Add conversation history (assuming a helper exists)
+    // context.push(...this.getConversationHistory(messages));
+
+    // Add the actual messages
+    context.push(...messages);
+
+    return context;
+  }
+}
+
+export const aiContextManager = new AIContextManager();

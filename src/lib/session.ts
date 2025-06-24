@@ -8,7 +8,7 @@ export async function initializeSession(userId: string): Promise<UserSession> {
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (userError) throw userError;
 
@@ -17,7 +17,7 @@ export async function initializeSession(userId: string): Promise<UserSession> {
       .from('user_preferences')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (prefsError && prefsError.code !== 'PGNF') throw prefsError;
 

@@ -213,7 +213,7 @@ export async function getAIUsageQuota(): Promise<{
       .from('ai_usage_quotas')
       .select('*')
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
+      .maybeSingle();
     
     if (error) {
       // If no quota exists, return default values

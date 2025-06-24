@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { circuitBreakerManager } from '../lib/circuit-breaker';
 
 // For Gemini (Google) - This is working!
 const GEMINI_MODEL = 'models/gemini-1.5-flash';
@@ -7,6 +8,7 @@ const GEMINI_MODEL = 'models/gemini-1.5-flash';
 const OPENAI_MODEL = 'gpt-3.5-turbo';
 
 // For Anthropic - This needs a valid key
+const ANTHROPIC_MODEL = 'claude-3-opus-20240229';
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 if (!ANTHROPIC_API_KEY) {
   console.warn('Anthropic API key not configured. Set VITE_ANTHROPIC_API_KEY in your .env file for full functionality.');
@@ -103,6 +105,39 @@ async function callGeminiDirect(message: string, model: string = GEMINI_MODEL): 
   return data.candidates[0].content.parts[0].text;
 }
 
+// Direct Anthropic call function
+async function callAnthropicDirect(message: string, model: string = ANTHROPIC_MODEL): Promise<string> {
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('Anthropic API key not configured');
+  }
+
+  console.log('🔍 Calling Anthropic with model:', model);
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 1000,
+      temperature: 0.7,
+      messages: [{ role: 'user', content: message }],
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Anthropic API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log('✅ Anthropic response received');
+  return data.content[0].text;
+}
+
 // Smart AI router - tries providers in order of preference
 async function callAI(message: string, preferredProvider?: string, preferredModel?: string): Promise<{ response: string; provider: string; model: string }> {
   console.log('🧠 Smart AI Router called with:', { message: message.substring(0, 50) + '...', preferredProvider, preferredModel });
@@ -112,10 +147,27 @@ async function callAI(message: string, preferredProvider?: string, preferredMode
     anthropic: !!import.meta.env.VITE_ANTHROPIC_API_KEY
   });
   
-  const providers = [
+  type AIProvider = {
+    name: string;
+    test: () => string | false | undefined;
+    call: (message: string, model?: string) => Promise<string>;
+    defaultModel: string;
+  };
+
+  const providers: AIProvider[] = [
     { name: 'openai', test: () => import.meta.env.VITE_OPENAI_API_KEY, call: callOpenAIDirect, defaultModel: OPENAI_MODEL },
-    { name: 'gemini', test: () => import.meta.env.VITE_GEMINI_API_KEY, call: callGeminiDirect, defaultModel: GEMINI_MODEL }
+    { name: 'gemini', test: () => import.meta.env.VITE_GEMINI_API_KEY, call: callGeminiDirect, defaultModel: GEMINI_MODEL },
+    { name: 'anthropic', test: () => import.meta.env.VITE_ANTHROPIC_API_KEY, call: callAnthropicDirect, defaultModel: ANTHROPIC_MODEL }
   ];
+
+  const executeWithBreaker = async (provider: AIProvider): Promise<string> => {
+    const breaker = circuitBreakerManager.getBreaker(provider.name, { 
+      failureThreshold: 3, 
+      resetTimeout: 300000, // 5 min timeout
+      monitoringPeriod: 10000 // 10 sec monitoring period
+    });
+    return breaker.execute<string>(() => provider.call(message, preferredModel || provider.defaultModel));
+  };
 
   // If a specific provider is requested, try it first
   if (preferredProvider) {
@@ -123,11 +175,11 @@ async function callAI(message: string, preferredProvider?: string, preferredMode
     if (provider && provider.test()) {
       try {
         console.log(`🎯 Trying requested provider: ${provider.name}`);
-        const response = await provider.call(message, preferredModel || provider.defaultModel);
+        const response = await executeWithBreaker(provider);
         console.log(`✅ ${provider.name} succeeded!`);
         return { response, provider: provider.name, model: preferredModel || provider.defaultModel };
       } catch (error) {
-        console.warn(`${provider.name} failed, trying others...`, error);
+        console.warn(`Circuit for ${provider.name} is open or the call failed.`, error);
       }
     }
   }
@@ -137,19 +189,19 @@ async function callAI(message: string, preferredProvider?: string, preferredMode
     if (provider.test()) {
       try {
         console.log(`🔍 Trying ${provider.name}...`);
-        const response = await provider.call(message, preferredModel || provider.defaultModel);
+        const response = await executeWithBreaker(provider);
         console.log(`✅ ${provider.name} succeeded!`);
         return { response, provider: provider.name, model: preferredModel || provider.defaultModel };
       } catch (error) {
-        console.warn(`${provider.name} failed, trying next...`, error);
+        console.warn(`Circuit for ${provider.name} is open or the call failed, trying next...`, error);
         continue;
       }
     }
   }
 
   // Fallback response
-  console.warn('❌ No AI providers available, using fallback');
-  throw new Error('No AI providers available');
+  console.error('❌ All AI providers are unavailable or their circuits are open.');
+  throw new Error('All AI providers are currently unavailable.');
 }
 
 export const chatApi = {
@@ -177,7 +229,7 @@ export const chatApi = {
         console.error('AI call failed:', error);
         // Fallback response
         aiResult = {
-          response: "I'm here to help! I'm your Genesis AI assistant. How can I assist you with your genealogy research, business automation, or cultural heritage preservation today?",
+          response: "I'm having trouble connecting to my core intelligence. Please check the system status. I am still available for basic tasks.",
           provider: 'fallback',
           model: 'fallback'
         };
