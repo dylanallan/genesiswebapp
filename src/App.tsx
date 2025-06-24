@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { SessionProvider } from './lib/session-context';
+import { SessionProvider, useSession } from './lib/session-context';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -15,17 +15,20 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  console.log('🔍 AppContent rendering...');
+  const { session, loading } = useSession();
+  console.log('🔍 AppContent rendering...', { session: !!session, loading });
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Genesis Heritage Pro</h1>
-        <p className="text-gray-600">SessionProvider added - testing...</p>
-        <div className="mt-4 p-4 bg-blue-100 rounded-lg">
-          <p className="text-blue-800">✅ React is working</p>
-          <p className="text-blue-800">✅ SessionProvider loaded</p>
-          <p className="text-blue-800">✅ Testing session context...</p>
+        <p className="text-gray-600">useSession hook added - testing...</p>
+        <div className="mt-4 p-4 bg-green-100 rounded-lg">
+          <p className="text-green-800">✅ React is working</p>
+          <p className="text-green-800">✅ SessionProvider loaded</p>
+          <p className="text-green-800">✅ useSession hook working</p>
+          <p className="text-green-800">Loading: {loading ? 'Yes' : 'No'}</p>
+          <p className="text-green-800">Session: {session ? 'Yes' : 'No'}</p>
         </div>
       </div>
     </div>
