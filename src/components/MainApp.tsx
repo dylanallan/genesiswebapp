@@ -1,71 +1,125 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../lib/session-context';
-import { Brain } from 'lucide-react';
+import { Brain, Menu, X, Home, Bot, Globe, BarChart3, Settings, Users, Zap, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../lib/error-boundary';
 
-// Simple working components
-const SimpleDashboard: React.FC = () => {
+// Import the full application components
+import EliteHackathonApp from './EliteHackathonApp';
+import { AutomationHub } from './AutomationHub';
+import { SystemDashboard } from './SystemDashboard';
+
+// Full Dashboard with all features
+const FullDashboard: React.FC = () => {
+  const [currentView, setCurrentView] = useState('main');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navigationItems = [
+    { id: 'main', label: 'Dashboard', icon: Home, component: EliteHackathonApp },
+    { id: 'automation', label: 'Automation Hub', icon: Bot, component: AutomationHub },
+    { id: 'system', label: 'System Health', icon: BarChart3, component: SystemDashboard },
+    { id: 'cultural', label: 'Cultural AI', icon: Globe },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+    { id: 'team', label: 'Team Workspace', icon: Users },
+    { id: 'settings', label: 'Settings', icon: Settings }
+  ];
+
+  const CurrentComponent = navigationItems.find(item => item.id === currentView)?.component;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center mb-8">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <Brain className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-          </motion.div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Genesis Heritage Pro
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Your AI-powered genealogy and cultural heritage platform
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Chat Assistant</h3>
-            <p className="text-gray-600 mb-4">
-              Get help with genealogy research, cultural heritage questions, and more.
-            </p>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-              Start Chat
-            </button>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Universal Search</h3>
-            <p className="text-gray-600 mb-4">
-              Search across genealogy databases, cultural archives, and family records.
-            </p>
-            <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-              Search Now
-            </button>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Data Sources</h3>
-            <p className="text-gray-600 mb-4">
-              Manage your data sources and integrations for comprehensive research.
-            </p>
-            <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-              Manage Sources
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white shadow-xl border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+              >
+                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Genesis Heritage Pro
+                </h1>
+                <p className="text-sm text-gray-600">AI-Powered Cultural Heritage & Business Automation</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 bg-green-100 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-green-800 text-sm font-medium">Live</span>
+              </div>
+            </div>
           </div>
         </div>
+      </header>
 
-        <div className="mt-8 text-center">
-          <div className="bg-green-100 border border-green-200 rounded-lg p-4 inline-block">
-            <p className="text-green-800 font-medium">
-              ✅ System Status: All systems operational
-            </p>
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
+          <div className="h-full flex flex-col">
+            <div className="flex-1 px-4 py-6">
+              <nav className="space-y-2">
+                {navigationItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setCurrentView(item.id);
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      currentView === item.id
+                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
           </div>
-        </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 lg:ml-0">
+          {CurrentComponent ? (
+            <CurrentComponent />
+          ) : (
+            <div className="p-8">
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Zap className="w-8 h-8 text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {navigationItems.find(item => item.id === currentView)?.label}
+                </h2>
+                <p className="text-gray-600">
+                  This feature is coming soon. Stay tuned for updates!
+                </p>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
@@ -159,7 +213,7 @@ const SimpleAuth: React.FC = () => {
 };
 
 export const MainApp: React.FC = () => {
-  const session = useSession();
+  const { session, loading } = useSession();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -170,7 +224,7 @@ export const MainApp: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  if (isLoading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -192,7 +246,7 @@ export const MainApp: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <SimpleDashboard />
+      <FullDashboard />
     </ErrorBoundary>
   );
 };
