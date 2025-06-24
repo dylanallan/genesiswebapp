@@ -17,6 +17,9 @@ import { CulturalRecipeBook } from './components/CulturalRecipeBook';
 import { MarketingAutomation } from './components/MarketingAutomation';
 import { EnterpriseEnhancements } from './components/EnterpriseEnhancements';
 import { AICulturalIntelligence } from './components/AICulturalIntelligence';
+import { HackathonOptimizer } from './components/HackathonOptimizer';
+import { CulturalBusinessFusion } from './components/CulturalBusinessFusion';
+import { InnovationShowcase } from './components/InnovationShowcase';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -373,6 +376,39 @@ const ComprehensiveDashboard: React.FC = () => {
         </div>
       ),
       description: 'Personalize your experience and discover insights'
+    },
+    {
+      id: 'cultural-business-fusion',
+      name: 'Cultural-Business Fusion',
+      icon: '💖',
+      component: () => (
+        <div className="h-full p-4">
+          <CulturalBusinessFusion />
+        </div>
+      ),
+      description: 'Cultural and business integration insights'
+    },
+    {
+      id: 'hackathon-optimizer',
+      name: 'Hackathon Optimizer',
+      icon: '🏆',
+      component: () => (
+        <div className="h-full p-4">
+          <HackathonOptimizer />
+        </div>
+      ),
+      description: 'Real-time optimization insights for the hackathon'
+    },
+    {
+      id: 'innovation-showcase',
+      name: 'Innovation Showcase',
+      icon: '🌟',
+      component: () => (
+        <div className="h-full p-4">
+          <InnovationShowcase />
+        </div>
+      ),
+      description: 'Showcase of cutting-edge innovations'
     }
   ];
 
