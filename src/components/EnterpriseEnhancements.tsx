@@ -22,7 +22,6 @@ import {
   Crown,
   Award,
   Lightbulb,
-  Target,
   PieChart,
   LineChart,
   Calendar,
