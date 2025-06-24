@@ -602,19 +602,23 @@ export const dataManager = new DataIntegrationManager();
 
 // Register all sources with the registry
 const registerAllSources = () => {
-  // Register genealogy sources
-  GENEALOGY_SOURCES.forEach(source => SourceRegistry.registerSource(source));
-  
-  // Register cultural heritage sources
-  CULTURAL_SOURCES.forEach(source => SourceRegistry.registerSource(source));
-  
-  // Register business sources
-  BUSINESS_SOURCES.forEach(source => SourceRegistry.registerSource(source));
-  
-  // Register AI sources
-  AI_SOURCES.forEach(source => SourceRegistry.registerSource(source));
-  
-  console.log(`🎯 Registered ${SourceRegistry.getAllSources().length} data sources`);
+  try {
+    // Register genealogy sources
+    GENEALOGY_SOURCES.forEach(source => SourceRegistry.registerSource(source));
+    
+    // Register cultural heritage sources
+    CULTURAL_SOURCES.forEach(source => SourceRegistry.registerSource(source));
+    
+    // Register business sources
+    BUSINESS_SOURCES.forEach(source => SourceRegistry.registerSource(source));
+    
+    // Register AI sources
+    AI_SOURCES.forEach(source => SourceRegistry.registerSource(source));
+    
+    console.log(`🎯 Registered ${SourceRegistry.getAllSources().length} data sources`);
+  } catch (error) {
+    console.warn('Warning: Some data sources could not be registered:', error);
+  }
 };
 
 // Example Use Cases - Easy to add new ones!
@@ -719,30 +723,57 @@ const BUSINESS_USE_CASES: UseCase[] = [
 
 // Register all use cases
 const registerAllUseCases = () => {
-  [...GENEALOGY_USE_CASES, ...CULTURAL_USE_CASES, ...BUSINESS_USE_CASES]
-    .forEach(useCase => SourceRegistry.registerUseCase(useCase));
-  
-  console.log(`🎯 Registered ${SourceRegistry.getAllUseCases().length} use cases`);
+  try {
+    [...GENEALOGY_USE_CASES, ...CULTURAL_USE_CASES, ...BUSINESS_USE_CASES]
+      .forEach(useCase => SourceRegistry.registerUseCase(useCase));
+    
+    console.log(`🎯 Registered ${SourceRegistry.getAllUseCases().length} use cases`);
+  } catch (error) {
+    console.warn('Warning: Some use cases could not be registered:', error);
+  }
 };
 
-// Initialize everything
-try {
-  registerAllSources();
-  registerAllUseCases();
-  console.log('✅ Data integration system initialized successfully');
-} catch (error) {
-  console.error('❌ Error initializing data integration system:', error);
-  // Continue without crashing the app
-}
+// Initialize everything lazily to prevent white screen
+let isInitialized = false;
+const initializeDataIntegration = () => {
+  if (isInitialized) return;
+  
+  try {
+    registerAllSources();
+    registerAllUseCases();
+    console.log('✅ Data integration system initialized successfully');
+    isInitialized = true;
+  } catch (error) {
+    console.error('❌ Error initializing data integration system:', error);
+    // Continue without crashing the app
+  }
+};
 
-// Export convenience functions
-export const searchGenealogy = (query: string) => dataManager.multiSourceSearch(query, ['genealogy']);
-export const searchCulturalHeritage = (query: string) => dataManager.multiSourceSearch(query, ['cultural-heritage']);
-export const searchBusinessData = (query: string) => dataManager.multiSourceSearch(query, ['economics', 'business']);
-export const enrichWithAI = (data: any) => dataManager.enrichData(data, ['embeddings', 'sentiment', 'entities']);
+// Initialize on first use
+export const searchGenealogy = (query: string) => {
+  initializeDataIntegration();
+  return dataManager.multiSourceSearch(query, ['genealogy']);
+};
+
+export const searchCulturalHeritage = (query: string) => {
+  initializeDataIntegration();
+  return dataManager.multiSourceSearch(query, ['cultural-heritage']);
+};
+
+export const searchBusinessData = (query: string) => {
+  initializeDataIntegration();
+  return dataManager.multiSourceSearch(query, ['economics', 'business']);
+};
+
+export const enrichWithAI = (data: any) => {
+  initializeDataIntegration();
+  return dataManager.enrichData(data, ['embeddings', 'sentiment', 'entities']);
+};
 
 // New convenience functions for use cases
 export const executeUseCase = async (useCaseId: string, params: Record<string, string>) => {
+  initializeDataIntegration();
+  
   const useCase = SourceRegistry.getUseCase(useCaseId);
   if (!useCase) {
     throw new Error(`Use case ${useCaseId} not found`);
@@ -766,6 +797,8 @@ export const executeUseCase = async (useCaseId: string, params: Record<string, s
 };
 
 export const getAvailableUseCases = (category?: string) => {
+  initializeDataIntegration();
+  
   if (category) {
     return SourceRegistry.getUseCasesByCategory(category);
   }
@@ -773,6 +806,8 @@ export const getAvailableUseCases = (category?: string) => {
 };
 
 export const getAvailableSources = (category?: string) => {
+  initializeDataIntegration();
+  
   if (category) {
     return SourceRegistry.getSourcesByCategory(category);
   }

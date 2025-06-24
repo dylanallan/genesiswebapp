@@ -3,31 +3,51 @@
   
   <url>
     <loc>https://your-domain.com/</loc>
+<<<<<<< HEAD
     <lastmod>2025-06-20T00:51:30.579Z</lastmod>
+=======
+    <lastmod>2025-06-24T00:13:59.934Z</lastmod>
+>>>>>>> aeeca1f350c4ad3246e93a6f1caf797f8c6ee965
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://your-domain.com/about</loc>
+<<<<<<< HEAD
     <lastmod>2025-06-20T00:51:30.579Z</lastmod>
+=======
+    <lastmod>2025-06-24T00:13:59.934Z</lastmod>
+>>>>>>> aeeca1f350c4ad3246e93a6f1caf797f8c6ee965
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://your-domain.com/contact</loc>
+<<<<<<< HEAD
     <lastmod>2025-06-20T00:51:30.579Z</lastmod>
+=======
+    <lastmod>2025-06-24T00:13:59.934Z</lastmod>
+>>>>>>> aeeca1f350c4ad3246e93a6f1caf797f8c6ee965
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://your-domain.com/pricing</loc>
+<<<<<<< HEAD
     <lastmod>2025-06-20T00:51:30.579Z</lastmod>
+=======
+    <lastmod>2025-06-24T00:13:59.934Z</lastmod>
+>>>>>>> aeeca1f350c4ad3246e93a6f1caf797f8c6ee965
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://your-domain.com/features</loc>
+<<<<<<< HEAD
     <lastmod>2025-06-20T00:51:30.579Z</lastmod>
+=======
+    <lastmod>2025-06-24T00:13:59.934Z</lastmod>
+>>>>>>> aeeca1f350c4ad3246e93a6f1caf797f8c6ee965
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

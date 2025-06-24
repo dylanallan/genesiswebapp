@@ -37,17 +37,16 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     // Get initial session with timeout
     const getInitialSession = async () => {
       try {
-        console.log('Getting initial session...');
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting initial session:', error);
-        } else {
-          console.log('Initial session:', initialSession);
+        if (supabase?.auth?.getSession) {
+          const { data: { session: initialSession } } = await supabase.auth.getSession();
           setSession(initialSession);
+        } else {
+          console.warn('Supabase auth not available, using fallback session');
+          setSession(null);
         }
       } catch (error) {
-        console.error('Unexpected error getting session:', error);
+        console.error('Error getting initial session:', error);
+        setSession(null);
       } finally {
         console.log('Setting loading to false');
         setLoading(false);
@@ -63,17 +62,28 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     getInitialSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, session: Session | null) => {
-        console.log('Auth state changed:', event, session);
-        setSession(session);
-        setLoading(false);
+    let subscription: any = null;
+    try {
+      if (supabase?.auth?.onAuthStateChange) {
+        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+          async (event: string, session: Session | null) => {
+            console.log('Auth state changed:', event, session);
+            setSession(session);
+          }
+        );
+        subscription = authSubscription;
+      } else {
+        console.warn('Supabase auth onAuthStateChange not available');
       }
-    );
+    } catch (error) {
+      console.error('Error setting up auth state listener:', error);
+    }
 
     return () => {
       clearTimeout(timeoutId);
-      subscription.unsubscribe();
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
