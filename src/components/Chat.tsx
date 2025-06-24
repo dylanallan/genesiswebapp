@@ -37,12 +37,21 @@ const availableModels = [
   { id: 'gemini-pro', name: 'Gemini Pro (Google)', provider: 'gemini' as const }
 ];
 
+// Add Ollama and Claude to the provider selector
+const availableProviders = [
+  { id: 'auto', name: 'Auto Select' },
+  { id: 'openai', name: 'OpenAI (GPT-4)' },
+  { id: 'anthropic', name: 'Claude (Anthropic)' },
+  { id: 'gemini', name: 'Gemini (Google)' },
+  { id: 'ollama', name: 'Ollama 3.2' },
+];
+
 export const Chat: React.FC<ChatProps> = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState<string>('auto');
-  const [currentProvider, setCurrentProvider] = useState<'openai' | 'gemini' | 'auto'>('auto');
+  const [currentProvider, setCurrentProvider] = useState<string>('auto');
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [conversations, setConversations] = useState<ConversationInfo[]>([]);
   const [showConversations, setShowConversations] = useState(false);
@@ -118,61 +127,23 @@ export const Chat: React.FC<ChatProps> = () => {
     setInput('');
     setIsLoading(true);
 
-    await processUserMessage(userMessage);
-  };
-
-  const processUserMessage = async (userMessage: ChatMessage) => {
-    console.log('🔄 Processing user message:', { content: userMessage.content.substring(0, 50) + '...', conversationId });
-    
-    setIsLoading(true);
-    setConnectionStatus('connected');
-
     try {
-      // Determine provider and model
-      let provider: 'auto' | 'openai' | 'gemini' = 'auto';
-      let model = 'auto';
-
-      if (currentModel !== 'auto') {
-        const selectedModel = availableModels.find(m => m.id === currentModel);
-        if (selectedModel) {
-          provider = selectedModel.provider as 'auto' | 'openai' | 'gemini';
-          model = selectedModel.id;
-        }
-      }
-
-      console.log('🎯 Sending message with:', { provider, model, conversationId });
-
-      const response = await chatApi.sendMessage(userMessage.content, conversationId);
-
-      console.log('📥 Received response:', { 
-        provider: response.provider, 
-        model: response.model, 
-        responseLength: response.response.length,
-        responsePreview: response.response.substring(0, 100) + '...'
+      const response = await fetch('/functions/v1/ai-router', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage.content, provider: currentProvider !== 'auto' ? currentProvider : undefined }),
       });
-
+      const data = await response.json();
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: response.response,
-        created_at: response.timestamp,
-        conversation_id: response.conversationId || conversationId || ''
+        content: data.response,
+        created_at: new Date().toISOString(),
+        conversation_id: conversationId || '',
+        metadata: { provider: data.provider }
       };
-
-      console.log('💬 Adding assistant message to chat:', { 
-        messageLength: assistantMessage.content.length 
-      });
-
       setMessages(prev => [...prev, assistantMessage]);
-      setConversationId(response.conversationId);
-      setConnectionStatus('connected');
-      
-      // Reload conversations to update the list
-      await loadConversations();
-      
     } catch (error) {
-      console.error('❌ Error getting assistant response:', error);
-      
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -180,10 +151,7 @@ export const Chat: React.FC<ChatProps> = () => {
         created_at: new Date().toISOString(),
         conversation_id: conversationId || ''
       };
-      
       setMessages(prev => [...prev, errorMessage]);
-      toast.error('Failed to get response');
-      setConnectionStatus('degraded');
     } finally {
       setIsLoading(false);
     }
@@ -289,6 +257,16 @@ export const Chat: React.FC<ChatProps> = () => {
               <option key={model.id} value={model.id}>
                 {model.name}
               </option>
+            ))}
+          </select>
+          
+          <select
+            value={currentProvider}
+            onChange={e => setCurrentProvider(e.target.value)}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+          >
+            {availableProviders.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
           
@@ -437,6 +415,9 @@ export const Chat: React.FC<ChatProps> = () => {
                   </div>
                 )}
               </div>
+              {msg.role === 'assistant' && msg.metadata?.provider && (
+                <div className="text-xs mt-1 text-gray-500">Provider: {msg.metadata.provider}</div>
+              )}
               {msg.role === 'assistant' && (
                 <VoicePlayer text={msg.content} />
               )}

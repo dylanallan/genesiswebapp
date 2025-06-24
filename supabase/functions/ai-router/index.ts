@@ -35,6 +35,17 @@ async function callGemini(message: string, apiKey: string): Promise<string> {
   return data.candidates[0].content.parts[0].text;
 }
 
+async function callOllama(message: string, apiUrl: string): Promise<string> {
+  const response = await fetch(`${apiUrl}/v1/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'llama3:70b', messages: [{ role: 'user', content: message }] }),
+  });
+  if (!response.ok) throw new Error(`Ollama API error: ${response.status}`);
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -46,40 +57,46 @@ serve(async (req) => {
   }
 
   try {
-    const { message } = await req.json();
+    const { message, provider } = await req.json();
     if (!message) throw new Error('No message provided.');
     
     // Define providers and their callers
     const providers = [
+      { name: 'anthropic', key: Deno.env.get("ANTHROPIC_API_KEY"), call: callAnthropic },
       { name: 'openai', key: Deno.env.get("OPENAI_API_KEY"), call: callOpenAI },
       { name: 'gemini', key: Deno.env.get("GEMINI_API_KEY"), call: callGemini },
-      { name: 'anthropic', key: Deno.env.get("ANTHROPIC_API_KEY"), call: callAnthropic },
+      { name: 'ollama', key: Deno.env.get("OLLAMA_API_URL") || 'http://localhost:11434', call: callOllama },
     ];
 
-    // Iterate through providers and try to get a response
-    for (const provider of providers) {
-      if (provider.key) {
+    if (provider) {
+      // If a provider is specified, use only that provider
+      const selected = providers.find(p => p.name === provider);
+      if (!selected || !selected.key) throw new Error(`Provider ${provider} not configured.`);
+      const response = await selected.call(message, selected.key);
+      return new Response(
+        JSON.stringify({ response, provider: selected.name }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // Otherwise, try all providers in order
+    for (const p of providers) {
+      if (p.key) {
         try {
-          console.log(`Attempting to call ${provider.name}...`);
-          const response = await provider.call(message, provider.key);
-          console.log(`${provider.name} succeeded!`);
-          
+          console.log(`Attempting to call ${p.name}...`);
+          const response = await p.call(message, p.key);
+          console.log(`${p.name} succeeded!`);
           return new Response(
-            JSON.stringify({ response, provider: provider.name }),
+            JSON.stringify({ response, provider: p.name }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
-
         } catch (error) {
-          console.error(`Error calling ${provider.name}:`, error.message);
-          // If a provider fails, just continue to the next one
+          console.error(`Error calling ${p.name}:`, error.message);
           continue;
         }
       }
     }
-    
-    // If all providers fail
     throw new Error('All AI providers failed or are not configured.');
-
   } catch (error) {
     console.error('Error in ai-router:', error.message);
     return new Response(
