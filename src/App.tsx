@@ -3,7 +3,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { SessionProvider, useSession } from './lib/session-context';
-import { AuthProvider } from './components/AuthProvider';
+import { Auth } from './components/Auth';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -104,88 +104,6 @@ const SimpleDashboard: React.FC = () => {
   );
 };
 
-// Simple auth component
-const SimpleAuth: React.FC = () => {
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // For demo purposes, just show success
-    alert('🎉 Welcome to Genesis Heritage Pro! This is a demo for the hackathon.');
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl">🧬</span>
-          </div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Genesis Heritage Pro
-          </h2>
-          <p className="text-gray-600">
-            Welcome to your heritage management platform
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email address
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
-          >
-            Sign In
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('demo@genesisheritage.com');
-              setPassword('password123');
-            }}
-            className="text-blue-600 hover:text-blue-500 text-sm font-medium"
-          >
-            Use Demo Credentials
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 function AppContent() {
   const { session, loading } = useSession();
   console.log('🔍 AppContent rendering...', { session: !!session, loading });
@@ -202,11 +120,11 @@ function AppContent() {
     );
   }
   
-  // Show the full application
+  // Show the full application with Auth component
   if (session) {
     return <SimpleDashboard />;
   } else {
-    return <SimpleAuth />;
+    return <Auth />;
   }
 }
 
