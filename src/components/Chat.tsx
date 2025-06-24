@@ -28,6 +28,14 @@ interface ChatProps {
   businessGoals?: string;
 }
 
+// Available AI models for the chat interface
+const availableModels = [
+  { id: 'auto', name: 'Auto Select', provider: 'auto' as const },
+  { id: 'gpt-4', name: 'GPT-4 (OpenAI)', provider: 'openai' as const },
+  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (OpenAI)', provider: 'openai' as const },
+  { id: 'gemini-pro', name: 'Gemini Pro (Google)', provider: 'gemini' as const }
+];
+
 export const Chat: React.FC<ChatProps> = ({ 
   userName = 'User', 
   ancestry = 'European and Asian heritage',
@@ -37,7 +45,7 @@ export const Chat: React.FC<ChatProps> = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState<string>('auto');
-  const [currentProvider, setCurrentProvider] = useState<'openai' | 'anthropic' | 'gemini' | 'auto'>('auto');
+  const [currentProvider, setCurrentProvider] = useState<'openai' | 'gemini' | 'auto'>('auto');
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [conversations, setConversations] = useState<ConversationInfo[]>([]);
   const [showConversations, setShowConversations] = useState(false);
@@ -165,13 +173,13 @@ How can I assist you today?`,
 
     try {
       // Determine provider and model
-      let provider: 'auto' | 'openai' | 'anthropic' | 'gemini' = 'auto';
+      let provider: 'auto' | 'openai' | 'gemini' = 'auto';
       let model = 'auto';
 
       if (currentModel !== 'auto') {
         const selectedModel = availableModels.find(m => m.id === currentModel);
         if (selectedModel) {
-          provider = selectedModel.provider as 'auto' | 'openai' | 'anthropic' | 'gemini';
+          provider = selectedModel.provider as 'auto' | 'openai' | 'gemini';
           model = selectedModel.id;
         }
       }
@@ -299,8 +307,6 @@ How can I assist you today?`,
       toast.error('Failed to export conversation');
     }
   };
-
-  const availableModels = chatApi.getAvailableModels();
 
   return (
     <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-sm border border-blue-100">
