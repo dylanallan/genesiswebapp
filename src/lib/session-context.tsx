@@ -35,13 +35,22 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
 
   useEffect(() => {
     let didTimeout = false;
+    // Reduce timeout to 3 seconds for Bolt.new environment
     const timeout = setTimeout(() => {
       didTimeout = true;
       setLoading(false);
       if (!session) {
-        console.warn('[GENESIS]: Session check timed out after 5s. Forcing loading=false.');
+        console.warn('[GENESIS]: Session check timed out after 3s. Forcing loading=false.');
       }
-    }, 5000);
+    }, 3000);
+
+    // Add immediate fallback for Bolt.new environment
+    const immediateFallback = setTimeout(() => {
+      if (loading) {
+        console.log('[GENESIS]: Bolt.new environment detected, allowing fallback to auth');
+        setLoading(false);
+      }
+    }, 1000);
 
     supabase.auth.getSession()
       .then(({ data: { session, error } }: { data: { session: any; error: any } }) => {
@@ -61,7 +70,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
         }
       });
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(immediateFallback);
+    };
   }, []);
 
   return (

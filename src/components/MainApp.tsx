@@ -220,13 +220,28 @@ export const MainApp: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Reduce timer to 500ms and ensure we don't get stuck
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    }, 500);
+    
+    // Force loading to false after 3 seconds as a safety measure
+    const safetyTimer = setTimeout(() => {
+      setIsLoading(false);
+      console.warn('[GENESIS]: Forced loading to false after 3s timeout');
+    }, 3000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
-  if (loading || isLoading) {
+  // Show loading screen only if both session is loading AND local loading is true
+  // OR if session loading takes too long (>3s)
+  const shouldShowLoading = (loading && isLoading) || (loading && !isLoading && session === null);
+
+  if (shouldShowLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -237,11 +252,13 @@ export const MainApp: React.FC = () => {
             <Brain className="w-12 h-12 text-blue-600 mx-auto mb-4" />
           </motion.div>
           <p className="text-gray-600 font-medium">Loading Genesis Heritage Pro...</p>
+          <p className="text-gray-400 text-sm mt-2">Connecting to AI systems...</p>
         </div>
       </div>
     );
   }
 
+  // If session loading failed or timed out, show auth
   if (!session) {
     return <SimpleAuth />;
   }
