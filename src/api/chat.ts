@@ -100,17 +100,31 @@ async function getHistory(conversationId?: string): Promise<ChatMessage[]> {
     return data as ChatMessage[];
 }
 
+/**
+ * Retrieves the list of conversations for the current user.
+ */
 async function getConversationList(): Promise<ConversationInfo[]> {
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('id, title, updated_at as last_updated')
-    .order('updated_at', { ascending: false });
-  
-  if (error) {
-    console.error('Error fetching conversation list:', error);
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, title, updated_at')
+      .order('updated_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching conversation list:', error);
+      return [];
+    }
+    
+    // Transform the data to match the expected interface
+    return data.map((conv: { id: string; title: string; updated_at: string }) => ({
+      id: conv.id,
+      title: conv.title,
+      last_updated: conv.updated_at
+    }));
+  } catch (error) {
+    console.error('Error in getConversationList:', error);
     return [];
   }
-  return data;
 }
 
 export const chatApi = {
