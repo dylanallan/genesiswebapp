@@ -22,7 +22,7 @@ import { useSession } from '../lib/session-context';
 import { chatApi, ChatMessage, ChatResponse, ConversationInfo } from '../api/chat';
 import { supabase } from '../lib/supabase';
 import VoicePlayer from './VoicePlayer';
-import { ErrorRecoverySystem } from '../lib/error-recovery';
+import { errorRecovery } from '../lib/error-recovery';
 import { Card } from '../../components/ui/card';
 
 interface ChatProps {
@@ -47,8 +47,6 @@ const availableProviders = [
   { id: 'gemini', name: 'Gemini (Google)' },
   { id: 'ollama', name: 'Ollama 3.2' },
 ];
-
-const errorRecovery = ErrorRecoverySystem.getInstance();
 
 export const Chat: React.FC<ChatProps> = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
