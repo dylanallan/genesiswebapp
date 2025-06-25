@@ -3,7 +3,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from './lib/session-context';
 import Auth from './components/Auth';
-import Dashboard from './components/Dashboard';
+import GlobalIntelligenceDashboard from './components/GlobalIntelligenceDashboard';
 import Chat from './components/Chat';
 import VoicePlayer from './components/VoicePlayer';
 import AutomationHub from './components/AutomationHub';
@@ -19,6 +19,7 @@ import { CulturalBusinessFusion } from './components/CulturalBusinessFusion';
 import { InnovationShowcase } from './components/InnovationShowcase';
 import CompetitiveIntelligenceDashboard from './components/CompetitiveIntelligenceDashboard';
 import DataAnalyticsDashboard from './components/DataAnalyticsDashboard';
+import HyperintelligenceBotInterface from './components/HyperintelligenceBotInterface';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -27,14 +28,25 @@ function App() {
   const features = [
     {
       id: 'dashboard',
-      name: 'Dashboard',
-      icon: '🏠',
+      name: 'Global Intelligence',
+      icon: '🌍',
       component: () => (
         <div className="h-full p-4">
-          <Dashboard />
+          <GlobalIntelligenceDashboard />
         </div>
       ),
-      description: 'Main application dashboard'
+      description: 'Global intelligence and cross-domain analytics'
+    },
+    {
+      id: 'hyperintelligence-bots',
+      name: 'Hyperintelligence Bots',
+      icon: '🤖',
+      component: () => (
+        <div className="h-full p-4">
+          <HyperintelligenceBotInterface />
+        </div>
+      ),
+      description: 'Advanced AI bots with comprehensive data access'
     },
     {
       id: 'chat',
