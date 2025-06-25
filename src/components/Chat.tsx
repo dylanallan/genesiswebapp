@@ -95,6 +95,7 @@ export const Chat: React.FC<ChatProps> = () => {
       setConversations(conversationList);
     } catch (error) {
       console.error('Failed to load conversations:', error);
+      toast.error('Failed to load conversations. Please check the database setup.');
     }
   };
 
@@ -128,22 +129,33 @@ export const Chat: React.FC<ChatProps> = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/functions/v1/ai-router', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage.content, provider: currentProvider !== 'auto' ? currentProvider : undefined }),
-      });
-      const data = await response.json();
+      // Use the proper chatApi instead of direct fetch
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await chatApi.sendMessage(input, user.id, conversationId);
+      
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: data.response,
+        content: response.response,
         created_at: new Date().toISOString(),
-        conversation_id: conversationId || '',
-        metadata: { provider: data.provider }
+        conversation_id: response.conversationId || conversationId || '',
+        metadata: { provider: response.provider, model: response.model }
       };
+      
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Update conversation ID if this is a new conversation
+      if (response.conversationId && !conversationId) {
+        setConversationId(response.conversationId);
+        await loadConversations(); // Refresh conversation list
+      }
+      
     } catch (error) {
+      console.error('Chat error:', error);
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -152,6 +164,7 @@ export const Chat: React.FC<ChatProps> = () => {
         conversation_id: conversationId || ''
       };
       setMessages(prev => [...prev, errorMessage]);
+      toast.error('Failed to send message. Please try again.');
     } finally {
       setIsLoading(false);
     }

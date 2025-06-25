@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { supabase } from "../lib/supabase";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -51,16 +52,32 @@ export default function VoicePlayer({ text, defaultLanguage = "en", defaultVoice
   const handlePlay = async () => {
     setLoading(true);
     setAudioUrl(null);
-    const res = await fetch("/functions/v1/voice-synthesis", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, language, voice }),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('voice-synthesis', {
+        body: { text, language, voice }
+      });
+      
+      if (error) {
+        console.error('Voice synthesis error:', error);
+        throw error;
+      }
+      
+      // Convert the response to a blob
+      const response = await fetch(data.url || data);
+      const blob = await response.blob();
       setAudioUrl(URL.createObjectURL(blob));
+    } catch (error) {
+      console.error('Failed to synthesize voice:', error);
+      // Fallback to browser speech synthesis
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = language;
+        window.speechSynthesis.speak(utterance);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
