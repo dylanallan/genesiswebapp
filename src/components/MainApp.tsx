@@ -5,11 +5,11 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../lib/error-boundary';
-
-// Import the full application components
+import GenesisHome from './GenesisHome';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Dashboard } from './Dashboard';
 import EliteHackathonApp from './EliteHackathonApp';
-import { AutomationHub } from './AutomationHub';
-import { SystemDashboard } from './SystemDashboard';
+import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
 
 // Full Dashboard with all features
 const FullDashboard: React.FC = () => {
@@ -220,7 +220,6 @@ export const MainApp: React.FC = () => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
-    
     return () => clearTimeout(timer);
   }, []);
 
@@ -246,7 +245,15 @@ export const MainApp: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <FullDashboard />
+      <Router>
+        <Routes>
+          <Route path="/" element={<GenesisHome />} />
+          <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
+          <Route path="/hackathon" element={<EliteHackathonApp />} />
+          <Route path="/intelligence" element={<GlobalIntelligenceDashboard />} />
+          {/* Add more routes for other advanced dashboards as needed */}
+        </Routes>
+      </Router>
     </ErrorBoundary>
   );
 };
