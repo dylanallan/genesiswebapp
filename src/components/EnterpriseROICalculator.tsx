@@ -1,3 +1,4 @@
+// Cache bust: 2024-07-01-1
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, Zap, Clock, Users, BarChart2, TrendingUp, Info } from 'lucide-react';
