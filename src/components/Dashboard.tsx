@@ -184,6 +184,7 @@ import { MediaPlayer } from './MediaPlayer';
 import { MediaUploader } from './MediaUploader';
 import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
+import FamilySummary from './FamilySummary';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -951,6 +952,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
+            <FamilySummary />
             <ErrorBoundary>
               {typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
@@ -1026,3 +1028,5 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
     </div>
   );
 };
+
+export default Dashboard;

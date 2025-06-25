@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { ErrorBoundary } from '../lib/error-boundary';
 import GenesisHome from './GenesisHome';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Dashboard } from './Dashboard';
+import Dashboard from './Dashboard';
 import EliteHackathonApp from './EliteHackathonApp';
 import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
 import { GlobalDataProvider } from '../lib/GlobalDataContext';
