@@ -1,20 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-
-// Get environment variables ONLY (no hardcoded fallback)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Validate environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase configuration - using fallback mode');
-}
+import { config } from './config';
 
 // Create and export the Supabase client with error handling
 let supabase: any = null;
 
 try {
-  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  supabase = createClient(config.supabase.url, config.supabase.anonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -25,9 +17,10 @@ try {
   });
   
   // Test the connection
-  console.log('Supabase client created successfully');
+  console.log('✅ Supabase client created successfully');
+  console.log('🔗 Supabase URL:', config.supabase.url);
 } catch (error) {
-  console.warn('Using fallback Supabase client');
+  console.warn('⚠️ Using fallback Supabase client');
   
   // Create a fallback client that won't break the app
   supabase = {
