@@ -34,57 +34,34 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session with timeout
-    const getInitialSession = async () => {
-      try {
-        if (supabase?.auth?.getSession) {
-          const { data: { session: initialSession } } = await supabase.auth.getSession();
-          setSession(initialSession);
-        } else {
-          console.warn('Supabase auth not available, using fallback session');
-          setSession(null);
-        }
-      } catch (error) {
-        console.error('Error getting initial session:', error);
-        setSession(null);
-      } finally {
-        console.log('Setting loading to false');
-        setLoading(false);
-      }
-    };
-
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.log('Session timeout reached, setting loading to false');
+    let didTimeout = false;
+    const timeout = setTimeout(() => {
+      didTimeout = true;
       setLoading(false);
-    }, 3000); // 3 second timeout
+      if (!session) {
+        console.warn('[GENESIS]: Session check timed out after 5s. Forcing loading=false.');
+      }
+    }, 5000);
 
-    getInitialSession();
-
-    // Listen for auth changes
-    let subscription: any = null;
-    try {
-      if (supabase?.auth?.onAuthStateChange) {
-        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
-          async (event: string, session: Session | null) => {
-            console.log('Auth state changed:', event, session);
-            setSession(session);
+    supabase.auth.getSession()
+      .then(({ data: { session, error } }: { data: { session: any; error: any } }) => {
+        if (!didTimeout) {
+          setSession(session);
+          setLoading(false);
+          if (error) {
+            console.warn('[GENESIS]: Supabase session error:', error.message);
           }
-        );
-        subscription = authSubscription;
-      } else {
-        console.warn('Supabase auth onAuthStateChange not available');
-      }
-    } catch (error) {
-      console.error('Error setting up auth state listener:', error);
-    }
+        }
+      })
+      .catch((error: any) => {
+        if (!didTimeout) {
+          setSession(null);
+          setLoading(false);
+          console.warn('[GENESIS]: Supabase session fetch failed:', error.message);
+        }
+      });
 
-    return () => {
-      clearTimeout(timeoutId);
-      if (subscription?.unsubscribe) {
-        subscription.unsubscribe();
-      }
-    };
+    return () => clearTimeout(timeout);
   }, []);
 
   return (

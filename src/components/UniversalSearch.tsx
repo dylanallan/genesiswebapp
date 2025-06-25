@@ -9,6 +9,7 @@ import {
   executeUseCase
 } from '../lib/data-integration';
 import { chatApi } from '../api/chat';
+import { supabase } from '../lib/supabase';
 
 interface SearchResult {
   id: string;
@@ -36,6 +37,8 @@ const UniversalSearch: React.FC = () => {
   const [useCases, setUseCases] = useState<UseCase[]>([]);
   const [selectedUseCase, setSelectedUseCase] = useState<string>('');
   const [aiInsights, setAiInsights] = useState<string>('');
+  const [traditions, setTraditions] = useState<any[]>([]);
+  const [traditionsError, setTraditionsError] = useState<string | null>(null);
 
   const categories = [
     { id: 'all', name: 'All Categories', icon: Globe, color: 'bg-blue-500' },
@@ -109,6 +112,14 @@ const UniversalSearch: React.FC = () => {
         } catch (error) {
           console.error('Error getting AI insights:', error);
         }
+      }
+
+      // Search for traditions
+      const { data: traditionsData, error: traditionsError } = await supabase.from('traditions').select('*').ilike('name', `%${query}%`);
+      if (traditionsData) {
+        setTraditions(traditionsData);
+      } else {
+        setTraditions([]);
       }
 
     } catch (error) {
@@ -310,6 +321,17 @@ const UniversalSearch: React.FC = () => {
             <p className="text-gray-700 whitespace-pre-wrap">{aiInsights}</p>
           </div>
         </motion.div>
+      )}
+
+      {traditions && traditions.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-2">UNESCO Traditions</h3>
+          <ul className="list-disc pl-5">
+            {traditions.map((t: any) => (
+              <li key={t.id}><strong>{t.name}</strong>: {t.description?.slice(0, 100)}...</li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
