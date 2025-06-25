@@ -10,6 +10,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Dashboard } from './Dashboard';
 import EliteHackathonApp from './EliteHackathonApp';
 import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
+import { GlobalDataProvider } from '../lib/GlobalDataContext';
+import { AutomationHub } from './AutomationHub';
+import { SystemDashboard } from './SystemDashboard';
 
 // Full Dashboard with all features
 const FullDashboard: React.FC = () => {
@@ -244,16 +247,18 @@ export const MainApp: React.FC = () => {
   }
 
   return (
-    <ErrorBoundary>
-      <Router>
-        <Routes>
-          <Route path="/" element={<GenesisHome />} />
-          <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
-          <Route path="/hackathon" element={<EliteHackathonApp />} />
-          <Route path="/intelligence" element={<GlobalIntelligenceDashboard />} />
-          {/* Add more routes for other advanced dashboards as needed */}
-        </Routes>
-      </Router>
-    </ErrorBoundary>
+    <GlobalDataProvider>
+      <ErrorBoundary>
+        <Router>
+          <Routes>
+            <Route path="/" element={<GenesisHome />} />
+            <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
+            <Route path="/hackathon" element={<EliteHackathonApp />} />
+            <Route path="/intelligence" element={<GlobalIntelligenceDashboard />} />
+            {/* Add more routes for other advanced dashboards as needed */}
+          </Routes>
+        </Router>
+      </ErrorBoundary>
+    </GlobalDataProvider>
   );
 };

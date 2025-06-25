@@ -5,13 +5,20 @@ import { config } from './config';
 // Create and export the Supabase client with error handling
 let supabase: any = null;
 
+// Patch for Bolt.new/Bolt environments: use in-memory storage if localStorage is not available
+const memoryStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
 try {
   supabase = createClient(config.supabase.url, config.supabase.anonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storage: localStorage,
+      storage: typeof window !== 'undefined' && window.localStorage ? window.localStorage : memoryStorage,
       storageKey: 'genesis.auth.token'
     }
   });
