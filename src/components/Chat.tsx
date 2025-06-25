@@ -22,6 +22,8 @@ import { useSession } from '../lib/session-context';
 import { chatApi, ChatMessage, ChatResponse, ConversationInfo } from '../api/chat';
 import { supabase } from '../lib/supabase';
 import VoicePlayer from './VoicePlayer';
+import { ErrorRecoverySystem } from '../lib/error-recovery';
+import { Card } from '../../components/ui/card';
 
 interface ChatProps {
   userName?: string;
@@ -45,6 +47,8 @@ const availableProviders = [
   { id: 'gemini', name: 'Gemini (Google)' },
   { id: 'ollama', name: 'Ollama 3.2' },
 ];
+
+const errorRecovery = ErrorRecoverySystem.getInstance();
 
 export const Chat: React.FC<ChatProps> = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -129,14 +133,11 @@ export const Chat: React.FC<ChatProps> = () => {
     setIsLoading(true);
 
     try {
-      // Use the proper chatApi instead of direct fetch
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
-
       const response = await chatApi.sendMessage(input, user.id, conversationId);
-      
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -145,17 +146,14 @@ export const Chat: React.FC<ChatProps> = () => {
         conversation_id: response.conversationId || conversationId || '',
         metadata: { provider: response.provider, model: response.model }
       };
-      
       setMessages(prev => [...prev, assistantMessage]);
-      
-      // Update conversation ID if this is a new conversation
       if (response.conversationId && !conversationId) {
         setConversationId(response.conversationId);
-        await loadConversations(); // Refresh conversation list
+        await loadConversations();
       }
-      
     } catch (error) {
-      console.error('Chat error:', error);
+      errorRecovery.handleError({ component: 'Chat', error, timestamp: new Date() });
+      toast.error(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -164,7 +162,6 @@ export const Chat: React.FC<ChatProps> = () => {
         conversation_id: conversationId || ''
       };
       setMessages(prev => [...prev, errorMessage]);
-      toast.error('Failed to send message. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -439,16 +436,10 @@ export const Chat: React.FC<ChatProps> = () => {
         )}
         
         {isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-start"
-          >
-            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-4 py-2">
-              <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
-              <span className="text-gray-500">Thinking...</span>
-            </div>
-          </motion.div>
+          <div className="flex items-center justify-center my-4">
+            <Loader2 className="w-6 h-6 animate-spin text-genesis-600" />
+            <span className="ml-2 text-sm text-gray-500">Sending...</span>
+          </div>
         )}
         
         <div ref={messagesEndRef} />

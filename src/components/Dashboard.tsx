@@ -142,7 +142,7 @@ import { ARHeritageViewer } from './ARHeritageViewer';
 import { N8NIntegration } from './N8NIntegration';
 import { StartupAdvisor } from './StartupAdvisor';
 import { MarketingAutomation } from './MarketingAutomation';
-import EnterpriseROICalculator from './EnterpriseROICalculator';
+import { EnterpriseROICalculator } from './EnterpriseROICalculator';
 import EnterpriseValueProposition from './EnterpriseValueProposition';
 import EnterpriseFeatureComparison from './EnterpriseFeatureComparison';
 import EnterprisePricingPanel from './EnterprisePricingPanel';

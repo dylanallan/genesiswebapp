@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { LineChart, BarChart, PieChart } from '@/components/ui/charts'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { formatDistanceToNow, formatBytes } from '@/lib/utils'
 
 interface HealthStatus {
@@ -92,7 +92,8 @@ export default function DashboardPage() {
   if (loading && !healthStatus) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900" />
+        <Loader2 className="w-12 h-12 animate-spin text-genesis-600" />
+        <span className="ml-4 text-lg text-gray-600">Loading system status...</span>
       </div>
     )
   }

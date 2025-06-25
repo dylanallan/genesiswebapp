@@ -137,6 +137,18 @@ class ErrorRecoverySystem {
         console.warn('Failed to clear chat state:', error);
       }
     });
+
+    this.recoveryStrategies.set('network', async () => {
+      console.log('🔧 Recovering from network error...');
+      // Try to re-establish network connection or prompt user
+      toast.error('Network error detected. Please check your internet connection.');
+    });
+
+    this.recoveryStrategies.set('api', async () => {
+      console.log('🔧 Recovering from API error...');
+      // Clear API caches or retry
+      toast.error('API error detected. Please try again later.');
+    });
   }
 
   private setupGlobalErrorHandlers() {
@@ -266,7 +278,12 @@ class ErrorRecoverySystem {
   private classifyError(context: ErrorContext): string {
     const errorMessage = context.error.message.toLowerCase();
     const stackTrace = context.stackTrace?.toLowerCase() || '';
-
+    if (errorMessage.includes('network') || errorMessage.includes('failed to fetch') || errorMessage.includes('timeout')) {
+      return 'network';
+    }
+    if (errorMessage.includes('api') || errorMessage.includes('endpoint') || errorMessage.includes('request failed')) {
+      return 'api';
+    }
     // Check for chat-related errors
     if (errorMessage.includes('chat') || 
         errorMessage.includes('message') || 

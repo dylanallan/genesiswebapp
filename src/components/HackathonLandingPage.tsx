@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import HackathonPitch from './HackathonPitch';
-import EnterpriseROICalculator from './EnterpriseROICalculator';
+import { EnterpriseROICalculator } from './EnterpriseROICalculator';
 import EnterpriseValueProposition from './EnterpriseValueProposition';
 
 const HackathonLandingPage: React.FC = () => {
@@ -147,7 +147,12 @@ const HackathonLandingPage: React.FC = () => {
       <EnterpriseValueProposition />
       
       {/* ROI Calculator */}
-      <EnterpriseROICalculator />
+      <EnterpriseROICalculator 
+        averageSalary={60000}
+        hoursSavedPerWeek={5}
+        increasedRevenue={10000}
+        employeeCount={50}
+      />
       
       {/* Call to Action */}
       <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-8 text-white shadow-xl">
