@@ -219,27 +219,44 @@ export const MainApp: React.FC = () => {
   const { session, loading } = useSession();
   const [isLoading, setIsLoading] = useState(true);
 
+  // DEVELOPMENT BYPASS - Force immediate loading for Bolt.new testing
+  const DEV_BYPASS = true; // Set to false to restore normal loading
+
   useEffect(() => {
-    // Reduce timer to 500ms and ensure we don't get stuck
+    if (DEV_BYPASS) {
+      // Immediate bypass for development
+      setIsLoading(false);
+      return;
+    }
+
+    // Very aggressive timeout for Bolt.new - 200ms max
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 500);
+    }, 200);
     
-    // Force loading to false after 3 seconds as a safety measure
+    // Force loading to false after 1 second as a safety measure
     const safetyTimer = setTimeout(() => {
       setIsLoading(false);
-      console.warn('[GENESIS]: Forced loading to false after 3s timeout');
-    }, 3000);
+      console.warn('[GENESIS]: Forced loading to false after 1s timeout');
+    }, 1000);
+    
+    // Bolt.new specific bypass - if still loading after 500ms, force through
+    const boltNewBypass = setTimeout(() => {
+      if (loading) {
+        console.log('[GENESIS]: Bolt.new bypass - forcing app to load');
+        setIsLoading(false);
+      }
+    }, 500);
     
     return () => {
       clearTimeout(timer);
       clearTimeout(safetyTimer);
+      clearTimeout(boltNewBypass);
     };
-  }, []);
+  }, [loading]);
 
-  // Show loading screen only if both session is loading AND local loading is true
-  // OR if session loading takes too long (>3s)
-  const shouldShowLoading = (loading && isLoading) || (loading && !isLoading && session === null);
+  // Show loading screen only for a very brief moment
+  const shouldShowLoading = !DEV_BYPASS && loading && isLoading;
 
   if (shouldShowLoading) {
     return (
