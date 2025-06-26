@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,6 +6,7 @@ import { LogIn, UserPlus, Loader2, Brain, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const authSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -34,11 +35,21 @@ export const Auth: React.FC = () => {
     }
   });
 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }: { data: { session: any } }) => {
+      if (data.session && data.session.user) {
+        navigate('/dashboard');
+      }
+    });
+  }, []);
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       setAuthError(null);
-      
+      console.log('[GENESIS]: Attempting Google sign in');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -49,10 +60,10 @@ export const Auth: React.FC = () => {
           }
         }
       });
-
       if (error) throw error;
+      // After redirect, session will be set and useEffect will handle navigation
     } catch (error: any) {
-      console.error('Google sign in error:', error);
+      console.error('[GENESIS ERROR]: Google sign in error:', error);
       setAuthError('Failed to sign in with Google. Please try again.');
       toast.error('Failed to sign in with Google. Please try again.');
     } finally {
@@ -63,18 +74,17 @@ export const Auth: React.FC = () => {
   const onSubmit = async (data: AuthForm) => {
     setIsLoading(true);
     setAuthError(null);
-    
+    console.log('[GENESIS]: Submitting login/signup', data);
     try {
       if (isLogin) {
         const { data: authData, error } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
         });
-
         if (error) throw error;
-        
         if (authData?.user) {
           toast.success('Successfully signed in!');
+          navigate('/dashboard');
         }
       } else {
         const { data: authData, error } = await supabase.auth.signUp({
@@ -84,17 +94,15 @@ export const Auth: React.FC = () => {
             emailRedirectTo: `${window.location.origin}`
           }
         });
-
         if (error) throw error;
-        
         if (authData?.user) {
           toast.success('Account created successfully!');
+          navigate('/dashboard');
         }
         reset();
       }
     } catch (error: any) {
-      console.error('Auth error:', error);
-      
+      console.error('[GENESIS ERROR]: Auth error:', error);
       if (error.message.includes('Invalid login credentials')) {
         setAuthError('Invalid email or password. Please check your credentials or create a new account.');
         toast.error('Invalid email or password. Please check your credentials or create a new account.');
