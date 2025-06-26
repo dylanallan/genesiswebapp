@@ -69,3 +69,4 @@ Thumbs.db
 # Local Netlify folder
 .netlify
 unesco-api/
+.env
