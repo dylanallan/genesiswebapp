@@ -163,11 +163,25 @@ const SimpleAuth: React.FC = () => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific case where user already exists
+        if (error.message === 'User already registered') {
+          toast.error('This email is already registered. Please sign in instead or use a different email.');
+          setAuthMode('signin'); // Switch to sign in mode
+          return;
+        }
+        throw error;
+      }
       toast.success('Account created! Please check your email to verify.');
     } catch (error: any) {
       console.error('Sign up error:', error);
-      toast.error(error.message || 'Failed to create account');
+      // More specific error handling
+      if (error.message === 'User already registered') {
+        toast.error('This email is already registered. Please sign in instead.');
+        setAuthMode('signin');
+      } else {
+        toast.error(error.message || 'Failed to create account');
+      }
     } finally {
       setIsLoading(false);
     }
