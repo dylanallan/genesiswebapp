@@ -1,131 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSession } from '../lib/session-context';
-import { Brain, Menu, X, Home, Bot, Globe, BarChart3, Settings, Users, Zap, TrendingUp } from 'lucide-react';
+import { Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../lib/error-boundary';
 import GenesisHome from './GenesisHome';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import EliteHackathonApp from './EliteHackathonApp';
 import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
 import { GlobalDataProvider } from '../lib/GlobalDataContext';
-import { AutomationHub } from './AutomationHub';
-import { SystemDashboard } from './SystemDashboard';
+import PricingPage from './PricingPage';
+import AccountBar from './AccountBar';
 
-// Full Dashboard with all features
-const FullDashboard: React.FC = () => {
-  const [currentView, setCurrentView] = useState('main');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const navigationItems = [
-    { id: 'main', label: 'Dashboard', icon: Home, component: EliteHackathonApp },
-    { id: 'automation', label: 'Automation Hub', icon: Bot, component: AutomationHub },
-    { id: 'system', label: 'System Health', icon: BarChart3, component: SystemDashboard },
-    { id: 'cultural', label: 'Cultural AI', icon: Globe },
-    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
-    { id: 'team', label: 'Team Workspace', icon: Users },
-    { id: 'settings', label: 'Settings', icon: Settings }
-  ];
-
-  const CurrentComponent = navigationItems.find(item => item.id === currentView)?.component;
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-xl border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
-              >
-                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-                <Brain className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Genesis Heritage Pro
-                </h1>
-                <p className="text-sm text-gray-600">AI-Powered Cultural Heritage & Business Automation</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-green-100 px-3 py-1 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-800 text-sm font-medium">Live</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
-          <div className="h-full flex flex-col">
-            <div className="flex-1 px-4 py-6">
-              <nav className="space-y-2">
-                {navigationItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setCurrentView(item.id);
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                      currentView === item.id
-                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 lg:ml-0">
-          {CurrentComponent ? (
-            <CurrentComponent />
-          ) : (
-            <div className="p-8">
-              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Zap className="w-8 h-8 text-blue-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {navigationItems.find(item => item.id === currentView)?.label}
-                </h2>
-                <p className="text-gray-600">
-                  This feature is coming soon. Stay tuned for updates!
-                </p>
-              </div>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-    </div>
-  );
-};
+// A shared demo login is only offered when a demo account is explicitly configured at build time.
+const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
 
 const SimpleAuth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -209,22 +100,12 @@ const SimpleAuth: React.FC = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: 'demo@genesisheritage.com',
-        password: 'demo123456',
+        email: DEMO_EMAIL!,
+        password: DEMO_PASSWORD!,
       });
 
-      if (error) {
-        // If demo account doesn't exist, try to create it
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: 'demo@genesisheritage.com',
-          password: 'demo123456',
-        });
-        
-        if (signUpError) throw signUpError;
-        toast.success('Demo account created! Please check your email.');
-      } else {
-        toast.success('Demo login successful!');
-      }
+      if (error) throw error;
+      toast.success('Demo login successful!');
     } catch (error: any) {
       console.error('Demo login error:', error);
       toast.error('Demo login failed. Please try manual signup.');
@@ -270,10 +151,13 @@ const SimpleAuth: React.FC = () => {
 
         <form onSubmit={authMode === 'signin' ? handleSignIn : handleSignUp} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
+              id="auth-email"
+              name="email"
+              autoComplete="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -284,17 +168,20 @@ const SimpleAuth: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
             <input
+              id="auth-password"
+              name="password"
+              autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
               required
-              minLength={6}
+              minLength={8}
             />
           </div>
 
@@ -309,7 +196,7 @@ const SimpleAuth: React.FC = () => {
         </form>
 
         {/* Demo Login Button */}
-        <div className="mt-6 text-center">
+        {DEMO_EMAIL && DEMO_PASSWORD && <div className="mt-6 text-center">
           <button
             onClick={handleDemoLogin}
             disabled={isLoading}
@@ -317,7 +204,7 @@ const SimpleAuth: React.FC = () => {
           >
             Try Demo Account
           </button>
-        </div>
+        </div>}
 
         {/* Toggle Auth Mode */}
         <div className="mt-4 text-center">
@@ -335,81 +222,36 @@ const SimpleAuth: React.FC = () => {
   );
 };
 
+
+const LoadingScreen = () => (
+  <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center" role="status" aria-live="polite">
+    <div className="text-center">
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
+        <Brain className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+      </motion.div>
+      <p className="text-gray-600 font-medium">Loading Genesis Heritage Pro...</p>
+    </div>
+  </div>
+);
+
 export const MainApp: React.FC = () => {
   const { session, loading } = useSession();
-  const [isLoading, setIsLoading] = useState(true);
 
-  // DEVELOPMENT BYPASS - Force immediate loading for Bolt.new testing
-  const DEV_BYPASS = true; // Set to false to restore normal loading
-
-  useEffect(() => {
-    if (DEV_BYPASS) {
-      // Immediate bypass for development
-      setIsLoading(false);
-      return;
-    }
-
-    // Very aggressive timeout for Bolt.new - 200ms max
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 200);
-    
-    // Force loading to false after 1 second as a safety measure
-    const safetyTimer = setTimeout(() => {
-      setIsLoading(false);
-      console.warn('[GENESIS]: Forced loading to false after 1s timeout');
-    }, 1000);
-    
-    // Bolt.new specific bypass - if still loading after 500ms, force through
-    const boltNewBypass = setTimeout(() => {
-      if (loading) {
-        console.log('[GENESIS]: Bolt.new bypass - forcing app to load');
-        setIsLoading(false);
-      }
-    }, 500);
-    
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(safetyTimer);
-      clearTimeout(boltNewBypass);
-    };
-  }, [loading]);
-
-  // Show loading screen only for a very brief moment
-  const shouldShowLoading = !DEV_BYPASS && loading && isLoading;
-
-  if (shouldShowLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <Brain className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-          </motion.div>
-          <p className="text-gray-600 font-medium">Loading Genesis Heritage Pro...</p>
-          <p className="text-gray-400 text-sm mt-2">Connecting to AI systems...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If session loading failed or timed out, show auth
-  if (!session) {
-    return <SimpleAuth />;
-  }
+  if (loading) return <LoadingScreen />;
+  if (!session) return <SimpleAuth />;
 
   return (
     <GlobalDataProvider>
       <ErrorBoundary>
         <Router>
+          <AccountBar />
           <Routes>
             <Route path="/" element={<GenesisHome />} />
             <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
             <Route path="/hackathon" element={<EliteHackathonApp />} />
             <Route path="/intelligence" element={<GlobalIntelligenceDashboard />} />
-            {/* Add more routes for other advanced dashboards as needed */}
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </ErrorBoundary>

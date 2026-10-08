@@ -1,5 +1,14 @@
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { toast } from "sonner";
+
+// Voice ids must match the server allow-list (TTS_VOICES in the voice-synthesis function).
+const VOICES = [
+  { id: "af_heart", label: "Heart (warm, female, American)" },
+  { id: "am_adam", label: "Adam (steady, male, American)" },
+  { id: "bf_emma", label: "Emma (clear, female, British)" },
+  { id: "bm_george", label: "George (calm, male, British)" },
+];
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -7,35 +16,7 @@ const LANGUAGES = [
   { code: "fr", label: "French" },
   { code: "zh", label: "Chinese" },
   { code: "hi", label: "Hindi" },
-  // ...add more as needed
 ];
-
-type Voice = { id: string; label: string };
-
-type VoicesMap = {
-  [key: string]: Voice[];
-};
-
-const VOICES: VoicesMap = {
-  en: [
-    { id: "morgan-freeman-style-id", label: "Morgan Freeman (English)" },
-    // ...other English voices
-  ],
-  es: [
-    { id: "antonio-voice-id", label: "Antonio (Spanish)" },
-    // ...other Spanish voices
-  ],
-  fr: [
-    { id: "juliette-voice-id", label: "Juliette (French)" },
-  ],
-  zh: [
-    { id: "li-voice-id", label: "Li (Chinese)" },
-  ],
-  hi: [
-    { id: "arjun-voice-id", label: "Arjun (Hindi)" },
-  ],
-  // ...other languages
-};
 
 interface VoicePlayerProps {
   text: string;
@@ -43,59 +24,78 @@ interface VoicePlayerProps {
   defaultVoice?: string;
 }
 
-export default function VoicePlayer({ text, defaultLanguage = "en", defaultVoice = "morgan-freeman-style-id" }: VoicePlayerProps) {
-  const [language, setLanguage] = useState<string>(defaultLanguage);
-  const [voice, setVoice] = useState<string>(defaultVoice);
+export default function VoicePlayer({ text, defaultLanguage = "en", defaultVoice = VOICES[0].id }: VoicePlayerProps) {
+  const [language, setLanguage] = useState(defaultLanguage);
+  const [voice, setVoice] = useState(defaultVoice);
   const [loading, setLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const urlRef = useRef<string | null>(null);
+
+  // Free the previous audio blob when replaced or when the component unmounts.
+  useEffect(() => {
+    urlRef.current = audioUrl;
+    return () => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    };
+  }, [audioUrl]);
+
+  const speakWithBrowser = () => {
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   const handlePlay = async () => {
+    if (!text.trim()) return;
     setLoading(true);
     setAudioUrl(null);
-    
     try {
-      const { data, error } = await supabase.functions.invoke('voice-synthesis', {
-        body: { text, language, voice }
+      const { data, error } = await supabase.functions.invoke("voice-synthesis", {
+        body: { text, language, voice },
       });
-      
       if (error) {
-        console.error('Voice synthesis error:', error);
-        throw error;
+        // Surface the server's own message (e.g. "An active subscription is required")
+        let message = "Voice generation failed";
+        try {
+          const body = await (error as { context?: Response }).context?.json();
+          if (body?.error) message = body.error;
+        } catch { /* keep default message */ }
+        toast.error(message);
+        speakWithBrowser();
+        return;
       }
-      
-      // Convert the response to a blob
-      const response = await fetch(data.url || data);
-      const blob = await response.blob();
+      // Audio responses arrive as a Blob
+      const blob = data instanceof Blob ? data : new Blob([data], { type: "audio/mpeg" });
       setAudioUrl(URL.createObjectURL(blob));
-    } catch (error) {
-      console.error('Failed to synthesize voice:', error);
-      // Fallback to browser speech synthesis
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = language;
-        window.speechSynthesis.speak(utterance);
-      }
+    } catch (err) {
+      console.error("Failed to synthesize voice:", err);
+      toast.error("Could not reach the voice service. Using your browser's voice instead.");
+      speakWithBrowser();
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 8 }}>
-        <select value={language} onChange={e => {
-          const lang = e.target.value;
-          setLanguage(lang);
-          setVoice(VOICES[lang][0]?.id || "");
-        }}>
-          {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <select aria-label="Language" className="border rounded px-2 py-1" value={language} onChange={(e) => setLanguage(e.target.value)}>
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>{l.label}</option>
+          ))}
         </select>
-        <select value={voice} onChange={e => setVoice(e.target.value)}>
-          {(VOICES[language] || []).map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+        <select aria-label="Voice" className="border rounded px-2 py-1" value={voice} onChange={(e) => setVoice(e.target.value)}>
+          {VOICES.map((v) => (
+            <option key={v.id} value={v.id}>{v.label}</option>
+          ))}
         </select>
-        <button onClick={handlePlay} disabled={loading}>{loading ? "Loading..." : "Play"}</button>
+        <button className="bg-blue-600 text-white rounded px-3 py-1 disabled:opacity-50" onClick={handlePlay} disabled={loading || !text.trim()}>
+          {loading ? "Generating…" : "Play"}
+        </button>
       </div>
       {audioUrl && <audio src={audioUrl} controls autoPlay />}
     </div>
   );
-} 
+}

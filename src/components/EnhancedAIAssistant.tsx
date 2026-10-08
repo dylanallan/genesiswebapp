@@ -54,6 +54,7 @@ export const EnhancedAIAssistant: React.FC = () => {
   const [showCustomInstructionsEditor, setShowCustomInstructionsEditor] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationIdRef = useRef<string | undefined>(undefined);
   const session = useSession();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
@@ -153,12 +154,12 @@ How can I assist you today?`,
       console.log('🔄 EnhancedAIAssistant sending message:', input);
       
       // Use the new chatApi
-      const response = await chatApi.sendMessage(
-        input,
-        undefined, // conversationId
-        'auto', // provider
-        currentModel === 'auto' ? undefined : currentModel // model
-      );
+      const response = await chatApi.sendMessage(input, {
+        conversationId: conversationIdRef.current,
+        provider: currentModel,
+      });
+      conversationIdRef.current = response.conversationId;
+      if (response.code === 'UPGRADE_REQUIRED') toast.info('Free daily limit reached — upgrade to Pro to keep chatting.');
 
       console.log('📥 EnhancedAIAssistant received response:', response);
       

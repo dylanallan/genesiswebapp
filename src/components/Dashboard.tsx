@@ -1,6 +1,7 @@
 // Cache bust: 2024-07-01-1
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link as RouterLink } from 'react-router-dom';
 import { 
   Home, 
   Users, 
@@ -185,12 +186,21 @@ import { MediaUploader } from './MediaUploader';
 import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
 import FamilySummary from './FamilySummary';
+import RecordsSearch from './RecordsSearch';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
 }
 
 const features = [
+  {
+    id: 'records-search',
+    name: 'Historical Records',
+    icon: Search,
+    component: RecordsSearch,
+    description: 'Search open archives for ancestors',
+    category: 'heritage',
+  },
   // Core System Features
   {
     id: 'search',
@@ -755,7 +765,7 @@ const features = [
     category: 'tools'
   },
   {
-    id: 'settings',
+    id: 'app-settings',
     name: 'Settings',
     icon: Settings,
     component: SettingsPanel,
@@ -764,15 +774,13 @@ const features = [
   }
 ];
 
-export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
+export const Dashboard: React.FC<DashboardProps> = () => {
   const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
-  const [activeFeature, setActiveFeature] = useState('search');
+  const [activeFeature, setActiveFeature] = useState('records-search');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [testResult, setTestResult] = useState<string>('');
   
   const { colorScheme } = preferences;
 
@@ -796,20 +804,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
     { id: 'tools', name: 'Additional Tools', icon: Settings }
   ];
 
-  const testChatAPI = async () => {
-    try {
-      console.log('🧪 Testing Chat API...');
-      const response = await chatApi.sendMessage('Hello! Can you help me with genealogy research?');
-      console.log('✅ Test result:', response);
-      setTestResult(`✅ Success! Provider: ${response.provider}, Model: ${response.model}, Response: ${response.response.substring(0, 100)}...`);
-      toast.success('Chat API test successful!');
-    } catch (error: any) {
-      console.error('❌ Test failed:', error);
-      setTestResult(`❌ Error: ${error.message || 'Unknown error'}`);
-      toast.error('Chat API test failed');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
       {/* Top Navigation */}
@@ -831,32 +825,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             </div>
 
             <div className="flex items-center space-x-2">
-              <button
-                onClick={testChatAPI}
-                className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-                title="Test Chat API"
+              <RouterLink
+                to="/pricing"
+                className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
               >
-                Test Chat
-              </button>
-              
-              <div className="relative">
-                <button
-                  onClick={() => onViewModeChange('enterprise')}
-                  className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  Switch to Enterprise
-                </button>
-              </div>
+                Plans &amp; billing
+              </RouterLink>
 
-              <button 
-                className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <Bell className="w-5 h-5 text-gray-600" />
-                {notifications.length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                )}
-              </button>
-              
               <UserProfileButton />
             </div>
           </div>
@@ -928,32 +903,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
-            >
-              <Home className="w-4 h-4 text-green-500" />
-              <span>All Systems Active</span>
-            </motion.div>
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Processing Optimized</span>
-            </motion.div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <FamilySummary />
-            <ErrorBoundary>
+            {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
+            <ErrorBoundary key={activeFeature}>
               {typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
                   <h2 className="text-xl font-bold mb-2">Component Error</h2>
@@ -962,19 +916,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               )}
             </ErrorBoundary>
             
-            {/* Test Results Display */}
-            {testResult && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-                <h3 className="font-semibold mb-2">Chat API Test Result:</h3>
-                <p className="text-sm">{testResult}</p>
-                <button
-                  onClick={() => setTestResult('')}
-                  className="mt-2 text-xs text-gray-500 hover:text-gray-700"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
           </div>
           <div className="space-y-6">
             <ErrorBoundary>

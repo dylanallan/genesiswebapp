@@ -1,107 +1,101 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import { corsFor } from '../_shared/cors.ts'
+import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 
-// Simple AI provider calling functions
-async function callOpenAI(message: string, apiKey: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-4', messages: [{ role: 'user', content: message }] }),
-  });
-  if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
-  const data = await response.json();
-  return data.choices[0].message.content;
+const MAX_MESSAGE_CHARS = 8000
+const FREE_DAILY_MESSAGES = Number(Deno.env.get('FREE_DAILY_MESSAGES') ?? '10')
+const PAID_DAILY_MESSAGES = Number(Deno.env.get('PAID_DAILY_MESSAGES') ?? '500') // abuse backstop
+
+// Models are configurable so a provider retiring a model never needs a code change.
+const MODELS = {
+  anthropic: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
+  openai: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
+  gemini: Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.0-flash',
 }
 
+const SYSTEM_PROMPT =
+  'You are Genesis, a warm and knowledgeable assistant for family heritage research, ' +
+  'cultural traditions and small-business planning. Be accurate; say so when you are unsure.'
+
 async function callAnthropic(message: string, apiKey: string): Promise<string> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-3-opus-20240229', max_tokens: 1024, messages: [{ role: 'user', content: message }] }),
-  });
-  if (!response.ok) throw new Error(`Anthropic API error: ${response.status}`);
-  const data = await response.json();
-  return data.content[0].text;
+    body: JSON.stringify({ model: MODELS.anthropic, max_tokens: 1024, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: message }] }),
+  })
+  if (!r.ok) throw new Error(`Anthropic API error: ${r.status}`)
+  return (await r.json()).content[0].text
+}
+
+async function callOpenAI(message: string, apiKey: string): Promise<string> {
+  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: MODELS.openai, max_tokens: 1024, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message }] }),
+  })
+  if (!r.ok) throw new Error(`OpenAI API error: ${r.status}`)
+  return (await r.json()).choices[0].message.content
 }
 
 async function callGemini(message: string, apiKey: string): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-  const response = await fetch(url, {
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini}:generateContent`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: message }] }] }),
-  });
-  if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // header, not URL, so it never lands in logs
+    body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ parts: [{ text: message }] }] }),
+  })
+  if (!r.ok) throw new Error(`Gemini API error: ${r.status}`)
+  return (await r.json()).candidates[0].content.parts[0].text
 }
 
-async function callOllama(message: string, apiUrl: string): Promise<string> {
-  const response = await fetch(`${apiUrl}/v1/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'llama3:70b', messages: [{ role: 'user', content: message }] }),
-  });
-  if (!response.ok) throw new Error(`Ollama API error: ${response.status}`);
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
+const PROVIDERS = [
+  { name: 'anthropic', key: () => Deno.env.get('ANTHROPIC_API_KEY'), call: callAnthropic },
+  { name: 'openai', key: () => Deno.env.get('OPENAI_API_KEY'), call: callOpenAI },
+  { name: 'gemini', key: () => Deno.env.get('GEMINI_API_KEY'), call: callGemini },
+]
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const admin = () => createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const cors = corsFor(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
 
   try {
-    const { message, provider } = await req.json();
-    if (!message) throw new Error('No message provided.');
-    
-    // Define providers and their callers
-    const providers = [
-      { name: 'anthropic', key: Deno.env.get("ANTHROPIC_API_KEY"), call: callAnthropic },
-      { name: 'openai', key: Deno.env.get("OPENAI_API_KEY"), call: callOpenAI },
-      { name: 'gemini', key: Deno.env.get("GEMINI_API_KEY"), call: callGemini },
-      { name: 'ollama', key: Deno.env.get("OLLAMA_API_URL") || 'http://localhost:11434', call: callOllama },
-    ];
+    const user = await requireUser(req)
+    const { message, provider } = await req.json()
+    if (typeof message !== 'string' || !message.trim()) return json({ error: 'A message is required' }, 400, cors)
+    if (message.length > MAX_MESSAGE_CHARS) return json({ error: `Message too long (max ${MAX_MESSAGE_CHARS} characters)` }, 400, cors)
 
-    if (provider) {
-      // If a provider is specified, use only that provider
-      const selected = providers.find(p => p.name === provider);
-      if (!selected || !selected.key) throw new Error(`Provider ${provider} not configured.`);
-      const response = await selected.call(message, selected.key);
-      return new Response(
-        JSON.stringify({ response, provider: selected.name }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
+    // Plan + daily quota (counted before the call so failures can't be used to dodge the limit)
+    const db = admin()
+    const { data: sub } = await db.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle()
+    const paid = sub?.status === 'active' || sub?.status === 'trialing'
+    const limit = paid ? PAID_DAILY_MESSAGES : FREE_DAILY_MESSAGES
+    const { data: used, error: usageError } = await db.rpc('increment_ai_usage', { p_user: user.id })
+    if (usageError) throw usageError
+    if (used > limit) {
+      return json({
+        error: paid ? 'Daily message limit reached. It resets at midnight UTC.' : 'Free daily limit reached. Upgrade to keep chatting.',
+        code: paid ? 'LIMIT_REACHED' : 'UPGRADE_REQUIRED',
+      }, 429, cors)
     }
 
-    // Otherwise, try all providers in order
-    for (const p of providers) {
-      if (p.key) {
-        try {
-          console.log(`Attempting to call ${p.name}...`);
-          const response = await p.call(message, p.key);
-          console.log(`${p.name} succeeded!`);
-          return new Response(
-            JSON.stringify({ response, provider: p.name }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-          );
-        } catch (error) {
-          console.error(`Error calling ${p.name}:`, error.message);
-          continue;
-        }
+    const candidates = provider ? PROVIDERS.filter((p) => p.name === provider) : PROVIDERS
+    if (provider && candidates.length === 0) return json({ error: 'Unknown provider' }, 400, cors)
+
+    for (const p of candidates) {
+      const key = p.key()
+      if (!key) continue
+      try {
+        const response = await p.call(message, key)
+        return json({ response, provider: p.name, model: MODELS[p.name as keyof typeof MODELS], remaining: Math.max(0, limit - used) }, 200, cors)
+      } catch (e) {
+        console.error(`ai-router: ${p.name} failed:`, (e as Error).message)
       }
     }
-    throw new Error('All AI providers failed or are not configured.');
-  } catch (error) {
-    console.error('Error in ai-router:', error.message);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    return json({ error: 'The AI service is temporarily unavailable. Please try again shortly.' }, 503, cors)
+  } catch (e) {
+    return errorResponse(e, cors)
   }
-}); 
+})

@@ -1,10 +1,10 @@
-import { serve } from 'https://deno.land/std/http/server.ts'
-import { createClient } from 'npm:@supabase/supabase-js'
-import { TextToSpeechClient } from 'npm:@google-cloud/text-to-speech'
-import { AIService } from '../shared/ai-utils.ts'
-import { withCors } from '../shared/cors.ts'
-import { withErrorHandling, AppError } from '../shared/error-handler.ts'
-import { initLogger } from '../shared/logger.ts'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import { callAI } from '../_shared/ai-utils.ts'
+import { withCors } from '../_shared/cors.ts'
+import { withErrorHandling, AppError } from '../_shared/error-handler.ts'
+import { requireUser, requireActiveSubscription } from '../_shared/auth.ts'
+import { initLogger } from '../_shared/logger.ts'
 import {
   SUPPORTED_LANGUAGES,
   VOICE_CONFIGS,
@@ -12,7 +12,6 @@ import {
   STORY_STYLES,
   STORY_TONES,
   SOUND_EFFECTS,
-  BACKGROUND_MUSIC,
   MAX_RETRIES,
   RETRY_DELAY,
   MAX_STORY_LENGTH,
@@ -21,707 +20,257 @@ import {
   MIN_AUDIO_DURATION,
   DEFAULT_SPEAKING_RATE,
   DEFAULT_PITCH,
-  DEFAULT_VOLUME,
   ERROR_MESSAGES,
-  type SupportedLanguage
+  type SupportedLanguage,
 } from './constants.ts'
 
-// Initialize services
 const logger = initLogger('voice-story-generator')
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-)
-const ttsClient = new TextToSpeechClient()
-const aiService = new AIService()
+const db = () => createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
-// Voice cache
-const voiceCache = new Map<string, {
-  config: typeof VOICE_CONFIGS[keyof typeof VOICE_CONFIGS][number]
-  timestamp: number
-}>()
-
-// Types
+// ---- Types ----------------------------------------------------------------
 interface StoryData {
-  person?: {
-    name: string
-    birthDate?: string
-    birthPlace?: string
-    lifeEvents?: Array<{
-      date: string
-      description: string
-      type: string
-    }>
-  }
-  family?: {
-    name: string
-    members: Array<{
-      name: string
-      relationship: string
-      birthDate?: string
-    }>
-  }
-  historical?: {
-    period: string
-    events: Array<{
-      date: string
-      description: string
-      significance: string
-    }>
-  }
-  custom?: {
-    title: string
-    content: string
-    metadata?: Record<string, unknown>
-  }
+  person?: { name: string; birthDate?: string; birthPlace?: string; lifeEvents?: Array<{ date: string; description: string; type: string }> }
+  family?: { name: string; members: Array<{ name: string; relationship: string; birthDate?: string }> }
+  historical?: { period: string; events: Array<{ date: string; description: string; significance: string }> }
+  custom?: { title: string; content: string }
 }
 
-interface VoiceStoryRequest {
-  data: StoryData
-  options?: {
-    language?: SupportedLanguage
-    voice?: {
-      name?: string
-      gender?: 'male' | 'female' | 'neutral'
-    }
-    style?: typeof STORY_STYLES[number]
-    tone?: typeof STORY_TONES[number]
-    audioFormat?: 'MP3' | 'WAV'
-    audioQuality?: keyof typeof AUDIO_QUALITY_SETTINGS
-    speakingRate?: number
-    pitch?: number
-    volume?: number
-    includeSoundEffects?: boolean
-    includeBackgroundMusic?: boolean
-    metadata?: Record<string, unknown>
-  }
+interface StoryOptions {
+  language?: SupportedLanguage
+  voice?: { gender?: 'male' | 'female' | 'neutral' }
+  style?: typeof STORY_STYLES[number]
+  tone?: typeof STORY_TONES[number]
+  audioFormat?: 'MP3' | 'WAV'
+  audioQuality?: keyof typeof AUDIO_QUALITY_SETTINGS
+  speakingRate?: number
+  pitch?: number
 }
 
-interface VoiceStoryResponse {
-  id: string
-  storyText: string
-  audioUrl: string
-  duration: number
-  wordCount: number
-  metadata: {
-    language: SupportedLanguage
-    voice: string
-    style: string
-    tone: string
-    audioFormat: string
-    audioQuality: string
-    processingTime: number
-    cacheHit: boolean
-    soundEffects: Array<{
-      type: string
-      count: number
-    }>
-    backgroundMusic?: {
-      file: string
-      mood: string
-    }
-  }
+interface VoiceStoryRequest { data: StoryData; options?: StoryOptions }
+
+// ---- Helpers --------------------------------------------------------------
+const escapeXml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+
+export function validateRequest(req: VoiceStoryRequest): void {
+  const d = req?.data
+  if (!d || !(d.person || d.family || d.historical || d.custom)) throw new AppError(ERROR_MESSAGES.VALIDATION.STORY_DATA_REQUIRED, 400)
+  if (d.person && !d.person.name?.trim()) throw new AppError(ERROR_MESSAGES.VALIDATION.PERSON_NAME_REQUIRED, 400)
+  if (d.family && !d.family.name?.trim()) throw new AppError(ERROR_MESSAGES.VALIDATION.FAMILY_NAME_REQUIRED, 400)
+  const o = req.options
+  if (o?.language && !SUPPORTED_LANGUAGES.includes(o.language)) throw new AppError(ERROR_MESSAGES.VALIDATION.UNSUPPORTED_LANGUAGE, 400)
+  if (o?.audioFormat && !['MP3', 'WAV'].includes(o.audioFormat)) throw new AppError(ERROR_MESSAGES.VALIDATION.UNSUPPORTED_AUDIO_FORMAT, 400)
+  if (o?.style && !STORY_STYLES.includes(o.style)) throw new AppError('Unsupported story style', 400)
+  if (o?.tone && !STORY_TONES.includes(o.tone)) throw new AppError('Unsupported story tone', 400)
+  if (o?.speakingRate !== undefined && (o.speakingRate < 0.25 || o.speakingRate > 4)) throw new AppError('speakingRate must be between 0.25 and 4', 400)
+  if (o?.pitch !== undefined && (o.pitch < -20 || o.pitch > 20)) throw new AppError('pitch must be between -20 and 20', 400)
+  if (JSON.stringify(d).length > 50_000) throw new AppError('Story data is too large', 400)
 }
 
-// Validation
-function validateRequest(request: VoiceStoryRequest): void {
-  if (!request.data) {
-    throw new AppError(ERROR_MESSAGES.VALIDATION.STORY_DATA_REQUIRED, 400)
-  }
-
-  if (request.data.person && !request.data.person.name) {
-    throw new AppError(ERROR_MESSAGES.VALIDATION.PERSON_NAME_REQUIRED, 400)
-  }
-
-  if (request.data.family && !request.data.family.name) {
-    throw new AppError(ERROR_MESSAGES.VALIDATION.FAMILY_NAME_REQUIRED, 400)
-  }
-
-  const language = request.options?.language ?? 'en-US'
-  if (!SUPPORTED_LANGUAGES.includes(language)) {
-    throw new AppError(ERROR_MESSAGES.VALIDATION.UNSUPPORTED_LANGUAGE, 400)
-  }
-
-  const audioFormat = request.options?.audioFormat ?? 'MP3'
-  if (!['MP3', 'WAV'].includes(audioFormat)) {
-    throw new AppError(ERROR_MESSAGES.VALIDATION.UNSUPPORTED_AUDIO_FORMAT, 400)
-  }
-}
-
-// Retry utility
-async function withRetry<T>(
-  operation: () => Promise<T>,
-  maxRetries: number = MAX_RETRIES,
-  delay: number = RETRY_DELAY
-): Promise<T> {
-  let lastError: Error | undefined
-  
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = MAX_RETRIES): Promise<T> {
+  let lastError: unknown
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation()
+      return await fn()
     } catch (error) {
-      lastError = error as Error
-      logger.warn(`Operation failed (attempt ${attempt}/${maxRetries})`, { error })
-      
-      if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delay * attempt))
-      }
+      lastError = error
+      logger.warn(`Operation failed (attempt ${attempt}/${maxRetries})`, error)
+      if (attempt < maxRetries) await new Promise((r) => setTimeout(r, RETRY_DELAY * attempt))
     }
   }
-  
   throw lastError
 }
 
-// Voice selection
-function selectVoice(language: SupportedLanguage, gender?: 'male' | 'female' | 'neutral'): string {
-  const cacheKey = `${language}-${gender ?? 'any'}`
-  const cached = voiceCache.get(cacheKey)
-  
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    logger.info('Voice cache hit', { language, gender, voice: cached.config.name })
-    return cached.config.name
-  }
-  
+const voiceCache = new Map<string, { name: string; timestamp: number }>()
+
+export function selectVoice(language: SupportedLanguage, gender?: 'male' | 'female' | 'neutral'): string {
+  const key = `${language}-${gender ?? 'any'}`
+  const cached = voiceCache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) return cached.name
+
   const voices = VOICE_CONFIGS[language]
-  if (!voices?.length) {
-    throw new AppError(`No voices available for language: ${language}`, 400)
-  }
-  
-  let selectedVoice = voices.find(v => v.recommended)
-  if (gender) {
-    const genderVoice = voices.find(v => v.gender === gender)
-    if (genderVoice) {
-      selectedVoice = genderVoice
-    }
-  }
-  
-  if (!selectedVoice) {
-    selectedVoice = voices[0]
-  }
-  
-  voiceCache.set(cacheKey, {
-    config: selectedVoice,
-    timestamp: Date.now()
-  })
-  
-  logger.info('Voice selected', { language, gender, voice: selectedVoice.name })
-  return selectedVoice.name
+  if (!voices?.length) throw new AppError(`No voices available for language: ${language}`, 400)
+  const pool = gender ? voices.filter((v) => v.gender === gender) : voices
+  const chosen = (pool.find((v) => v.recommended) ?? pool[0] ?? voices.find((v) => v.recommended) ?? voices[0]).name
+  voiceCache.set(key, { name: chosen, timestamp: Date.now() })
+  return chosen
 }
 
-// Story generation
-async function generateStoryText(request: VoiceStoryRequest): Promise<string> {
-  const { data, options } = request
-  const style = options?.style ?? 'narrative'
-  const tone = options?.tone ?? 'formal'
-  
-  let prompt = `Generate a ${style} story in a ${tone} tone about `
-  
+export function generatePrompt(data: StoryData, options: StoryOptions = {}): string {
+  let prompt = `Write a ${options.style ?? 'narrative'} story in a ${options.tone ?? 'formal'} tone about `
   if (data.person) {
-    prompt += `${data.person.name}`
-    if (data.person.birthDate) {
-      prompt += `, born on ${data.person.birthDate}`
-    }
-    if (data.person.birthPlace) {
-      prompt += ` in ${data.person.birthPlace}`
-    }
-    if (data.person.lifeEvents?.length) {
-      prompt += '. Include these significant life events: ' + 
-        data.person.lifeEvents.map(e => `${e.date}: ${e.description}`).join('; ')
-    }
+    const p = data.person
+    prompt += `${p.name}${p.birthDate ? `, born ${p.birthDate}` : ''}${p.birthPlace ? ` in ${p.birthPlace}` : ''}`
+    if (p.lifeEvents?.length) prompt += `. Key life events: ${p.lifeEvents.map((e) => `${e.date}: ${e.description}`).join('; ')}`
   } else if (data.family) {
-    prompt += `the ${data.family.name} family, including ` +
-      data.family.members.map(m => `${m.name} (${m.relationship})`).join(', ')
+    const f = data.family
+    prompt += `the ${f.name} family. Members: ${f.members.map((m) => `${m.name} (${m.relationship})`).join(', ')}`
   } else if (data.historical) {
-    prompt += `historical events during ${data.historical.period}, including ` +
-      data.historical.events.map(e => `${e.date}: ${e.description}`).join('; ')
+    prompt += `the period ${data.historical.period}. Events: ${data.historical.events.map((e) => `${e.date}: ${e.description}`).join('; ')}`
   } else if (data.custom) {
-    prompt += data.custom.content
+    prompt += `${data.custom.title}: ${data.custom.content}`
   }
-  
-  prompt += `. The story should be engaging and suitable for voice narration. ` +
-    `Keep it under ${MAX_STORY_LENGTH} words. ` +
-    `Format the text with appropriate pauses and emphasis for natural narration.`
-  
-  const response = await withRetry(() => aiService.generateText(prompt))
-  const storyText = response.trim()
-  
-  if (storyText.split(/\s+/).length > MAX_STORY_LENGTH) {
-    throw new AppError(ERROR_MESSAGES.VALIDATION.STORY_TOO_LONG, 400)
-  }
-  
-  return storyText
+  return `${prompt}. The story should be engaging and suitable for voice narration. Use only the facts provided; do not invent dates, names or places. Keep it under ${MAX_STORY_LENGTH} words.`
 }
 
-// SSML formatting
-function formatSSML(text: string, options: VoiceStoryRequest['options']): string {
-  const {
-    speakingRate = DEFAULT_SPEAKING_RATE,
-    pitch = DEFAULT_PITCH,
-    volume = DEFAULT_VOLUME,
-    includeSoundEffects = false
-  } = options ?? {}
-  
-  // Basic SSML structure
-  let ssml = `<speak version="1.1" xmlns="http://www.w3.org/2001/10/synthesis">`
-  
-  // Add voice configuration
-  ssml += `<voice name="${selectVoice(options?.language ?? 'en-US', options?.voice?.gender)}">`
-  
-  // Process text with pauses and emphasis
-  const paragraphs = text.split('\n\n')
-  for (const paragraph of paragraphs) {
-    ssml += `<p>`
-    
-    const sentences = paragraph.split(/[.!?]+/).filter(Boolean)
-    for (const sentence of sentences) {
-      // Add emphasis to important words
-      let processedSentence = sentence.replace(
-        /\b(significant|important|remarkable|notable|crucial)\b/gi,
-        '<emphasis level="strong">$1</emphasis>'
-      )
-      
-      // Add pauses for natural flow
-      processedSentence = processedSentence.replace(
-        /[,;:]/g,
-        '<break time="500ms"/>'
-      )
-      
-      // Add sound effects if enabled
-      if (includeSoundEffects) {
-        for (const category of Object.values(SOUND_EFFECTS)) {
-          for (const effect of category) {
-            if (effect.pattern.test(processedSentence)) {
-              processedSentence = processedSentence.replace(
-                effect.pattern,
-                `<audio src="${effect.file}" volume="${effect.volume}">$&</audio>`
-              )
-            }
-          }
-        }
-      }
-      
-      ssml += processedSentence + '.'
-      ssml += '<break time="700ms"/>'
-    }
-    
-    ssml += `</p><break time="1000ms"/>`
-  }
-  
-  ssml += `</voice></speak>`
-  
-  // Add prosody for overall voice characteristics
-  ssml = ssml.replace(
-    /<voice/g,
-    `<voice rate="${speakingRate}" pitch="${pitch}dB" volume="${volume}dB"`
-  )
-  
-  return ssml
-}
-
-// Audio generation
-async function generateAudio(ssml: string, options: VoiceStoryRequest['options']): Promise<{
-  audioContent: Uint8Array
-  duration: number
-}> {
-  const audioFormat = options?.audioFormat ?? 'MP3'
-  const audioQuality = options?.audioQuality ?? 'medium'
-  const qualitySettings = AUDIO_QUALITY_SETTINGS[audioQuality]
-  
-  const [response] = await ttsClient.synthesizeSpeech({
-    input: { ssml },
-    voice: {
-      languageCode: options?.language ?? 'en-US',
-      name: selectVoice(options?.language ?? 'en-US', options?.voice?.gender)
-    },
-    audioConfig: {
-      audioEncoding: audioFormat === 'MP3' ? 'MP3' : 'LINEAR16',
-      speakingRate: options?.speakingRate ?? DEFAULT_SPEAKING_RATE,
-      pitch: options?.pitch ?? DEFAULT_PITCH,
-      volumeGainDb: qualitySettings.volumeGainDb,
-      effectsProfileId: qualitySettings.effectsProfileId
-    }
-  })
-  
-  if (!response.audioContent) {
-    throw new AppError(ERROR_MESSAGES.PROCESSING.AUDIO_GENERATION_FAILED, 500)
-  }
-  
-  const duration = calculateAudioDuration(ssml, options?.speakingRate ?? DEFAULT_SPEAKING_RATE)
-  
-  if (duration > MAX_AUDIO_DURATION) {
-    throw new AppError(ERROR_MESSAGES.VALIDATION.AUDIO_TOO_LONG, 400)
-  }
-  
-  return {
-    audioContent: response.audioContent,
-    duration
-  }
-}
-
-// Main handler
-async function handleRequest(req: Request): Promise<Response> {
-  const startTime = Date.now()
-  
-  // Parse and validate request
-  const requestData = await req.json() as VoiceStoryRequest
-  validateRequest(requestData)
-  
-  // Set default options
-  const options = {
-    style: requestData.options?.style || 'narrative',
-    tone: requestData.options?.tone || 'formal',
-    voice: selectVoice(requestData.options),
-    audio: {
-      includeMusic: requestData.options?.audio?.includeMusic || false,
-      includeEffects: requestData.options?.audio?.includeEffects || false,
-      format: requestData.options?.audio?.format || 'mp3',
-      quality: requestData.options?.audio?.quality || 'high'
-    },
-    length: requestData.options?.length || 'medium',
-    language: requestData.options?.language || 'en'
-  }
-
-  logger.info('Starting story generation', {
-    style: options.style,
-    tone: options.tone,
-    language: options.language,
-    voice: options.voice.name
-  })
-
-  // Generate story text with retry
-  const storyText = await withRetry(() => generateStoryText(requestData.storyData, options))
-  const wordCount = storyText.split(/\s+/).length
-  
-  if (wordCount > MAX_STORY_LENGTH) {
-    logger.warn('Story exceeds maximum length', { wordCount, maxLength: MAX_STORY_LENGTH })
-    throw new AppError('Generated story exceeds maximum length', 400, 'VALIDATION_ERROR')
-  }
-
-  logger.info('Story text generated', { wordCount })
-
-  // Generate audio with retry
-  const audioData = await withRetry(() => generateAudio(storyText, options))
-  const audioDuration = calculateAudioDuration(storyText, options.voice.speakingRate)
-
-  logger.info('Audio generated', {
-    format: options.audio.format,
-    duration: audioDuration,
-    size: audioData.length
-  })
-
-  // Upload audio to storage with retry
-  const audioUrl = await withRetry(() => uploadAudio(audioData, options.audio.format))
-
-  // Prepare response
-  const response: VoiceStoryResponse = {
-    story: {
-      text: storyText,
-      wordCount,
-      duration: audioDuration,
-      style: options.style,
-      tone: options.tone
-    },
-    audio: {
-      url: audioUrl,
-      format: options.audio.format,
-      size: audioData.length,
-      duration: audioDuration,
-      voice: {
-        name: options.voice.name,
-        language: options.voice.language,
-        gender: options.voice.gender
-      }
-    },
-    metadata: {
-      processingTime: Date.now() - startTime,
-      aiUsage: true,
-      timestamp: new Date().toISOString(),
-      retries: 0, // Will be updated by withRetry
-      cacheHit: !!voiceCache.get(`${options.voice.language}-${options.voice.gender}`)
-    }
-  }
-
-  // Store result in database
-  const { error: dbError } = await supabase
-    .from('voice_stories')
-    .insert({
-      request_id: crypto.randomUUID(),
-      input_data: requestData,
-      output_data: response,
-      processing_time: response.metadata.processingTime,
-      created_at: response.metadata.timestamp,
-      word_count: wordCount,
-      audio_duration: audioDuration,
-      voice_name: options.voice.name,
-      language: options.voice.language
-    })
-
-  if (dbError) {
-    logger.error('Failed to store story result', dbError)
-    // Don't throw error, just log it
-  }
-
-  // Return response
-  return new Response(
-    JSON.stringify(response),
-    {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    }
-  )
-}
-
-// Helper functions
-async function generateStoryText(
-  data: StoryData,
-  options: VoiceStoryRequest['options']
-): Promise<string> {
-  const prompt = generatePrompt(data, options)
-  
+async function generateStoryText(data: StoryData, options: StoryOptions): Promise<string> {
   try {
-    const response = await aiService.processRequest({
-      prompt,
-      model: 'claude-3-opus-20240229',
-      maxTokens: 2000,
-      temperature: 0.7,
-      systemPrompt: `You are a professional storyteller specializing in genealogical narratives.
-Your task is to create engaging, historically accurate stories that bring family histories to life.
-Focus on creating natural, flowing prose that works well when spoken aloud.
-Use appropriate pauses and emphasis to enhance the listening experience.
-Maintain historical accuracy while making the story engaging and personal.`
-    })
-
-    return response.content
+    const res = await withRetry(() =>
+      callAI({
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a professional storyteller specializing in genealogical narratives. Write natural, flowing prose that works well when spoken aloud. Stay faithful to the facts you are given.',
+          },
+          { role: 'user', content: generatePrompt(data, options) },
+        ],
+        maxTokens: 2000,
+        temperature: 0.7,
+      })
+    )
+    const text = res.content.trim()
+    if (text.split(/\s+/).length > MAX_STORY_LENGTH) throw new AppError(ERROR_MESSAGES.VALIDATION.STORY_TOO_LONG, 400)
+    return text
   } catch (error) {
+    if (error instanceof AppError) throw error
     logger.error('Failed to generate story text', error)
-    throw new AppError('Failed to generate story text', 500, 'AI_ERROR')
+    throw new AppError(ERROR_MESSAGES.PROCESSING.STORY_GENERATION_FAILED, 502, 'AI_ERROR')
   }
 }
 
-function generatePrompt(data: StoryData, options: VoiceStoryRequest['options']): string {
-  const { style, tone, length, language } = options
-  
-  let prompt = `Create a ${length} ${style} story in ${language} with a ${tone} tone about `
-
-  if (data.person) {
-    prompt += `the life of ${data.person.name}`
-    if (data.person.birthDate) {
-      prompt += `, born ${data.person.birthDate}`
-    }
-    if (data.person.birthPlace) {
-      prompt += ` in ${data.person.birthPlace}`
-    }
-  } else if (data.family) {
-    prompt += `the ${data.family.name} family`
+export function detectSoundEffects(text: string): Array<{ file: string; volume: string; category: string }> {
+  const found: Array<{ file: string; volume: string; category: string }> = []
+  for (const group of Object.values(SOUND_EFFECTS)) {
+    for (const fx of group) if (fx.pattern.test(text)) found.push({ file: fx.file, volume: fx.volume, category: fx.category })
   }
-
-  prompt += '.\n\n'
-
-  // Add person details
-  if (data.person) {
-    prompt += 'Person Details:\n'
-    prompt += JSON.stringify(data.person, null, 2) + '\n\n'
-  }
-
-  // Add family details
-  if (data.family) {
-    prompt += 'Family Details:\n'
-    prompt += JSON.stringify(data.family, null, 2) + '\n\n'
-  }
-
-  // Add historical context
-  if (data.historicalContext) {
-    prompt += 'Historical Context:\n'
-    prompt += JSON.stringify(data.historicalContext, null, 2) + '\n\n'
-  }
-
-  // Add style and tone instructions
-  prompt += `Style Guidelines:
-- Use a ${style} style that flows naturally when spoken
-- Maintain a ${tone} tone throughout
-- Include vivid descriptions and emotional elements
-- Weave in historical context where relevant
-- Focus on key life events and relationships
-- Use natural transitions between events
-- Keep sentences clear and concise for audio narration
-- Include appropriate pauses and emphasis points
-
-Please format the story with SSML tags for proper narration, including:
-- <break> tags for natural pauses
-- <emphasis> tags for important points
-- <prosody> tags for emotional emphasis
-- <say-as> tags for dates and numbers`
-
-  return prompt
+  return found
 }
 
-async function generateAudio(
-  text: string,
-  options: VoiceStoryRequest['options']
-): Promise<Uint8Array> {
-  try {
-    // Prepare SSML
-    const ssml = formatSSML(text, options)
+export function formatSSML(text: string, options: StoryOptions = {}): string {
+  const rate = options.speakingRate ?? DEFAULT_SPEAKING_RATE
+  const body = text
+    .split(/\n{2,}/)
+    .map((para) => `<p>${escapeXml(para.trim()).replace(/([.!?])\s+/g, '$1 <break time="300ms"/> ')}</p>`)
+    .join('<break time="700ms"/>')
+  return `<speak><prosody rate="${Math.round(rate * 100)}%">${body}</prosody></speak>`
+}
 
-    // Configure voice
-    const voice = {
-      languageCode: options.voice.language,
-      name: options.voice.name,
-      ssmlGender: options.voice.gender.toUpperCase() as 'MALE' | 'FEMALE' | 'NEUTRAL'
-    }
+export function calculateAudioDuration(text: string, speakingRate: number): number {
+  const words = text.split(/\s+/).filter(Boolean).length
+  return Math.ceil((words / 150) * 60 / speakingRate) // ~150 words/min at normal speed
+}
 
-    // Configure audio
-    const audioConfig = {
-      audioEncoding: options.audio.format === 'mp3' ? 'MP3' : 'LINEAR16',
-      speakingRate: options.voice.speakingRate,
-      pitch: options.voice.pitch,
-      effectsProfileId: options.audio.quality === 'high' ? ['large-home-entertainment-class-device'] : []
-    }
-
-    // Generate speech
-    const [response] = await ttsClient.synthesizeSpeech({
+// Google Cloud Text-to-Speech via REST (the gRPC client library does not run on Edge Functions).
+async function synthesize(ssml: string, language: SupportedLanguage, voiceName: string, options: StoryOptions): Promise<Uint8Array> {
+  const apiKey = Deno.env.get('GOOGLE_TTS_API_KEY')
+  if (!apiKey) throw new AppError('Voice service is not configured', 503, 'TTS_NOT_CONFIGURED')
+  const quality = AUDIO_QUALITY_SETTINGS[options.audioQuality ?? 'medium']
+  const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
       input: { ssml },
-      voice,
-      audioConfig
-    })
-
-    if (!response.audioContent) {
-      throw new Error('No audio content generated')
-    }
-
-    return response.audioContent
-  } catch (error) {
-    logger.error('Failed to generate audio', error)
-    throw new AppError('Failed to generate audio', 500, 'TTS_ERROR')
+      voice: { languageCode: voiceName.split('-').slice(0, 2).join('-') || language, name: voiceName },
+      audioConfig: {
+        audioEncoding: options.audioFormat === 'WAV' ? 'LINEAR16' : 'MP3',
+        speakingRate: 1.0, // speed is applied in the SSML prosody tag
+        pitch: options.pitch ?? DEFAULT_PITCH,
+        volumeGainDb: quality.volumeGainDb,
+        effectsProfileId: [...quality.effectsProfileId],
+      },
+    }),
+  })
+  if (!res.ok) {
+    logger.error('Google TTS error', `${res.status} ${await res.text()}`)
+    throw new AppError(ERROR_MESSAGES.PROCESSING.AUDIO_GENERATION_FAILED, 502, 'TTS_ERROR')
   }
+  const { audioContent } = await res.json()
+  if (!audioContent) throw new AppError(ERROR_MESSAGES.PROCESSING.AUDIO_GENERATION_FAILED, 502, 'TTS_ERROR')
+  return Uint8Array.from(atob(audioContent), (c) => c.charCodeAt(0))
 }
 
-function formatSSML(text: string, options: VoiceStoryRequest['options']): string {
-  let ssml = '<speak>'
-  
-  // Add background music if requested
-  if (options.audio?.includeMusic) {
-    const musicVolume = options.audio.quality === 'high' ? '-15db' : '-20db'
-    ssml += `<audio src="background-music.mp3" volume="${musicVolume}">`
+async function uploadAudio(userId: string, audio: Uint8Array, format: 'MP3' | 'WAV'): Promise<string> {
+  const ext = format === 'MP3' ? 'mp3' : 'wav'
+  // Files live under the owner's folder in a PRIVATE bucket; callers get a short-lived signed URL.
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`
+  const client = db()
+  const { error } = await client.storage.from('voice-stories').upload(path, audio, {
+    contentType: format === 'MP3' ? 'audio/mpeg' : 'audio/wav',
+    cacheControl: '3600',
+  })
+  if (error) {
+    logger.error('Upload failed', error)
+    throw new AppError(ERROR_MESSAGES.PROCESSING.AUDIO_UPLOAD_FAILED, 500, 'STORAGE_ERROR')
   }
-
-  // Process text for SSML with enhanced formatting
-  const processedText = text
-    // Add pauses for punctuation with varying durations
-    .replace(/([.!?])\s+/g, '$1<break time="500ms"/>')
-    .replace(/,/g, '<break time="250ms"/>')
-    .replace(/;/g, '<break time="400ms"/>')
-    .replace(/:/g, '<break time="300ms"/>')
-    // Add emphasis for important words with varying levels
-    .replace(/\*\*(.*?)\*\*/g, '<emphasis level="strong">$1</emphasis>')
-    .replace(/\*(.*?)\*/g, '<emphasis level="moderate">$1</emphasis>')
-    // Format dates with appropriate interpretation
-    .replace(/(\d{1,2})\/(\d{1,2})\/(\d{4})/g, '<say-as interpret-as="date" format="mdy">$1/$2/$3</say-as>')
-    .replace(/(\d{4})/g, '<say-as interpret-as="date" format="yyyy">$1</say-as>')
-    // Format numbers and measurements
-    .replace(/\b(\d+)\b/g, '<say-as interpret-as="number">$1</say-as>')
-    .replace(/(\d+)(?:st|nd|rd|th)\b/g, '<say-as interpret-as="ordinal">$1</say-as>')
-    // Add prosody for emotional emphasis
-    .replace(/!(\w+[^!]*)!/g, '<prosody rate="slow" pitch="+2st">$1</prosody>')
-    // Format names and titles
-    .replace(/\b(Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)\s+([A-Z][a-z]+)\b/g, '<say-as interpret-as="title">$1</say-as> $2')
-    // Add paragraph breaks
-    .replace(/\n\n+/g, '<break time="800ms"/>')
-
-  ssml += processedText
-
-  // Add sound effects if requested
-  if (options.audio?.includeEffects) {
-    const effects = detectSoundEffects(text)
-    for (const effect of effects) {
-      ssml += `<audio src="${effect.file}" volume="${effect.volume}">`
-    }
-  }
-
-  // Close background music if present
-  if (options.audio?.includeMusic) {
-    ssml += '</audio>'
-  }
-
-  ssml += '</speak>'
-  return ssml
+  const { data, error: signError } = await client.storage.from('voice-stories').createSignedUrl(path, 60 * 60 * 24)
+  if (signError || !data) throw new AppError(ERROR_MESSAGES.PROCESSING.STORAGE_ERROR, 500, 'STORAGE_ERROR')
+  return data.signedUrl
 }
 
-function detectSoundEffects(text: string): Array<{ file: string; volume: string }> {
-  const effects: Array<{ file: string; volume: string }> = []
-  const effectPatterns = [
-    { pattern: /\b(birth|born|delivery)\b/i, file: 'birth.mp3', volume: '-15db' },
-    { pattern: /\b(death|died|passed away)\b/i, file: 'death.mp3', volume: '-15db' },
-    { pattern: /\b(married|wedding|ceremony)\b/i, file: 'wedding.mp3', volume: '-15db' },
-    { pattern: /\b(war|battle|conflict)\b/i, file: 'battle.mp3', volume: '-20db' },
-    { pattern: /\b(graduation|diploma|degree)\b/i, file: 'graduation.mp3', volume: '-15db' },
-    { pattern: /\b(victory|triumph|success)\b/i, file: 'victory.mp3', volume: '-15db' },
-    { pattern: /\b(journey|travel|voyage)\b/i, file: 'journey.mp3', volume: '-20db' },
-    { pattern: /\b(celebration|party|festival)\b/i, file: 'celebration.mp3', volume: '-15db' }
-  ]
+// ---- Handler ----------------------------------------------------------------
+export async function handleRequest(req: Request): Promise<Response> {
+  const startTime = Date.now()
+  if (req.method !== 'POST') throw new AppError('Method not allowed', 405)
 
-  for (const { pattern, file, volume } of effectPatterns) {
-    if (pattern.test(text)) {
-      effects.push({ file, volume })
-    }
+  const user = await requireUser(req)
+  await requireActiveSubscription(user)
+
+  const request = (await req.json()) as VoiceStoryRequest
+  validateRequest(request)
+
+  const options = request.options ?? {}
+  const language = options.language ?? 'en-US'
+  const format = options.audioFormat ?? 'MP3'
+  const speakingRate = options.speakingRate ?? DEFAULT_SPEAKING_RATE
+  const voiceName = selectVoice(language, options.voice?.gender)
+
+  const storyText = await generateStoryText(request.data, options)
+  const wordCount = storyText.split(/\s+/).filter(Boolean).length
+
+  const duration = calculateAudioDuration(storyText, speakingRate)
+  if (duration > MAX_AUDIO_DURATION) throw new AppError(ERROR_MESSAGES.VALIDATION.AUDIO_TOO_LONG, 400)
+  if (duration < MIN_AUDIO_DURATION) throw new AppError(ERROR_MESSAGES.VALIDATION.AUDIO_TOO_SHORT, 422)
+
+  const audio = await withRetry(() => synthesize(formatSSML(storyText, options), language, voiceName, options))
+  const audioUrl = await withRetry(() => uploadAudio(user.id, audio, format))
+
+  const result = {
+    id: crypto.randomUUID(),
+    storyText,
+    audioUrl,
+    duration,
+    wordCount,
+    metadata: {
+      language,
+      voice: voiceName,
+      style: options.style ?? 'narrative',
+      tone: options.tone ?? 'formal',
+      audioFormat: format,
+      audioQuality: options.audioQuality ?? 'medium',
+      processingTime: Date.now() - startTime,
+      soundEffects: detectSoundEffects(storyText),
+    },
   }
 
-  return effects
+  const { error: dbError } = await db().from('voice_stories').insert({
+    id: result.id,
+    user_id: user.id,
+    story_text: storyText,
+    audio_path: audioUrl,
+    duration,
+    word_count: wordCount,
+    voice_name: voiceName,
+    language,
+    style: result.metadata.style,
+    tone: result.metadata.tone,
+    audio_format: format,
+    audio_quality: result.metadata.audioQuality,
+    metadata: result.metadata,
+  })
+  if (dbError) logger.error('Failed to store story result', dbError) // the user still gets their story
+
+  return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }
 
-function calculateAudioDuration(text: string, speakingRate: number): number {
-  // Average speaking rate: 150 words per minute
-  const words = text.split(/\s+/).length
-  const pauses = (text.match(/[.!?,;:]/g) || []).length
-  const paragraphs = (text.match(/\n\n+/g) || []).length
-  
-  // Base duration from words
-  const baseDuration = (words / 150) * 60
-  
-  // Add time for pauses
-  const pauseTime = (pauses * 0.5) + (paragraphs * 0.8)
-  
-  // Calculate final duration
-  const totalDuration = (baseDuration + pauseTime) / speakingRate
-  
-  return Math.round(totalDuration)
-}
-
-async function uploadAudio(
-  audioData: Uint8Array,
-  format: string
-): Promise<string> {
-  try {
-    const fileName = `stories/${crypto.randomUUID()}.${format}`
-    const metadata = {
-      contentType: format === 'mp3' ? 'audio/mpeg' : 'audio/wav',
-      cacheControl: '3600',
-      upsert: false,
-      metadata: {
-        generated: new Date().toISOString(),
-        format,
-        size: audioData.length.toString()
-      }
-    }
-
-    const { error: uploadError } = await supabase.storage
-      .from('voice-stories')
-      .upload(fileName, audioData, metadata)
-
-    if (uploadError) {
-      throw uploadError
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('voice-stories')
-      .getPublicUrl(fileName)
-
-    return publicUrl
-  } catch (error) {
-    logger.error('Failed to upload audio', error)
-    throw new AppError('Failed to upload audio', 500, 'STORAGE_ERROR')
-  }
-}
-
-// Serve the function with middleware
-serve(withErrorHandling(withCors(handleRequest))) 
+if (import.meta.main) serve(withCors(withErrorHandling(handleRequest)))

@@ -135,7 +135,7 @@ export const Chat: React.FC<ChatProps> = () => {
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
-      const response = await chatApi.sendMessage(input, user.id, conversationId);
+      const response = await chatApi.sendMessage(input, { conversationId });
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',

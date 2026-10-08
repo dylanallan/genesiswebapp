@@ -2,23 +2,24 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { processMessageWithContext, callAI, AIMessage } from '../_shared/ai-utils.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsFor } from '../_shared/cors.ts'
+import { requireUser, errorResponse } from '../_shared/auth.ts'
 
 serve(async (req) => {
+  const corsHeaders = corsFor(req)
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { message, userId, conversationId, provider, model } = await req.json()
+    const user = await requireUser(req)
+    const userId = user.id // verified identity; ignore any userId in the body
+    const { message, conversationId, provider, model } = await req.json()
 
-    if (!message || !userId) {
+    if (!message || typeof message !== 'string' || message.length > 8000) {
       return new Response(
-        JSON.stringify({ error: 'Message and userId are required' }),
+        JSON.stringify({ error: 'A message (max 8000 characters) is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -35,6 +36,7 @@ serve(async (req) => {
         .from('ai_conversation_history')
         .select('*')
         .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: true })
         .limit(10);
 
@@ -127,13 +129,6 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    )
+    return errorResponse(error, corsHeaders)
   }
 }) 

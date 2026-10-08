@@ -15,7 +15,8 @@
     "test:security": "npm audit",
     "update-deps": "npx npm-check-updates -u && npm install",
     "generate-sitemap": "tsx scripts/generate-sitemap.ts",
-    "prebuild": "npm run generate-sitemap"
+    "prebuild": "npm run generate-sitemap",
+    "test:beta": "playwright test e2e/beta-crawl.spec.ts --project=chromium"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.17.1",
