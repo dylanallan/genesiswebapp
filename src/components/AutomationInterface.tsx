@@ -91,27 +91,28 @@ export const AutomationInterface: React.FC = () => {
 
   const initializeSpeechRecognition = () => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+      const SpeechRecognition = (window.SpeechRecognition || window.webkitSpeechRecognition)!;
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.continuous = true;
+      recognition.interimResults = true;
 
-      recognitionRef.current.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
+          .map((result: any) => result[0])
+          .map((result: any) => result.transcript)
           .join('');
         setVoiceTranscript(transcript);
         setAssistantInput(transcript);
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsVoiceActive(false);
         toast.error('Speech recognition error. Please try again.');
       };
 
-      recognitionRef.current.onend = () => {
+      recognition.onend = () => {
         setIsVoiceActive(false);
       };
     }

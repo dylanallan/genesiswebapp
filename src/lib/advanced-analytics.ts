@@ -305,7 +305,7 @@ class AdvancedAnalytics {
         .limit(50);
 
       if (!funnelError && funnels) {
-        const totalConversions = funnels.reduce((sum, funnel) => 
+        const totalConversions = funnels.reduce((sum: number, funnel: any) => 
           sum + (funnel.metrics?.conversions || 0), 0);
         
         metrics.push({
@@ -339,7 +339,7 @@ class AdvancedAnalytics {
 
       if (!healthError && healthMetrics && healthMetrics.length > 0) {
         // Group metrics by name and calculate averages
-        const metricGroups = healthMetrics.reduce((groups, metric) => {
+        const metricGroups = healthMetrics.reduce((groups: Record<string, number[]>, metric: any) => {
           if (!groups[metric.metric_name]) {
             groups[metric.metric_name] = [];
           }
@@ -348,7 +348,7 @@ class AdvancedAnalytics {
         }, {} as Record<string, number[]>);
 
         Object.entries(metricGroups).forEach(([metricName, values]) => {
-          const avgValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+          const avgValue = (values as number[]).reduce((sum: number, val: number) => sum + val, 0) / (values as number[]).length;
           
           metrics.push({
             id: `system-${metricName}`,

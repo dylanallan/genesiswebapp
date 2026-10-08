@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -p tsconfig.app.json --noEmit && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:lighthouse": "lhci autorun",
@@ -16,7 +16,9 @@
     "update-deps": "npx npm-check-updates -u && npm install",
     "generate-sitemap": "tsx scripts/generate-sitemap.ts",
     "prebuild": "npm run generate-sitemap",
-    "test:beta": "playwright test e2e/beta-crawl.spec.ts --project=chromium"
+    "test:beta": "playwright test e2e/beta-crawl.spec.ts --project=chromium",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "test:db": "scripts/test-migrations.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.17.1",

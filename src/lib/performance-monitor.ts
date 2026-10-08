@@ -115,7 +115,7 @@ class PerformanceMonitor {
     if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
       const originalOnCommitFiberRoot = window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot;
       
-      window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot = (id, root, ...args) => {
+      window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot = (id: any, root: any, ...args: any[]) => {
         this.metrics.componentCount = this.countComponents(root);
         
         if (this.metrics.componentCount > 1000) {

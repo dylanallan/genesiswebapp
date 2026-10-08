@@ -86,7 +86,7 @@ export async function getAIModelPerformance(): Promise<AIModelPerformance[]> {
     
     if (error) throw error;
     
-    return data.map(item => ({
+    return data.map((item: any) => ({
       modelId: item.model_id,
       modelName: item.model_name,
       accuracy: item.avg_value,
@@ -126,12 +126,12 @@ export async function getAIFeedbackSummary(): Promise<AIFeedbackSummary> {
     }
     
     // Calculate average rating
-    const totalRating = data.reduce((sum, item) => sum + item.rating, 0);
+    const totalRating = data.reduce((sum: number, item: any) => sum + item.rating, 0);
     const averageRating = totalRating / data.length;
     
     // Calculate percentages
-    const positive = data.filter(item => item.rating >= 4).length;
-    const negative = data.filter(item => item.rating <= 2).length;
+    const positive = data.filter((item: any) => item.rating >= 4).length;
+    const negative = data.filter((item: any) => item.rating <= 2).length;
     const neutral = data.length - positive - negative;
     
     const positivePercentage = (positive / data.length) * 100;
@@ -140,7 +140,7 @@ export async function getAIFeedbackSummary(): Promise<AIFeedbackSummary> {
     
     // Get top categories
     const categoryCount: Record<string, number> = {};
-    data.forEach(item => {
+    data.forEach((item: any) => {
       if (item.categories) {
         item.categories.forEach((category: string) => {
           categoryCount[category] = (categoryCount[category] || 0) + 1;

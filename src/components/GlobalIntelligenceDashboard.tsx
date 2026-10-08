@@ -41,7 +41,7 @@ interface IntelligenceAlert {
 }
 
 const GlobalIntelligenceDashboard: React.FC = () => {
-  const [dataHub, setDataHub] = useState<GlobalDataHub | null>(null);
+  const [dataHub, setDataHub] = useState<any>(null);
   const [streamStatus, setStreamStatus] = useState<Record<string, StreamStatus>>({});
   const [metrics, setMetrics] = useState<IntelligenceMetrics | null>(null);
   const [insights, setInsights] = useState<IntelligenceInsight[]>([]);
@@ -70,7 +70,7 @@ const GlobalIntelligenceDashboard: React.FC = () => {
     }
   };
 
-  const startRealTimeUpdates = (hub: GlobalDataHub) => {
+  const startRealTimeUpdates = (hub: any) => {
     const updateInterval = setInterval(async () => {
       try {
         const dashboard = await hub.generateIntelligenceDashboard();

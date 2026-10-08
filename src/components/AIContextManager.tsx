@@ -56,7 +56,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
       if (error) throw error;
       
       // Convert to ContentItem format
-      const items: ContentItem[] = data?.map(item => ({
+      const items: ContentItem[] = data?.map((item: any) => ({
         id: item.id,
         contentType: item.content_type,
         contentId: item.content_id,
@@ -119,7 +119,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
       // Group by session_id
       const sessionMap = new Map<string, { count: number, lastActive: Date }>();
       
-      data?.forEach(item => {
+      data?.forEach((item: any) => {
         if (!sessionMap.has(item.session_id)) {
           sessionMap.set(item.session_id, { count: 0, lastActive: new Date(item.created_at) });
         }
