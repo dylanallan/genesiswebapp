@@ -24,8 +24,7 @@ import {
   Database,
   Users,
   Clock,
-  RefreshCw
-} from 'lucide-react';
+  RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { streamResponse } from '../lib/ai';

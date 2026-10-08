@@ -446,7 +446,7 @@ class AdvancedAnalytics {
 
       try {
         let fullResponse = '';
-        for await (const chunk of aiRouter.routeRequest({
+        for await (const chunk of await aiRouter.routeRequest({
           prompt,
           type: 'analysis',
           quality: 'premium'

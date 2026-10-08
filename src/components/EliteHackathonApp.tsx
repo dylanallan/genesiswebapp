@@ -36,7 +36,7 @@ const EliteHackathonApp = () => {
   });
   const [automationDemo, setAutomationDemo] = useState(false);
   const [culturalContext, setCulturalContext] = useState('global');
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<Array<{ id: number; message: string; type: string }>>([]);
 
   // Simulated real-time updates
   useEffect(() => {

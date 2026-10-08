@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { chatApi } from '../api/chat';
 import { toast } from 'sonner';
 import { circuitBreakerManager } from './circuit-breaker';
 import { errorRecovery } from './error-recovery';
@@ -44,79 +45,32 @@ export function getBestModelForTask(input: string): AIModel {
   return 'gpt-3.5-turbo';
 }
 
+export class AIRequestError extends Error {
+  constructor(message: string, public code?: string) {
+    super(message);
+  }
+}
+
+/**
+ * Gets an answer from the secure `ai-router` Edge Function and yields it in small chunks so
+ * callers can show a typing effect. Throws AIRequestError (e.g. code 'UPGRADE_REQUIRED') instead
+ * of silently substituting canned text. The model hint is ignored: the server picks the best
+ * configured provider, so a feature never fails just because one provider's key is missing.
+ */
 export async function* streamResponse(
   prompt: string,
-  model: AIModel,
+  _model: AIModel = 'auto',
   context?: string
 ): AsyncGenerator<string> {
-  try {
-    // Use local mock response if no session or in development mode
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session?.access_token) {
-      yield* getEnhancedMockStreamResponse(prompt);
-      return;
-    }
-
-    const circuitBreaker = circuitBreakerManager.getBreaker('ai-router');
-    
-    return circuitBreaker.execute(async () => {
-      // Set up timeout controller
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
-      try {
-        // Use the ai-stream edge function
-        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-stream`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt,
-            model: model === 'auto' ? getBestModelForTask(prompt) : model,
-            context,
-            type: determineRequestType(prompt)
-          }),
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          console.error(`AI Stream error: ${response.status} ${response.statusText}`);
-          throw new Error(`AI Stream error: ${response.status} ${response.statusText}`);
-        }
-
-        // Check if the response body is null
-        if (!response.body) {
-          console.error('Response body is null');
-          throw new Error('Response body is null');
-        }
-
-        return createStreamFromResponse(response);
-      } catch (error) {
-        clearTimeout(timeoutId);
-        
-        // Handle timeout specifically
-        if (error.name === 'AbortError') {
-          throw new Error('Request timed out. Please try again.');
-        }
-        
-        throw error;
-      }
-    });
-  } catch (error) {
-    console.error('AI Router error:', error);
-    
-    await errorRecovery.handleError({
-      component: 'ai-router',
-      error: error instanceof Error ? error : new Error('Unknown routing error'),
-      timestamp: new Date()
-    });
-    
-    yield* getEnhancedMockStreamResponse(prompt);
+  const message = context ? `${context}\n\n${prompt}` : prompt;
+  const result = await chatApi.sendMessage(message.slice(0, 8000), { persist: false });
+  if (result.provider === 'error') {
+    if (result.code === 'UPGRADE_REQUIRED') toast.info('Free daily AI limit reached — upgrade to Pro to keep going.');
+    throw new AIRequestError(result.response, result.code);
+  }
+  const words = result.response.split(/(\s+)/);
+  for (let i = 0; i < words.length; i += 8) {
+    yield words.slice(i, i + 8).join('');
   }
 }
 

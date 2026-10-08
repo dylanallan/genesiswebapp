@@ -187,6 +187,7 @@ import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
 import FamilySummary from './FamilySummary';
 import RecordsSearch from './RecordsSearch';
+import { FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -239,6 +240,7 @@ const features = [
     name: 'AI Settings',
     icon: Settings,
     component: AISettings,
+    render: (close: () => void) => <AISettings isOpen onClose={close} />,
     description: 'Configure AI models and preferences',
     category: 'core'
   },
@@ -264,7 +266,7 @@ const features = [
     id: 'family-tree-viz',
     name: 'Family Tree Visualizer',
     icon: Network,
-    component: FamilyTreeVisualizer,
+    component: FamilyTreeFeature,
     description: 'Interactive family tree visualization',
     category: 'heritage'
   },
@@ -363,6 +365,7 @@ const features = [
     name: 'Workflow Generator',
     icon: GitBranch,
     component: WorkflowGenerator,
+    render: (close: () => void) => <WorkflowGenerator isOpen onClose={close} />,
     description: 'Generate automated workflows',
     category: 'business'
   },
@@ -371,6 +374,7 @@ const features = [
     name: 'N8N Integration',
     icon: Network,
     component: N8NIntegration,
+    render: (close: () => void) => <N8NIntegration isOpen onClose={close} />,
     description: 'Connect with N8N automation platform',
     category: 'business'
   },
@@ -394,7 +398,7 @@ const features = [
     id: 'enterprise-roi',
     name: 'Enterprise ROI Calculator',
     icon: Calculator,
-    component: EnterpriseROICalculator,
+    component: ROICalculatorFeature,
     description: 'Calculate return on investment',
     category: 'business'
   },
@@ -426,7 +430,7 @@ const features = [
     id: 'enterprise-metrics',
     name: 'Enterprise Metrics Panel',
     icon: PieChart,
-    component: EnterpriseMetricsPanel,
+    component: MetricsFeature,
     description: 'Track enterprise metrics',
     category: 'business'
   },
@@ -484,7 +488,7 @@ const features = [
     id: 'video-player',
     name: 'Video Player',
     icon: Video,
-    component: VideoPlayer,
+    component: VideoFeature,
     description: 'Advanced video playback',
     category: 'media'
   },
@@ -492,7 +496,7 @@ const features = [
     id: 'audio-player',
     name: 'Audio Player',
     icon: Music,
-    component: AudioPlayer,
+    component: AudioFeature,
     description: 'Audio playback and management',
     category: 'media'
   },
@@ -500,7 +504,7 @@ const features = [
     id: 'media-player',
     name: 'Media Player',
     icon: Play,
-    component: MediaPlayer,
+    component: MediaFeature,
     description: 'Universal media player',
     category: 'media'
   },
@@ -609,6 +613,7 @@ const features = [
     name: 'User Settings',
     icon: Settings,
     component: UserSettings,
+    render: (close: () => void) => <UserSettings isOpen onClose={close} />,
     description: 'User preferences and settings',
     category: 'user'
   },
@@ -625,6 +630,7 @@ const features = [
     name: 'Profile Editor',
     icon: Edit,
     component: ProfileEditor,
+    render: (close: () => void) => <ProfileEditor isOpen onClose={close} onProfileUpdate={() => toast.success('Profile updated')} />,
     description: 'Edit user profiles',
     category: 'user'
   },
@@ -633,6 +639,7 @@ const features = [
     name: 'Profile History',
     icon: Clock,
     component: ProfileHistoryViewer,
+    render: (close: () => void) => <ProfileHistoryViewer isOpen onClose={close} />,
     description: 'View profile change history',
     category: 'user'
   },
@@ -643,6 +650,7 @@ const features = [
     name: 'AI Context Manager',
     icon: Brain,
     component: AIContextManager,
+    render: (close: () => void) => <AIContextManager onClose={close} />,
     description: 'Manage AI conversation context',
     category: 'ai'
   },
@@ -651,6 +659,7 @@ const features = [
     name: 'AI Custom Instructions',
     icon: FileText,
     component: AICustomInstructionsEditor,
+    render: (close: () => void) => <AICustomInstructionsEditor isOpen onClose={close} />,
     description: 'Edit AI custom instructions',
     category: 'ai'
   },
@@ -667,6 +676,7 @@ const features = [
     name: 'Conversation Summarizer',
     icon: FileText,
     component: ConversationSummarizer,
+    render: (close: () => void) => <SummarizerFeature onClose={close} />,
     description: 'Summarize conversations',
     category: 'ai'
   },
@@ -737,6 +747,7 @@ const features = [
     name: 'Cultural Artifact Form',
     icon: Edit,
     component: CulturalArtifactForm,
+    render: (close: () => void) => <CulturalArtifactForm onClose={close} onSuccess={() => { toast.success('Artifact saved'); close(); }} />,
     description: 'Add cultural artifacts',
     category: 'tools'
   },
@@ -788,7 +799,9 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     ? features 
     : features.filter(f => f.category === selectedCategory);
 
-  const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
+  const activeEntry = (features.find(f => f.id === activeFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
+  const ActiveComponent = activeEntry.component as React.ComponentType;
+  const closeFeature = () => setActiveFeature('records-search');
 
   const categories = [
     { id: 'all', name: 'All Features', icon: Plus },
@@ -908,7 +921,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             <FamilySummary />
             {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
             <ErrorBoundary key={activeFeature}>
-              {typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
+              {activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
                   <h2 className="text-xl font-bold mb-2">Component Error</h2>
                   <p>Feature component is not available or is not a valid React component.</p>

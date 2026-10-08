@@ -12,8 +12,7 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle,
-  X
-} from 'lucide-react';
+  X, DollarSign, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 const HackathonPitch: React.FC = () => {

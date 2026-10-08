@@ -23,7 +23,6 @@ import { chatApi, ChatMessage, ChatResponse, ConversationInfo } from '../api/cha
 import { supabase } from '../lib/supabase';
 import VoicePlayer from './VoicePlayer';
 import { errorRecovery } from '../lib/error-recovery';
-import { Card } from '../../components/ui/card';
 
 interface ChatProps {
   userName?: string;
@@ -150,7 +149,7 @@ export const Chat: React.FC<ChatProps> = () => {
         await loadConversations();
       }
     } catch (error) {
-      errorRecovery.handleError({ component: 'Chat', error, timestamp: new Date() });
+      errorRecovery.handleError({ component: 'Chat', error: error instanceof Error ? error : new Error(String(error)), timestamp: new Date() });
       toast.error(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),

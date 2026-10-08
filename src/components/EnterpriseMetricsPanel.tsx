@@ -73,31 +73,25 @@ const EnterpriseMetricsPanel: React.FC<EnterpriseMetricsPanelProps> = ({ metrics
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <MetricCard
-        title="Total Users"
+        title="Family Members"
         value={metrics.totalUsers.toLocaleString()}
         icon={<Users className="w-5 h-5 text-blue-500" />}
-        trend="up"
-        change={12}
         color="hover:border-blue-200"
         delay={0.1}
       />
       
       <MetricCard
-        title="Active Automations"
+        title="Workflows"
         value={metrics.activeAutomations.toLocaleString()}
         icon={<Zap className="w-5 h-5 text-purple-500" />}
-        trend="up"
-        change={8}
         color="hover:border-purple-200"
         delay={0.2}
       />
       
       <MetricCard
-        title="AI Requests"
+        title="AI Messages Today"
         value={metrics.aiRequests.toLocaleString()}
         icon={<BarChart3 className="w-5 h-5 text-green-500" />}
-        trend="up"
-        change={15}
         color="hover:border-green-200"
         delay={0.3}
       />
@@ -106,7 +100,6 @@ const EnterpriseMetricsPanel: React.FC<EnterpriseMetricsPanelProps> = ({ metrics
         title="System Health"
         value={`${metrics.systemHealth}%`}
         icon={<CheckCircle className="w-5 h-5 text-green-500" />}
-        trend="stable"
         color="hover:border-green-200"
         delay={0.4}
       />
@@ -115,37 +108,30 @@ const EnterpriseMetricsPanel: React.FC<EnterpriseMetricsPanelProps> = ({ metrics
         title="Cultural Artifacts"
         value={metrics.culturalArtifacts.toLocaleString()}
         icon={<Database className="w-5 h-5 text-amber-500" />}
-        trend="up"
-        change={5}
         color="hover:border-amber-200"
         delay={0.5}
       />
       
       <MetricCard
-        title="Business Processes"
+        title="Saved Records"
         value={metrics.businessProcesses.toLocaleString()}
         icon={<TrendingUp className="w-5 h-5 text-blue-500" />}
-        trend="up"
-        change={10}
         color="hover:border-blue-200"
         delay={0.6}
       />
       
       <MetricCard
         title="Avg Response Time"
-        value={`${metrics.responseTime || 120}ms`}
+        value={metrics.responseTime !== undefined ? `${metrics.responseTime}ms` : '—'}
         icon={<Clock className="w-5 h-5 text-indigo-500" />}
-        trend="down"
-        change={8}
         color="hover:border-indigo-200"
         delay={0.7}
       />
       
       <MetricCard
         title="Uptime"
-        value={`${metrics.uptime || 99.98}%`}
+        value={metrics.uptime !== undefined ? `${metrics.uptime}%` : '—'}
         icon={<CheckCircle className="w-5 h-5 text-green-500" />}
-        trend="stable"
         color="hover:border-green-200"
         delay={0.8}
       />

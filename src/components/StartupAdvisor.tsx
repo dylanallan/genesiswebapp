@@ -5,7 +5,29 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { aiRouter } from '../lib/ai-router';
+import { chatApi } from '../api/chat';
+
+// Pulls the JSON object out of the model's reply and checks its shape before we trust it.
+function parseFeedback(text: string): IdeaFeedback | null {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    const d = JSON.parse(match[0]);
+    const list = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, 8) : []);
+    return {
+      score: Math.min(10, Math.max(1, Math.round(Number(d.score) || 0))),
+      strengths: list(d.strengths),
+      weaknesses: list(d.weaknesses),
+      nextSteps: list(d.nextSteps),
+      resources: (Array.isArray(d.resources) ? d.resources : [])
+        .filter((r: any) => r && typeof r.title === 'string' && /^https:\/\//.test(r.url))
+        .slice(0, 6)
+        .map((r: any) => ({ title: r.title, url: r.url, type: ['article', 'course', 'tool', 'community'].includes(r.type) ? r.type : 'article' })),
+    };
+  } catch {
+    return null;
+  }
+}
 
 const startupFormSchema = z.object({
   interests: z.array(z.string()).min(1, 'Select at least one interest'),
@@ -78,23 +100,22 @@ export const StartupAdvisor: React.FC = () => {
         Problem Statement: ${data.problemStatement}
       `;
 
-      const response = await aiRouter.routeRequest(prompt, {
-        type: 'startup_analysis',
-        context: data
-      });
-
-      setFeedback({
-        score: response.score,
-        strengths: response.strengths,
-        weaknesses: response.weaknesses,
-        nextSteps: response.nextSteps,
-        resources: response.resources
-      });
+      const reply = await chatApi.sendMessage(
+        `${prompt}
+Respond with ONLY a JSON object, no other text, in exactly this shape:
+{"score": <integer 1-10>, "strengths": [<string>], "weaknesses": [<string>], "nextSteps": [<string>],
+ "resources": [{"title": <string>, "url": <https URL of a real, well-known free resource>, "type": <"article"|"course"|"tool"|"community">}]}`,
+        { persist: false },
+      );
+      if (reply.provider === 'error') throw new Error(reply.response);
+      const parsed = parseFeedback(reply.response);
+      if (!parsed) throw new Error('The analysis came back in an unexpected format. Please try again.');
+      setFeedback(parsed);
 
       setStep(4);
     } catch (error) {
       console.error('Error analyzing startup idea:', error);
-      toast.error('Failed to analyze startup idea');
+      toast.error(error instanceof Error ? error.message : 'Failed to analyze startup idea');
     } finally {
       setIsAnalyzing(false);
     }

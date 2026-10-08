@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Search, Plus, Edit, Trash, Globe, Calendar, User, Check, X, Tag, Info } from 'lucide-react';
+import { BookOpen, Search, Plus, Edit, Trash, Globe, Calendar, User, Check, X, Tag, Info, Clock, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 

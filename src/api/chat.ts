@@ -24,6 +24,7 @@ export interface ChatResponse {
 export interface AvailableModel {
   id: string; // provider id sent to the backend; 'auto' lets the server pick
   name: string;
+  description: string;
 }
 
 export interface ConversationInfo {
@@ -35,10 +36,10 @@ export interface ConversationInfo {
 /** Providers the user can choose between. 'auto' = the first one that is configured and healthy. */
 function getAvailableModels(): AvailableModel[] {
   return [
-    { id: 'auto', name: 'Auto (best available)' },
-    { id: 'anthropic', name: 'Claude' },
-    { id: 'openai', name: 'GPT' },
-    { id: 'gemini', name: 'Gemini' },
+    { id: 'auto', name: 'Auto', description: 'best available' },
+    { id: 'anthropic', name: 'Claude', description: 'Anthropic' },
+    { id: 'openai', name: 'GPT', description: 'OpenAI' },
+    { id: 'gemini', name: 'Gemini', description: 'Google' },
   ];
 }
 

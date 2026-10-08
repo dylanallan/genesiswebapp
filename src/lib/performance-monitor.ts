@@ -244,13 +244,15 @@ class PerformanceMonitor {
     }
   }
 
-  private optimizePerformance() {
+  private optimizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  optimizePerformance() {
     // Debounce optimization calls
-    if (this.optimizePerformance.timeout) {
-      clearTimeout(this.optimizePerformance.timeout);
+    if (this.optimizeTimer) {
+      clearTimeout(this.optimizeTimer);
     }
     
-    this.optimizePerformance.timeout = setTimeout(() => {
+    this.optimizeTimer = setTimeout(() => {
       this.triggerMemoryCleanup();
       
       // Suggest React optimizations
@@ -275,8 +277,6 @@ class PerformanceMonitor {
   }
 }
 
-// Extend the function to include timeout property
-(PerformanceMonitor.prototype.optimizePerformance as any).timeout = null;
 
 // Add missing types for window
 declare global {

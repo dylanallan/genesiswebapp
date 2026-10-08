@@ -22,7 +22,7 @@ type ArtifactFormData = z.infer<typeof artifactSchema>;
 interface CulturalArtifactFormProps {
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: Partial<ArtifactFormData>;
+  initialData?: Partial<ArtifactFormData> & { id?: string };
   isEditing?: boolean;
 }
 
