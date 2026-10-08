@@ -47,3 +47,21 @@ export function errorResponse(e: unknown, headers: Record<string, string> = {}) 
   console.error(e)
   return json({ error: 'Internal server error' }, 500, headers) // no internal details to clients
 }
+
+// Constant-time string comparison so the service key can't be guessed byte by byte from timing.
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
+// For functions that are also called server-to-server: a request bearing the service-role key is a
+// trusted internal call (the caller vouches for userId); anything else must be a signed-in user.
+export async function requireCaller(req: Request): Promise<{ userId: string | null; internal: boolean }> {
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (serviceKey && token && safeEqual(token, serviceKey)) return { userId: null, internal: true }
+  const user = await requireUser(req)
+  return { userId: user.id, internal: false }
+}

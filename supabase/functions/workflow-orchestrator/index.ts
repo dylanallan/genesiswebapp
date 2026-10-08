@@ -1,14 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsFor } from '../_shared/cors.ts'
+import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
 
 interface WorkflowRequest {
   workflowId: string
-  userId: string
+  userId?: string // honored only for trusted internal calls (e.g. a scheduler)
   trigger: 'manual' | 'schedule' | 'event' | 'webhook'
   data: any
   metadata?: any
@@ -23,12 +21,17 @@ interface WorkflowStep {
 }
 
 serve(async (req) => {
+  const corsHeaders = corsFor(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    const caller = await requireCaller(req)
     const workflowRequest: WorkflowRequest = await req.json()
+    const userId = caller.internal ? workflowRequest.userId : caller.userId
+    if (!userId) return json({ error: 'userId is required' }, 400, corsHeaders)
+    workflowRequest.userId = userId
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -40,6 +43,7 @@ serve(async (req) => {
       .from('automation_workflows')
       .select('*')
       .eq('id', workflowRequest.workflowId)
+      .eq('user_id', userId) // only the owner may run a workflow
       .single()
 
     if (workflowError || !workflow) {
@@ -68,33 +72,25 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Workflow Orchestrator Error:', error)
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    // Workflow-not-found and validation errors are the caller's problem; hide internals otherwise
+    if (error instanceof Error && /not found|must use|cannot call|Invalid URL/.test(error.message)) {
+      return json({ success: false, error: error.message }, 400, corsHeaders)
+    }
+    return errorResponse(error, corsHeaders)
   }
 })
 
 async function executeWorkflow(workflow: any, request: WorkflowRequest, supabase: any): Promise<any> {
   const executionId = crypto.randomUUID()
   const startTime = Date.now()
-  const steps = workflow.steps || []
+  const steps: WorkflowStep[] = workflow.steps ?? workflow.actions ?? []
   const results: any = {}
   let stepsCompleted = 0
 
   try {
     // Execute steps in dependency order
     for (const step of steps) {
-      const stepResult = await executeStep(step, request.data, supabase)
+      const stepResult = await executeStep(step, { ...(request.data ?? {}), __userId: request.userId }, supabase)
       results[step.id] = stepResult
       stepsCompleted++
     }
@@ -198,7 +194,7 @@ async function executeAIStep(step: WorkflowStep, data: any, supabase: any): Prom
     body: JSON.stringify({
       prompt: prompt.replace(/\{(\w+)\}/g, (match, key) => data[key] || match),
       useCase,
-      userId: data.userId,
+      userId: data.__userId,
       preferences: { provider }
     })
   })
@@ -276,19 +272,35 @@ async function executeNotificationStep(step: WorkflowStep, data: any, supabase: 
   }
 }
 
+// Workflow API calls may only reach public HTTPS endpoints (blocks SSRF into internal networks).
+function assertPublicHttpsUrl(raw: string): URL {
+  let u: URL
+  try { u = new URL(raw) } catch { throw new Error('Invalid URL in API step') }
+  if (u.protocol !== 'https:') throw new Error('API steps must use https://')
+  const h = u.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  const privateHost =
+    h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.internal') || h.endsWith('.local') ||
+    /^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h) ||
+    h === '::1' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80') || /^\d+$/.test(h)
+  if (privateHost) throw new Error('API steps cannot call private or internal addresses')
+  return u
+}
+
 async function executeAPICallStep(step: WorkflowStep, data: any): Promise<any> {
   const { url, method, headers, bodyTemplate } = step.config
+  const target = assertPublicHttpsUrl(String(url))
   
   // Process body template with data
-  let body = bodyTemplate
-  Object.keys(data).forEach(key => {
-    body = body.replace(new RegExp(`\\{${key}\\}`, 'g'), data[key])
-  })
+  const body = typeof bodyTemplate === 'string'
+    ? bodyTemplate.replace(/\{(\w+)\}/g, (m: string, key: string) => (key in data && key !== '__userId' ? String(data[key]) : m))
+    : undefined
 
-  const response = await fetch(url, {
+  const response = await fetch(target, {
     method: method || 'GET',
     headers: headers || {},
-    body: method !== 'GET' ? body : undefined
+    body: method && method !== 'GET' ? body : undefined,
+    redirect: 'manual', // a redirect could point back into a private network
+    signal: AbortSignal.timeout(15000),
   })
 
   if (!response.ok) {
