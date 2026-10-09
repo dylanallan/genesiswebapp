@@ -38,13 +38,16 @@ const availableModels = [
   { id: 'gemini-pro', name: 'Gemini Pro (Google)', provider: 'gemini' as const }
 ];
 
-// Add Ollama and Claude to the provider selector
+// Providers the server can route to; unconfigured ones fall back to Auto on the server
 const availableProviders = [
   { id: 'auto', name: 'Auto Select' },
   { id: 'openai', name: 'OpenAI (GPT-4)' },
   { id: 'anthropic', name: 'Claude (Anthropic)' },
   { id: 'gemini', name: 'Gemini (Google)' },
-  { id: 'ollama', name: 'Ollama 3.2' },
+  { id: 'groq', name: 'Llama (Groq, free)' },
+  { id: 'openrouter', name: 'OpenRouter (free models)' },
+  { id: 'mistral', name: 'Mistral' },
+  { id: 'omniroute', name: 'OmniRoute (free gateway)' },
 ];
 
 export const Chat: React.FC<ChatProps> = () => {

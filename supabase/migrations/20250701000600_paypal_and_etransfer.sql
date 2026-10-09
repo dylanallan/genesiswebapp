@@ -126,7 +126,8 @@ revoke all on function public.review_manual_payment(uuid, boolean, text) from pu
 grant execute on function public.review_manual_payment(uuid, boolean, text) to authenticated;
 
 -- Admin view of e-Transfer requests, with the customer's email so transfers can be matched.
-create or replace function public.admin_list_manual_payments(p_status text default 'pending')
+drop function if exists public.admin_list_manual_payments(text); -- return type changes in a later migration
+create function public.admin_list_manual_payments(p_status text default 'pending')
 returns table (id uuid, user_id uuid, email text, plan text, amount_cents integer, currency text,
                reference_code text, status text, admin_note text, created_at timestamptz, confirmed_at timestamptz)
 language plpgsql stable security definer set search_path = public, auth as $$

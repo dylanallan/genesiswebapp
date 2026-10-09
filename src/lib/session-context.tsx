@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 export interface SubscriptionInfo {
   status: string; // active | pending | past_due | canceled | none ...
   active: boolean; // true when the user has Pro access (server rule: has_pro_access)
-  provider: string | null; // paypal | etransfer
+  provider: string | null; // paypal | etransfer | paypal_link
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
 }

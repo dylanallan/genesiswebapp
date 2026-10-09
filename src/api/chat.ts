@@ -40,6 +40,10 @@ function getAvailableModels(): AvailableModel[] {
     { id: 'anthropic', name: 'Claude', description: 'Anthropic' },
     { id: 'openai', name: 'GPT', description: 'OpenAI' },
     { id: 'gemini', name: 'Gemini', description: 'Google' },
+    { id: 'groq', name: 'Llama', description: 'Groq (free)' },
+    { id: 'openrouter', name: 'OpenRouter', description: 'free models' },
+    { id: 'mistral', name: 'Mistral', description: 'Mistral AI' },
+    { id: 'omniroute', name: 'OmniRoute', description: 'free gateway' },
   ];
 }
 

@@ -69,10 +69,28 @@ test('pricing page: free user can start PayPal checkout', async ({ page }) => {
   await page.goto('/pricing');
   await expect(page.getByRole('heading', { name: /choose your plan/i })).toBeVisible();
   const [req] = await Promise.all([
-    page.waitForRequest((r) => r.url().includes('paypal-subscription')),
+    page.waitForRequest((r) => r.url().includes('paypal-subscription') && (r.postData() ?? '').includes('"create"')),
     page.getByRole('button', { name: 'Subscribe with PayPal' }).first().click(),
   ]);
   expect(JSON.parse(req.postData() ?? '{}')).toEqual({ action: 'create', plan: 'monthly' });
+});
+
+test('pricing page: PayPal payment link and e-Transfer give a reference code', async ({ page }) => {
+  current = 'pricing-manual';
+  state.manualPayments = true;
+  state.autoPayPal = false;
+  try {
+    await page.goto('/pricing');
+    await expect(page.getByRole('button', { name: 'Subscribe with PayPal' })).toHaveCount(0);
+    await page.getByRole('button', { name: /Pay with PayPal or card \(\$190\.00 CAD\)/ }).click();
+    await expect(page.getByText('GEN-TEST01')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open PayPal checkout' })).toHaveAttribute('href', 'https://www.paypal.com/ncp/payment/TESTYEAR');
+    await page.getByRole('button', { name: /Pay by Interac e-Transfer \(\$19\.00 CAD\)/ }).click();
+    await expect(page.getByText('pay@example.com')).toBeVisible();
+  } finally {
+    state.manualPayments = false;
+    state.autoPayPal = true;
+  }
 });
 
 test('pricing page: subscriber sees Pro and can cancel', async ({ page }) => {
