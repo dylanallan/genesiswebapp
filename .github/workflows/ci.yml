@@ -35,14 +35,8 @@ jobs:
 
   database:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    # Uses the PostgreSQL that ships on GitHub's Ubuntu runners instead of a Docker service
+    # container, so the job does not depend on pulling an image from Docker Hub.
     env:
       PGHOST: localhost
       PGPORT: 5432
@@ -51,6 +45,11 @@ jobs:
       PGOPTIONS: -c client_min_messages=warning
     steps:
       - uses: actions/checkout@v4
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          until pg_isready -h localhost; do sleep 1; done
+          sudo -u postgres psql -qc "alter user postgres password 'postgres'"
       - name: Migrations apply to a blank database and can be re-run
         run: scripts/test-migrations.sh
       - name: Privacy and payment checks
