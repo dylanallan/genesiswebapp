@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { corsFor } from '../_shared/cors.ts'
 import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
+import { assertPublicHttpsUrl } from '../_shared/net.ts'
 
 interface WorkflowRequest {
   workflowId: string
@@ -53,6 +54,18 @@ serve(async (req) => {
     // Execute workflow
     const result = await executeWorkflow(workflow, workflowRequest, supabase)
 
+    // Keep the Automation Hub's run statistics accurate
+    const runs = (workflow.executionCount ?? 0) + 1
+    const prevSuccess = Number(workflow.successRate ?? 0)
+    const ok = result.status === 'completed' ? 1 : 0
+    await supabase.from('automation_workflows').update({
+      lastRun: new Date().toISOString(),
+      executionCount: runs,
+      successRate: Math.round(((prevSuccess / 100) * (runs - 1) + ok) / runs * 1000) / 10,
+      averageExecutionTime: Math.round(((Number(workflow.averageExecutionTime ?? 0) * (runs - 1)) + result.executionTime) / runs),
+      updated_at: new Date().toISOString(),
+    }).eq('id', workflow.id)
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -73,7 +86,7 @@ serve(async (req) => {
 
   } catch (error) {
     // Workflow-not-found and validation errors are the caller's problem; hide internals otherwise
-    if (error instanceof Error && /not found|must use|cannot call|Invalid URL/.test(error.message)) {
+    if (error instanceof Error && /not found|must use|not allowed|Invalid URL/.test(error.message)) {
       return json({ success: false, error: error.message }, 400, corsHeaders)
     }
     return errorResponse(error, corsHeaders)
@@ -83,7 +96,11 @@ serve(async (req) => {
 async function executeWorkflow(workflow: any, request: WorkflowRequest, supabase: any): Promise<any> {
   const executionId = crypto.randomUUID()
   const startTime = Date.now()
-  const steps: WorkflowStep[] = workflow.steps ?? workflow.actions ?? []
+  let steps: WorkflowStep[] = workflow.steps ?? workflow.actions ?? []
+  // A workflow linked to an n8n webhook (Automation Hub "n8n URL") is run by calling that webhook.
+  if ((!Array.isArray(steps) || steps.length === 0) && workflow.n8nUrl) {
+    steps = [{ id: 'n8n-webhook', type: 'api_call', config: { url: workflow.n8nUrl, method: 'POST', headers: { 'Content-Type': 'application/json' }, bodyTemplate: JSON.stringify({ trigger: request.trigger, workflowId: workflow.id }) } }]
+  }
   const results: any = {}
   let stepsCompleted = 0
 
@@ -272,20 +289,6 @@ async function executeNotificationStep(step: WorkflowStep, data: any, supabase: 
   }
 }
 
-// Workflow API calls may only reach public HTTPS endpoints (blocks SSRF into internal networks).
-function assertPublicHttpsUrl(raw: string): URL {
-  let u: URL
-  try { u = new URL(raw) } catch { throw new Error('Invalid URL in API step') }
-  if (u.protocol !== 'https:') throw new Error('API steps must use https://')
-  const h = u.hostname.toLowerCase().replace(/^\[|\]$/g, '')
-  const privateHost =
-    h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.internal') || h.endsWith('.local') ||
-    /^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h) ||
-    h === '::1' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80') || /^\d+$/.test(h)
-  if (privateHost) throw new Error('API steps cannot call private or internal addresses')
-  return u
-}
-
 async function executeAPICallStep(step: WorkflowStep, data: any): Promise<any> {
   const { url, method, headers, bodyTemplate } = step.config
   const target = assertPublicHttpsUrl(String(url))
@@ -307,7 +310,9 @@ async function executeAPICallStep(step: WorkflowStep, data: any): Promise<any> {
     throw new Error(`API call failed: ${response.status}`)
   }
 
-  return await response.json()
+  // Webhooks often answer with plain text or nothing at all
+  const text = await response.text()
+  try { return JSON.parse(text) } catch { return { status: response.status, body: text.slice(0, 2000) } }
 }
 
 async function executeConditionStep(step: WorkflowStep, data: any): Promise<any> {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Settings, 
@@ -32,22 +32,33 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
   const [preferences, setPreferences] = useAtom(userPreferencesAtom);
   const [formData, setFormData] = useState({
     name: '',
-    ancestry: 'European and Asian heritage',
-    businessGoals: 'Automate marketing and preserve cultural knowledge',
+    ancestry: '',
+    businessGoals: '',
     location: '',
-    language: 'English',
-    timezone: 'America/New_York',
+    language: '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
     culturalBackground: '',
     familyTraditions: '',
     businessType: '',
     industryFocus: ''
   });
 
+  // Load the saved profile each time the panel opens
+  useEffect(() => {
+    if (!isOpen) return;
+    supabase.rpc('get_user_profile').then(({ data, error }: { data: any; error: unknown }) => {
+      if (error) return toast.error('Could not load your profile');
+      const saved = (data?.preferences ?? {}) as Record<string, string>;
+      setFormData((prev) => Object.fromEntries(Object.keys(prev).map((k) => [k, saved[k] ?? (prev as Record<string, string>)[k]])) as typeof prev);
+    });
+  }, [isOpen]);
+
   const handleSaveProfile = async () => {
     setIsSaving(true);
     try {
-      // Simulate saving profile
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updates = Object.fromEntries(Object.entries(formData).map(([k, v]) => [k, String(v).trim()]));
+      const { error } = await supabase.rpc('update_user_profile_batch', { p_updates: updates, p_reason: 'Settings' });
+      if (error) throw error;
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error saving profile:', error);

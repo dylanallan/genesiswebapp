@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { FamilyTreeVisualizer } from '../FamilyTreeVisualizer';
+import { fromRow, toRow, type TreeMember } from '../../lib/family';
 import { EnterpriseROICalculator } from '../EnterpriseROICalculator';
 import EnterpriseMetricsPanel from '../EnterpriseMetricsPanel';
 import { VideoPlayer } from '../VideoPlayer';
@@ -12,46 +13,6 @@ import { MediaPlayer } from '../MediaPlayer';
 import { ConversationSummarizer } from '../ConversationSummarizer';
 
 // ---------- Family tree ----------
-type TreeMember = Parameters<typeof FamilyTreeVisualizer>[0]['familyMembers'][number];
-
-const fromRow = (r: any): TreeMember => ({
-  id: r.id,
-  name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' '),
-  relationship: r.relationship ?? '',
-  birthDate: r.birth_date ?? undefined,
-  birthPlace: r.birth_location ?? undefined,
-  deathDate: r.death_date ?? undefined,
-  deathPlace: r.death_location ?? undefined,
-  notes: r.notes ?? undefined,
-  confidence: (r.confidence ?? 100) / 100, // stored 0-100, shown 0-1
-  source: r.source ?? 'user',
-  parentIds: r.parent_ids ?? [],
-  spouseIds: r.spouse_ids ?? [],
-  childrenIds: r.children_ids ?? [],
-});
-
-const toRow = (m: TreeMember) => {
-  const parts = m.name.trim().split(/\s+/);
-  const first = parts.shift() ?? m.name;
-  return {
-    first_name: first,
-    last_name: parts.length ? parts.pop() : null,
-    middle_name: parts.length ? parts.join(' ') : null,
-    relationship: m.relationship || null,
-    birth_date: m.birthDate || null,
-    birth_location: m.birthPlace || null,
-    death_date: m.deathDate || null,
-    death_location: m.deathPlace || null,
-    is_living: !m.deathDate,
-    notes: m.notes || null,
-    source: m.source ?? 'user',
-    confidence: Math.round((m.confidence ?? 1) * 100),
-    parent_ids: m.parentIds ?? [],
-    spouse_ids: m.spouseIds ?? [],
-    children_ids: m.childrenIds ?? [],
-  };
-};
-
 export function FamilyTreeFeature() {
   const [members, setMembers] = useState<TreeMember[]>([]);
   const [loading, setLoading] = useState(true);

@@ -15,7 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
+import { n8n, starterWorkflow } from '../lib/n8n';
 
 interface N8NIntegrationProps {
   isOpen: boolean;
@@ -41,20 +41,11 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
   const loadIntegrationSettings = async () => {
     setIsLoading(true);
     try {
-      // In a real implementation, fetch from database
-      // For demo, we'll simulate a delay and use mock data
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data
-      const mockConnected = localStorage.getItem('n8n_connected') === 'true';
-      const mockN8nUrl = localStorage.getItem('n8n_url') || '';
-      const mockApiKey = localStorage.getItem('n8n_api_key') || '';
-      const mockWebhookUrl = localStorage.getItem('n8n_webhook_url') || 'https://genesis-heritage.com/api/n8n-webhook';
-      
-      setIsConnected(mockConnected);
-      setN8nUrl(mockN8nUrl);
-      setApiKey(mockApiKey);
-      setWebhookUrl(mockWebhookUrl);
+      const status = await n8n.status();
+      setIsConnected(status.connected);
+      setN8nUrl(status.url);
+      setApiKey(''); // the saved key stays on the server side of the account
+      setWebhookUrl(status.url ? `${status.url}/webhook/` : '');
     } catch (error) {
       console.error('Error loading integration settings:', error);
       toast.error('Failed to load integration settings');
@@ -65,8 +56,7 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
 
   const loadTemplates = async () => {
     try {
-      // In a real implementation, fetch from database or n8n API
-      // For demo, we'll use mock data
+      // Starter templates: each becomes a real (minimal) workflow in the user's n8n on import.
       setTemplates([
         {
           id: '1',
@@ -138,39 +128,18 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
 
     setIsTestingConnection(true);
     try {
-      // In a real implementation, test the connection to n8n
-      // For demo, we'll simulate a delay and success
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Save to localStorage for demo purposes
-      localStorage.setItem('n8n_connected', 'true');
-      localStorage.setItem('n8n_url', n8nUrl);
-      localStorage.setItem('n8n_api_key', apiKey);
-      
-      // In a real implementation, save to database
-      try {
-        await supabase
-          .from('integration_settings')
-          .upsert({
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            integration_type: 'n8n',
-            settings: {
-              url: n8nUrl,
-              api_key: apiKey,
-              webhook_url: webhookUrl,
-              connected_at: new Date().toISOString()
-            },
-            is_active: true
-          });
-      } catch (dbError) {
-        console.warn('Failed to save to database, using localStorage fallback:', dbError);
+      if (!apiKey) {
+        toast.error('Please enter your n8n API key (n8n → Settings → n8n API)');
+        return;
       }
-      
+      const result = await n8n.connect(n8nUrl, apiKey);
+      setN8nUrl(result.url);
+      setApiKey('');
       setIsConnected(true);
       toast.success('Successfully connected to n8n');
     } catch (error) {
       console.error('Error connecting to n8n:', error);
-      toast.error('Failed to connect to n8n');
+      toast.error(error instanceof Error ? error.message : 'Failed to connect to n8n');
     } finally {
       setIsTestingConnection(false);
     }
@@ -181,25 +150,7 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
     
     setIsLoading(true);
     try {
-      // In a real implementation, remove the integration from database
-      // For demo, we'll simulate a delay and success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Remove from localStorage for demo purposes
-      localStorage.removeItem('n8n_connected');
-      localStorage.removeItem('n8n_url');
-      localStorage.removeItem('n8n_api_key');
-      
-      // In a real implementation, update database
-      try {
-        await supabase
-          .from('integration_settings')
-          .update({ is_active: false })
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .eq('integration_type', 'n8n');
-      } catch (dbError) {
-        console.warn('Failed to update database, using localStorage fallback:', dbError);
-      }
+      await n8n.disconnect();
       
       setIsConnected(false);
       setN8nUrl('');
@@ -218,19 +169,12 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
       const template = templates.find(t => t.id === templateId);
       if (!template) return;
       
-      toast.success(`Importing ${template.name} template to n8n...`);
-      
-      // In a real implementation, this would call the n8n API to import the template
-      // For demo, we'll simulate success
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success(`${template.name} template imported successfully! Open n8n to customize.`);
-      
-      // Open n8n in a new tab
-      window.open(n8nUrl, '_blank');
+      const created = await n8n.createWorkflow(starterWorkflow(template.name, template.description));
+      toast.success(`${template.name} created in your n8n. Opening it now…`);
+      window.open(created.url, '_blank', 'noopener');
     } catch (error) {
       console.error('Error importing template:', error);
-      toast.error('Failed to import template');
+      toast.error(error instanceof Error ? error.message : 'Failed to import template');
     }
   };
 
