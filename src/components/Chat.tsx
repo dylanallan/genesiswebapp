@@ -30,14 +30,6 @@ interface ChatProps {
   businessGoals?: string;
 }
 
-// Available AI models for the chat interface
-const availableModels = [
-  { id: 'auto', name: 'Auto Select', provider: 'auto' as const },
-  { id: 'gpt-4', name: 'GPT-4 (OpenAI)', provider: 'openai' as const },
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (OpenAI)', provider: 'openai' as const },
-  { id: 'gemini-pro', name: 'Gemini Pro (Google)', provider: 'gemini' as const }
-];
-
 // Providers the server can route to; unconfigured ones fall back to Auto on the server
 const availableProviders = [
   { id: 'auto', name: 'Auto Select' },
@@ -54,7 +46,6 @@ export const Chat: React.FC<ChatProps> = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentModel, setCurrentModel] = useState<string>('auto');
   const [currentProvider, setCurrentProvider] = useState<string>('auto');
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [conversations, setConversations] = useState<ConversationInfo[]>([]);
@@ -137,7 +128,7 @@ export const Chat: React.FC<ChatProps> = () => {
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
-      const response = await chatApi.sendMessage(input, { conversationId });
+      const response = await chatApi.sendMessage(input, { conversationId, provider: currentProvider });
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -259,20 +250,9 @@ export const Chat: React.FC<ChatProps> = () => {
         </div>
         <div className="flex items-center space-x-2">
           <select
-            value={currentModel}
-            onChange={(e) => setCurrentModel(e.target.value)}
-            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-          >
-            {availableModels.map(model => (
-              <option key={model.id} value={model.id}>
-                {model.name}
-              </option>
-            ))}
-          </select>
-          
-          <select
             value={currentProvider}
             onChange={e => setCurrentProvider(e.target.value)}
+            aria-label="AI service"
             className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
           >
             {availableProviders.map(p => (

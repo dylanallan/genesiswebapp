@@ -86,7 +86,7 @@ export interface CallOptions {
 const DEFAULT_MODELS = {
   openai: () => Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
   anthropic: () => Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
-  gemini: () => Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.0-flash',
+  gemini: () => Deno.env.get('GEMINI_MODEL') ?? 'gemini-flash-latest',
 };
 
 const splitSystem = (messages: AIMessage[]) => ({
