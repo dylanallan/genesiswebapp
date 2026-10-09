@@ -1,3 +1,6 @@
+-- pgvector for AI search (Supabase keeps extensions in the "extensions" schema)
+create extension if not exists vector with schema extensions;
+
 -- 1️⃣ Auth-backed users table (extends auth.users)
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -36,7 +39,7 @@ create table public.sources (
 -- 5️⃣ Vector embeddings for AI search (pgvector 1536 dims)
 create table public.node_embeddings (
   node_id bigint primary key references family_nodes(id) on delete cascade,
-  embedding vector(1536)         -- match your OpenAI model dims
+  embedding extensions.vector(1536)  -- match your OpenAI model dims
 );
 
 -- Enable RLS
@@ -113,5 +116,3 @@ create index idx_sources_profile_id on public.sources(profile_id);
 create index idx_relationships_parent_id on public.relationships(parent_id);
 create index idx_relationships_child_id on public.relationships(child_id);
 
--- Enable vector extension
-create extension if not exists vector; 
