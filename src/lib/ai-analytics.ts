@@ -36,41 +36,28 @@ interface AIFeedbackSummary {
  * @param timeframeHours Number of hours to look back
  * @returns AI usage metrics
  */
+// The signed-in user's own AI usage (row-level security scopes every query to them).
+// Response time and cost are not tracked per user, so they are reported as NaN ("—" in the UI).
 export async function getAIUsageMetrics(timeframeHours: number = 24): Promise<AIUsageMetrics> {
+  const since = new Date(Date.now() - timeframeHours * 3600 * 1000);
+  const empty: AIUsageMetrics = { totalRequests: 0, successRate: NaN, averageResponseTime: NaN, modelUsage: {}, errorRate: NaN, timeframeHours, tokensUsed: NaN, estimatedCost: NaN };
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session?.access_token) {
-      throw new Error('Authentication required');
-    }
-    
-    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-metrics?hours=${timeframeHours}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
+    const [{ data: days }, { data: answers }] = await Promise.all([
+      supabase.from('ai_usage_daily').select('count').gte('day', since.toISOString().slice(0, 10)),
+      supabase.from('messages').select('metadata').eq('role', 'assistant').gte('created_at', since.toISOString()).limit(5000),
+    ]);
+    const totalRequests = (days ?? []).reduce((sum: number, d: { count: number }) => sum + (d.count ?? 0), 0);
+    const modelUsage: Record<string, number> = {};
+    (answers ?? []).forEach((m: { metadata: { provider?: string } | null }) => {
+      const provider = m.metadata?.provider ?? 'unknown';
+      if (provider !== 'error') modelUsage[provider] = (modelUsage[provider] ?? 0) + 1;
     });
-    
-    if (!response.ok) {
-      throw new Error(`AI metrics error: ${response.status} ${response.statusText}`);
-    }
-    
-    return await response.json();
+    const answered = Object.values(modelUsage).reduce((a, b) => a + b, 0);
+    const successRate = totalRequests > 0 ? Math.min(1, answered / totalRequests) : NaN;
+    return { ...empty, totalRequests, modelUsage, successRate, errorRate: Number.isNaN(successRate) ? NaN : 1 - successRate };
   } catch (error) {
     console.error('Error getting AI usage metrics:', error);
-    
-    // Return default metrics
-    return {
-      totalRequests: 0,
-      successRate: 1,
-      averageResponseTime: 0,
-      modelUsage: {},
-      errorRate: 0,
-      timeframeHours,
-      tokensUsed: 0,
-      estimatedCost: 0
-    };
+    return empty;
   }
 }
 
@@ -201,53 +188,19 @@ export async function trackAIUsage(tokensUsed: number, model: string): Promise<b
  * Get user's current AI usage quota
  * @returns Object containing quota information
  */
-export async function getAIUsageQuota(): Promise<{
-  plan: string;
-  limit: number;
-  used: number;
-  remaining: number;
-  resetDate: Date;
-}> {
-  try {
-    const { data, error } = await supabase
-      .from('ai_usage_quotas')
-      .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-      .maybeSingle();
-    
-    if (error) {
-      // If no quota exists, return default values
-      if (error.code === 'PGRST116') {
-        return {
-          plan: 'free',
-          limit: 100000,
-          used: 0,
-          remaining: 100000,
-          resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-        };
-      }
-      throw error;
-    }
-    
-    return {
-      plan: data.plan_type,
-      limit: data.monthly_token_limit,
-      used: data.tokens_used,
-      remaining: data.monthly_token_limit - data.tokens_used,
-      resetDate: new Date(data.reset_date)
-    };
-  } catch (error) {
-    console.error('Error getting AI usage quota:', error);
-    
-    // Return default values
-    return {
-      plan: 'free',
-      limit: 100000,
-      used: 0,
-      remaining: 100000,
-      resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-    };
-  }
+// The real limit the AI router enforces: messages per UTC day, by plan.
+export async function getAIUsageQuota(): Promise<{ plan: string; limit: number; used: number; remaining: number; resetDate: Date }> {
+  const today = new Date().toISOString().slice(0, 10);
+  const [{ data: sub }, { data: usage }] = await Promise.all([
+    supabase.from('subscriptions').select('status').maybeSingle(),
+    supabase.from('ai_usage_daily').select('count').eq('day', today).maybeSingle(),
+  ]);
+  const paid = sub?.status === 'active' || sub?.status === 'trialing';
+  const limit = paid ? Number(import.meta.env.VITE_PAID_DAILY_MESSAGES ?? 500) : Number(import.meta.env.VITE_FREE_DAILY_MESSAGES ?? 10);
+  const used = usage?.count ?? 0;
+  const reset = new Date();
+  reset.setUTCHours(24, 0, 0, 0);
+  return { plan: paid ? 'pro' : 'free', limit, used, remaining: Math.max(0, limit - used), resetDate: reset };
 }
 
 /**

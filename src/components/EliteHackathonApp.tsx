@@ -222,7 +222,7 @@ const EliteHackathonApp = () => {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <section className="max-w-7xl mx-auto px-6 py-8">
         {currentView === 'dashboard' && (
           <div className="space-y-8">
             {/* Hero Stats */}
@@ -545,7 +545,7 @@ const EliteHackathonApp = () => {
             </div>
           </div>
         )}
-      </main>
+      </section>
 
       {/* Elite Footer */}
       <footer className="bg-gray-900 text-white py-12 mt-16">

@@ -41,17 +41,13 @@ export const AIUsageStats: React.FC = () => {
     }
   };
 
-  const formatNumber = (num: number) => {
-    return num.toLocaleString();
-  };
-
-  const formatCost = (cost: number) => {
-    return `$${cost.toFixed(4)}`;
-  };
+  const formatNumber = (num: number | undefined) => (num === undefined || Number.isNaN(num) ? '—' : num.toLocaleString());
+  const formatCost = (cost: number | undefined) => (cost === undefined || Number.isNaN(cost) ? '—' : `$${cost.toFixed(4)}`);
+  const pct = (n: number) => (Number.isNaN(n) ? '—' : `${(n * 100).toFixed(1)}%`);
 
   const getUsagePercentage = () => {
-    if (!quota) return 0;
-    return (quota.used / quota.limit) * 100;
+    if (!quota || !quota.limit) return 0;
+    return Math.min(100, (quota.used / quota.limit) * 100);
   };
 
   const getUsageColor = () => {
@@ -100,12 +96,12 @@ export const AIUsageStats: React.FC = () => {
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <h3 className="font-medium text-blue-900 mb-2 flex items-center space-x-2">
                 <Zap className="w-5 h-5 text-blue-500" />
-                <span>Monthly Quota ({quota.plan.toUpperCase()} Plan)</span>
+                <span>Daily AI Messages ({quota.plan.toUpperCase()} Plan)</span>
               </h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-blue-700">
-                    {formatNumber(quota.used)} / {formatNumber(quota.limit)} tokens used
+                    {formatNumber(quota.used)} / {formatNumber(quota.limit)} messages used today
                   </span>
                   <span className="text-blue-700">
                     {getUsagePercentage().toFixed(1)}%
@@ -120,9 +116,9 @@ export const AIUsageStats: React.FC = () => {
                 <div className="flex justify-between items-center text-xs text-blue-600">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-3 h-3" />
-                    <span>Resets on {new Date(quota.resetDate).toLocaleDateString()}</span>
+                    <span>Resets {new Date(quota.resetDate).toLocaleString()}</span>
                   </div>
-                  <span>{formatNumber(quota.remaining)} tokens remaining</span>
+                  <span>{formatNumber(quota.remaining)} remaining</span>
                 </div>
               </div>
             </div>
@@ -161,9 +157,9 @@ export const AIUsageStats: React.FC = () => {
                     <AlertCircle className="w-5 h-5 text-yellow-500" />
                   )}
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{(metrics.successRate * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-bold text-gray-900">{pct(metrics.successRate)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {metrics.errorRate > 0 ? `${(metrics.errorRate * 100).toFixed(1)}% error rate` : 'No errors detected'}
+                  {Number.isNaN(metrics.errorRate) ? 'No requests yet' : metrics.errorRate > 0 ? `${pct(metrics.errorRate)} without an answer` : 'Every request answered'}
                 </p>
               </motion.div>
 
@@ -177,7 +173,7 @@ export const AIUsageStats: React.FC = () => {
                   <h3 className="text-sm font-medium text-gray-500">Response Time</h3>
                   <Clock className="w-5 h-5 text-purple-500" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{metrics.averageResponseTime.toFixed(0)}ms</p>
+                <p className="text-2xl font-bold text-gray-900">{Number.isNaN(metrics.averageResponseTime) ? '—' : `${metrics.averageResponseTime.toFixed(0)}ms`}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   Average response time
                 </p>
@@ -193,9 +189,9 @@ export const AIUsageStats: React.FC = () => {
                   <h3 className="text-sm font-medium text-gray-500">Estimated Cost</h3>
                   <Zap className="w-5 h-5 text-amber-500" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{formatCost(metrics.estimatedCost || 0)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCost(metrics.estimatedCost)}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {formatNumber(metrics.tokensUsed || 0)} tokens used
+                  {Number.isNaN(metrics.tokensUsed) ? 'Not tracked per account' : `${formatNumber(metrics.tokensUsed)} tokens used`}
                 </p>
               </motion.div>
             </div>

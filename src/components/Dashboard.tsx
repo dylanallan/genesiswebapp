@@ -803,6 +803,14 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const ActiveComponent = activeEntry.component as React.ComponentType;
   const closeFeature = () => setActiveFeature('records-search');
 
+  // Pop-up features close with the Escape key, as people expect.
+  useEffect(() => {
+    if (!activeEntry.render) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('records-search'); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeEntry]);
+
   const categories = [
     { id: 'all', name: 'All Features', icon: Plus },
     { id: 'core', name: 'Core System', icon: Home },

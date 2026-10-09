@@ -43,14 +43,19 @@ test('every dashboard feature opens without crashing', async ({ page }) => {
   console.log(`Found ${names.length} features`);
 
   const report: string[] = [];
+  fs.mkdirSync('test-results', { recursive: true });
+  fs.writeFileSync('test-results/crawl-progress.txt', '');
   for (let i = 0; i < names.length; i++) {
     current = `feature: ${names[i]}`;
-    await band.locator('button').nth(i).click();
+    fs.appendFileSync('test-results/crawl-progress.txt', `${i} ${names[i]}\n`);
+    await band.locator('button').nth(i).click({ timeout: 10_000 });
     await page.waitForTimeout(400);
-    const body = await page.locator('main').innerText();
+    const body = await page.locator('main').first().innerText({ timeout: 10_000 });
     const crashed = /Component Error|Something went wrong|Application Error|not a valid React component/i.test(body);
     const empty = body.replace(/\s+/g, ' ').trim().length < 40;
     report.push(`${crashed ? 'CRASH' : empty ? 'EMPTY' : 'ok   '}  ${names[i]}`);
+    await page.keyboard.press('Escape'); // closes pop-up features, like a user would
+    await page.waitForTimeout(150);
     if (process.env.SHOTS) await page.screenshot({ path: `test-results/shots/${String(i).padStart(2, '0')}-${names[i].replace(/\W+/g, '_')}.png` });
   }
   fs.mkdirSync('test-results', { recursive: true });

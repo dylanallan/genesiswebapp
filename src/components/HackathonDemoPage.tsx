@@ -47,7 +47,7 @@ export const HackathonDemoPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <section className="max-w-7xl mx-auto px-6 py-12">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -454,7 +454,7 @@ export const HackathonDemoPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
-      </main>
+      </section>
 
       {/* Hackathon Badge */}
       <div className="fixed top-24 right-6 z-40">
