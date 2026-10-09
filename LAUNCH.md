@@ -19,6 +19,10 @@ Commands run in a terminal inside this project folder.
    ```sh
    npx supabase functions deploy
    ```
+   Or let GitHub do steps 2–4 automatically on every merge to `main`: add repository secrets
+   `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`
+   (GitHub → Settings → Secrets and variables → Actions). The **Deploy Supabase backend** workflow
+   can also be run by hand from the Actions tab.
 5. In the Supabase dashboard → Authentication → URL Configuration, set **Site URL** to your domain
    and add it to **Redirect URLs** (needed for email confirmation and Google sign-in).
 6. Optional: Authentication → Providers → enable **Google**.

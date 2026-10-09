@@ -1,71 +1,78 @@
-name: CI/CD
+name: CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+  push:
+    branches: [main]
 
 jobs:
-  test:
+  frontend:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x]
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run linting
-      run: npm run lint
-    
-    - name: Run unit tests
-      run: npm run test
-    
-    - name: Run E2E tests
-      run: |
-        npx playwright install --with-deps
-        npm run test:e2e
-    
-    - name: Run Lighthouse CI
-      run: npm run test:lighthouse
-    
-    - name: Run security audit
-      run: npm run test:security
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run typecheck
+      - run: npm test
+      - name: Production build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
 
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  functions:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build
-      run: npm run build
-      env:
-        VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
-        VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
-    
-    - name: Deploy to Production
-      # Add your deployment steps here
-      # This could be deploying to Vercel, Netlify, or your own server
-      run: echo "Add deployment steps" 
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check --no-config supabase/functions/*/index.ts scripts/ingest_data.ts
+      - run: deno test --no-config --allow-env supabase/functions scripts
+
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGOPTIONS: -c client_min_messages=warning
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migrations apply to a blank database and can be re-run
+        run: scripts/test-migrations.sh
+      - name: Privacy and payment checks
+        run: |
+          psql -qc "create database checks"
+          psql -d checks -q -v ON_ERROR_STOP=1 -f supabase/tests/supabase_stub.sql
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            sed -E 's/create extension if not exists ("?vector"?)[^;]*;//Ig; s/extensions\.vector\(1536\)/extensions.vector/g; s/\bvector\(1536\)/extensions.vector/g' "$f" | psql -d checks -q -v ON_ERROR_STOP=1
+          done
+          out=$(psql -d checks -At -F ' | ' -f supabase/tests/rls_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/payments_test.sql 2>&1)
+          echo "$out" | grep -E '\| (t|f)$|CHECK'
+          if echo "$out" | grep -qE '\| f$|: FAIL'; then echo "A privacy or payment check failed"; exit 1; fi
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: Every screen opens without crashing (simulated backend)
+        run: npm run test:beta

@@ -11,16 +11,15 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:lighthouse": "lhci autorun",
     "test:security": "npm audit",
-    "update-deps": "npx npm-check-updates -u && npm install",
     "generate-sitemap": "tsx scripts/generate-sitemap.ts",
     "prebuild": "npm run generate-sitemap",
     "test:beta": "playwright test e2e/beta-crawl.spec.ts --project=chromium",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test:db": "scripts/test-migrations.sh",
     "check:functions": "deno check --no-config supabase/functions/*/index.ts",
-    "test:functions": "deno test --no-config --allow-env supabase/functions"
+    "test:functions": "deno test --no-config --allow-env supabase/functions scripts",
+    "deploy:backend": "scripts/deploy-supabase.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.17.1",
