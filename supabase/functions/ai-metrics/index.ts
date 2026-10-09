@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
+import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
 
 // Initialize Supabase client
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     // Get AI metrics from database
     const { data: metrics, error: metricsError } = await supabase
       .from('ai_request_logs')
-      .select('provider_id, success, response_time_ms, created_at')
+      .select('user_id, provider_id, success, response_time_ms, response_data, created_at')
       .gte('created_at', new Date(Date.now() - timeframeHours * 60 * 60 * 1000).toISOString());
 
     if (metricsError) {
@@ -81,13 +81,20 @@ Deno.serve(async (req) => {
       modelUsage[model] = (modelUsage[model] || 0) + 1;
     });
 
-    const response: MetricsResponse = {
+    // Totals the AI Admin Dashboard shows (systemMetrics / userMetrics)
+    const { count: totalUsers } = await supabase.from('user_profiles').select('id', { count: 'exact', head: true });
+    const activeUsers = new Set((metrics ?? []).map((m: any) => m.user_id).filter(Boolean)).size;
+    const totalTokens = (metrics ?? []).reduce((sum: number, m: any) => sum + (Number(m.response_data?.tokensUsed) || 0), 0);
+
+    const response = {
       totalRequests,
       successRate,
       averageResponseTime,
       modelUsage,
       errorRate,
-      timeframeHours
+      timeframeHours,
+      systemMetrics: { totalUsers: totalUsers ?? 0, activeUsers, totalRequests, successRate, averageResponseTime },
+      userMetrics: { totalTokens, estimatedCost: null }, // cost depends on each provider's pricing; not estimated here
     };
 
     return new Response(
@@ -104,11 +111,11 @@ Deno.serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: (error instanceof Error ? error.message : String(error)).includes('Admin access required') ? (error instanceof Error ? error.message : String(error)) : 'Internal server error',
         timestamp: new Date().toISOString()
       }),
       {
-        status: error.message.includes('Admin access required') ? 403 : 500,
+        status: (error instanceof Error ? error.message : String(error)).includes('Admin access required') ? 403 : 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',

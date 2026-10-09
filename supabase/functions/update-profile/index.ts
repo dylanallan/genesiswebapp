@@ -1,105 +1,43 @@
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
-import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import { corsFor } from '../_shared/cors.ts'
+import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 
-// Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-interface ProfileUpdateRequest {
-  updates: Record<string, string>;
-  reason?: string;
-}
+// Updates the caller's profile fields and records each change in their profile history.
+const VALID_FIELDS = new Set([
+  'name', 'ancestry', 'businessGoals', 'location', 'language', 'timezone',
+  'culturalBackground', 'familyTraditions', 'businessType', 'industryFocus',
+])
+const MAX_LENGTH = 500
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  const cors = corsFor(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    const user = await requireUser(req)
+    const { updates, reason } = await req.json()
+    if (!updates || typeof updates !== 'object' || Object.keys(updates).length === 0) {
+      return json({ error: 'No updates provided' }, 400, cors)
+    }
+    const clean: Record<string, string> = {}
+    for (const [field, value] of Object.entries(updates as Record<string, unknown>)) {
+      if (!VALID_FIELDS.has(field)) return json({ error: `Invalid field: ${field}` }, 400, cors)
+      if (typeof value !== 'string' || value.length > MAX_LENGTH) {
+        return json({ error: `${field} must be text of at most ${MAX_LENGTH} characters` }, 400, cors)
+      }
+      clean[field] = value.trim()
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Invalid authentication');
-    }
-
-    // Parse request body
-    const { updates, reason } = await req.json() as ProfileUpdateRequest;
-
-    if (!updates || Object.keys(updates).length === 0) {
-      throw new Error('No updates provided');
-    }
-
-    // Validate updates
-    const validFields = [
-      'name', 'ancestry', 'businessGoals', 'location', 
-      'language', 'timezone', 'culturalBackground', 
-      'familyTraditions', 'businessType', 'industryFocus'
-    ];
-
-    for (const field of Object.keys(updates)) {
-      if (!validFields.includes(field)) {
-        throw new Error(`Invalid field: ${field}`);
-      }
-    }
-
-    // Update profile using database function
-    const { data, error } = await supabase.rpc(
-      'update_user_profile_batch',
-      {
-        p_updates: updates,
-        p_reason: reason || 'User-initiated update',
-        p_user_id: user.id
-      }
-    );
-
-    if (error) throw error;
-
-    // Get updated profile
-    const { data: profile, error: profileError } = await supabase.rpc(
-      'get_user_profile',
-      { p_user_id: user.id }
-    );
-
-    if (profileError) throw profileError;
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Profile updated successfully',
-        profile
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  } catch (error) {
-    console.error('Profile update error:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: error.message.includes('Access denied') ? 403 : 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const { data: profile, error } = await db.rpc('update_user_profile_batch', {
+      p_updates: clean,
+      p_reason: typeof reason === 'string' && reason.trim() ? reason.trim().slice(0, 200) : 'User-initiated update',
+      p_user_id: user.id,
+    })
+    if (error) throw error
+    return json({ success: true, message: 'Profile updated successfully', profile }, 200, cors)
+  } catch (e) {
+    return errorResponse(e, cors)
   }
-});
+})

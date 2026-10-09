@@ -56,7 +56,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
       if (error) throw error;
       
       // Convert to ContentItem format
-      const items: ContentItem[] = data?.map(item => ({
+      const items: ContentItem[] = data?.map((item: any) => ({
         id: item.id,
         contentType: item.content_type,
         contentId: item.content_id,
@@ -70,35 +70,8 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
       console.error('Error loading content items:', error);
       toast.error('Failed to load knowledge base');
       
-      // Fallback to mock data if database query fails
-      const mockItems: ContentItem[] = [
-        {
-          id: '1',
-          contentType: 'document',
-          contentId: 'business-automation-guide.txt',
-          content: 'Business automation is the technology-enabled automation of complex business processes. It can streamline a business for simplicity, achieve digital transformation, increase service quality, improve service delivery or contain costs.',
-          metadata: {
-            fileName: 'business-automation-guide.txt',
-            fileSize: 1024,
-            fileType: 'text/plain',
-            uploadDate: new Date().toISOString()
-          },
-          createdAt: new Date()
-        },
-        {
-          id: '2',
-          contentType: 'note',
-          contentId: 'cultural-heritage-notes',
-          content: 'Cultural heritage is the legacy of physical artifacts and intangible attributes of a group or society that is inherited from past generations. It includes tangible culture (such as buildings, monuments, landscapes, books, works of art, and artifacts), intangible culture (such as folklore, traditions, language, and knowledge), and natural heritage (including culturally significant landscapes, and biodiversity).',
-          metadata: {
-            source: 'manual',
-            addedDate: new Date().toISOString()
-          },
-          createdAt: new Date(Date.now() - 86400000)
-        }
-      ];
-      
-      setContentItems(mockItems);
+      setContentItems([]); // never show sample content as if it were the user's own
+
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +92,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
       // Group by session_id
       const sessionMap = new Map<string, { count: number, lastActive: Date }>();
       
-      data?.forEach(item => {
+      data?.forEach((item: any) => {
         if (!sessionMap.has(item.session_id)) {
           sessionMap.set(item.session_id, { count: 0, lastActive: new Date(item.created_at) });
         }

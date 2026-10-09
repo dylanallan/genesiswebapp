@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Image, Music, Video, File, Trash, Download, ExternalLink, Search, Filter, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { currentUserId } from '../lib/storage';
 import { MediaPlayer } from './MediaPlayer';
 import { VideoPlayer } from './VideoPlayer';
 import { AudioPlayer } from './AudioPlayer';
@@ -47,9 +48,10 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
     setError(null);
     
     try {
+      const uid = await currentUserId();
       const { data, error } = await supabase.storage
         .from(bucketName)
-        .list();
+        .list(uid, { sortBy: { column: 'created_at', order: 'desc' } });
       
       if (error) throw error;
       
@@ -59,9 +61,9 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
       for (const item of data || []) {
         if (item.name.startsWith('.')) continue; // Skip hidden files
         
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = await supabase.storage
           .from(bucketName)
-          .getPublicUrl(item.name);
+          .createSignedUrl(`${uid}/${item.name}`, 3600);
         
         const fileType = getFileType(item.name);
         
@@ -69,7 +71,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
           id: item.id,
           name: item.name,
           type: fileType,
-          url: urlData.publicUrl,
+          url: urlData?.signedUrl ?? '',
           size: item.metadata?.size || 0,
           created_at: item.created_at || new Date().toISOString(),
           metadata: item.metadata
@@ -119,9 +121,10 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
     if (!confirm(`Are you sure you want to delete ${item.name}?`)) return;
     
     try {
+      const uid = await currentUserId();
       const { error } = await supabase.storage
         .from(bucketName)
-        .remove([item.name]);
+        .remove([`${uid}/${item.name}`]);
       
       if (error) throw error;
       

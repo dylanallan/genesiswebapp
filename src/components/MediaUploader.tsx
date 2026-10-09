@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, File, X, Image, Music, Video, Loader2, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
+import { uploadOwnFile, signedUrl } from '../lib/storage';
 
 interface MediaUploaderProps {
   onUploadComplete?: (url: string, fileType: string, fileName: string) => void;
@@ -104,36 +104,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     
     try {
       // Create a unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `${fileName}`;
-      
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) throw error;
-      
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-      
+      // Private upload into the user's own folder; shown through a temporary signed link
+      const filePath = await uploadOwnFile(bucketName, file.name, file);
+      const url = await signedUrl(bucketName, filePath);
+
       setUploadedFile({
         name: file.name,
         type: file.type,
         size: file.size,
-        url: urlData.publicUrl
+        url
       });
       
       toast.success('File uploaded successfully');
       
       if (onUploadComplete) {
-        onUploadComplete(urlData.publicUrl, file.type, file.name);
+        onUploadComplete(url, file.type, file.name);
       }
     } catch (error) {
       console.error('Upload error:', error);

@@ -1,13 +1,12 @@
 // Follow this pattern to import other modules from the Deno registry.
-// import * as mod from "https://deno.land/std@0.170.0/node/module.ts";
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import OpenAI from "npm:openai@4.28.0";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsFor } from '../_shared/cors.ts'
+import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+
+// Writes to the global knowledge base, so only admins (app_metadata.role = 'admin') may call it.
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -15,15 +14,19 @@ const openai = new OpenAI({
 });
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsFor(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    const user = await requireUser(req)
+    if (user.app_metadata?.role !== 'admin') return json({ error: 'Forbidden' }, 403, corsHeaders)
+
     const { text, metadata: requestMetadata } = await req.json();
 
-    if (!text) {
-      throw new Error("Missing 'text' in request body");
+    if (typeof text !== 'string' || !text.trim() || text.length > 20000) {
+      return json({ error: "'text' is required (max 20000 characters)" }, 400, corsHeaders)
     }
 
     // 1. Generate embedding with OpenAI
@@ -62,9 +65,6 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(String(err?.message ?? err), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return errorResponse(err, corsHeaders)
   }
 }) 

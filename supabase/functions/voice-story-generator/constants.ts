@@ -35,12 +35,13 @@ export const SUPPORTED_LANGUAGES = [
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 // Voice configurations
-export const VOICE_CONFIGS: Record<SupportedLanguage, Array<{
+// Only languages listed here have narration voices configured.
+export const VOICE_CONFIGS: Partial<Record<SupportedLanguage, Array<{
   name: string;
   gender: 'male' | 'female' | 'neutral';
   description: string;
   recommended: boolean;
-}>> = {
+}>>> = {
   'en-US': [
     { name: 'en-US-Neural2-A', gender: 'male', description: 'Standard US male voice', recommended: true },
     { name: 'en-US-Neural2-B', gender: 'male', description: 'Deep US male voice', recommended: false },

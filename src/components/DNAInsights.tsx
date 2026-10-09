@@ -1,322 +1,145 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Dna, Globe, Users, TrendingUp, MapPin, Calendar, Heart } from 'lucide-react';
+import { Dna, Upload, ShieldCheck, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 
-interface DNAResult {
-  id?: string;
-  user_id?: string;
-  ethnicity: {
-    region: string;
-    percentage: number;
-    confidence: number;
-  }[];
-  healthInsights: {
-    trait: string;
-    likelihood: string;
-    description: string;
-  }[];
-  ancestralMigration: {
-    period: string;
-    from: string;
-    to: string;
-    reason: string;
-  }[];
-  relatives: {
-    name: string;
-    relationship: string;
-    sharedDNA: number;
-    location: string;
-  }[];
-  created_at?: string;
-  updated_at?: string;
-}
+import { analyzeRawDNA, CHROM_ORDER, type DNASummary } from '../lib/dna';
+
+// Everything shown here is measured from the user's own raw DNA file. The file is read in the
+// browser and never uploaded; only the summary numbers below are saved to their account.
+
+const MAX_BYTES = 150 * 1024 * 1024;
+const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 export const DNAInsights: React.FC = () => {
-  const [dnaData, setDnaData] = useState<DNAResult | null>(null);
+  const [summary, setSummary] = useState<DNASummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<'ethnicity' | 'health' | 'migration' | 'relatives'>('ethnicity');
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchDNAData();
-  }, []);
-
-  const fetchDNAData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
+    (async () => {
       const { data, error } = await supabase
         .from('dna_insights')
-        .select('*')
-        .eq('user_id', user.id)
+        .select('insights')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching DNA data:', error);
+        return;
       }
+      if (data?.insights?.totalMarkers) setSummary(data.insights as DNASummary);
+    })();
+  }, []);
 
-      if (data) {
-        setDnaData(data);
-      }
-    } catch (error) {
-      console.error('Error fetching DNA data:', error);
-      toast.error('Failed to load DNA insights');
-    }
-  };
-
-  const uploadDNAFile = async (file: File) => {
+  const handleFile = async (file: File) => {
+    if (file.size > MAX_BYTES) return toast.error('That file is larger than any raw DNA export we know of. Please check you picked the right file.');
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Simulate DNA analysis (in a real app, this would call an AI service)
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const dnaResult: DNAResult = {
-        user_id: user.id,
-        ethnicity: [
-          { region: 'Western Europe', percentage: 45, confidence: 95 },
-          { region: 'Eastern Europe', percentage: 30, confidence: 92 },
-          { region: 'Scandinavia', percentage: 15, confidence: 88 },
-          { region: 'Iberian Peninsula', percentage: 10, confidence: 85 }
-        ],
-        healthInsights: [
-          { trait: 'Lactose Tolerance', likelihood: 'Likely', description: 'High probability of lactose tolerance' },
-          { trait: 'Caffeine Sensitivity', likelihood: 'Low', description: 'Lower sensitivity to caffeine' },
-          { trait: 'Athletic Performance', likelihood: 'Enhanced', description: 'Genetic markers for endurance' }
-        ],
-        ancestralMigration: [
-          { period: '1800-1850', from: 'Ireland', to: 'United States', reason: 'Economic opportunity' },
-          { period: '1920-1930', from: 'Poland', to: 'United States', reason: 'Political instability' }
-        ],
-        relatives: [
-          { name: 'Sarah Johnson', relationship: '3rd cousin', sharedDNA: 0.78, location: 'California, USA' },
-          { name: 'Michael O\'Brien', relationship: '4th cousin', sharedDNA: 0.45, location: 'Dublin, Ireland' }
-        ]
-      };
-
-      // Save to Supabase
-      const { error } = await supabase
-        .from('dna_insights')
-        .insert([dnaResult]);
-
-      if (error) throw error;
-
-      setDnaData(dnaResult);
-      toast.success('DNA analysis complete!');
-    } catch (error) {
-      console.error('DNA analysis error:', error);
-      toast.error('Failed to analyze DNA data');
+      const text = await file.text();
+      const result = analyzeRawDNA(text, file.name);
+      setSummary(result);
+      const { error } = await supabase.from('dna_insights').insert({ insights: result });
+      if (error) toast.error('Your results are shown, but could not be saved to your account.');
+      else toast.success('DNA file analysed');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not read that file.');
     } finally {
       setIsLoading(false);
+      if (fileInput.current) fileInput.current.value = '';
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      uploadDNAFile(file);
-    }
-  };
-
-  const deleteDNAData = async () => {
-    if (!dnaData?.id) return;
-    
-    if (!confirm('Are you sure you want to delete your DNA insights? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('dna_insights')
-        .delete()
-        .eq('id', dnaData.id);
-
-      if (error) throw error;
-
-      setDnaData(null);
-      toast.success('DNA insights deleted successfully');
-    } catch (error) {
-      console.error('Error deleting DNA data:', error);
-      toast.error('Failed to delete DNA insights');
-    }
-  };
-
-  const renderEthnicityBreakdown = () => (
-    <div className="space-y-4">
-      {dnaData?.ethnicity.map((item, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
-        >
-          <div className="flex items-center space-x-3">
-            <Globe className="w-5 h-5 text-blue-500" />
-            <span className="font-medium">{item.region}</span>
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-bold text-blue-600">{item.percentage}%</div>
-            <div className="text-xs text-blue-500">{item.confidence}% confidence</div>
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-
-  const renderHealthInsights = () => (
-    <div className="space-y-4">
-      {dnaData?.healthInsights.map((insight, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="p-4 bg-green-50 rounded-lg"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-medium text-green-900">{insight.trait}</h4>
-            <span className="px-2 py-1 bg-green-200 text-green-800 rounded-full text-xs">
-              {insight.likelihood}
-            </span>
-          </div>
-          <p className="text-green-700 text-sm">{insight.description}</p>
-        </motion.div>
-      ))}
-    </div>
-  );
-
-  const renderMigrationHistory = () => (
-    <div className="space-y-4">
-      {dnaData?.ancestralMigration.map((migration, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: index * 0.1 }}
-          className="p-4 bg-purple-50 rounded-lg"
-        >
-          <div className="flex items-center space-x-2 mb-2">
-            <Calendar className="w-4 h-4 text-purple-500" />
-            <span className="font-medium text-purple-900">{migration.period}</span>
-          </div>
-          <div className="flex items-center space-x-2 mb-2">
-            <MapPin className="w-4 h-4 text-purple-500" />
-            <span className="text-purple-700">{migration.from} → {migration.to}</span>
-          </div>
-          <p className="text-purple-600 text-sm">{migration.reason}</p>
-        </motion.div>
-      ))}
-    </div>
-  );
-
-  const renderRelatives = () => (
-    <div className="space-y-4">
-      {dnaData?.relatives.map((relative, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="p-4 bg-amber-50 rounded-lg"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium text-amber-900">{relative.name}</h4>
-              <p className="text-amber-700 text-sm">{relative.relationship}</p>
-              <p className="text-amber-600 text-xs">{relative.location}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-lg font-bold text-amber-600">{relative.sharedDNA}%</div>
-              <div className="text-xs text-amber-500">shared DNA</div>
-            </div>
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
+  const maxCount = summary ? Math.max(...Object.values(summary.perChromosome)) : 1;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center space-x-3 mb-6">
-        <Dna className="w-6 h-6 text-blue-500" />
-        <h2 className="text-xl font-semibold">DNA Heritage Insights</h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-100 rounded-lg"><Dna className="w-6 h-6 text-purple-600" /></div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">DNA Insights</h2>
+            <p className="text-sm text-gray-600">Upload the raw data file from 23andMe, AncestryDNA, MyHeritage or FamilyTreeDNA.</p>
+          </div>
+        </div>
+        <label className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-white cursor-pointer ${isLoading ? 'bg-purple-300' : 'bg-purple-600 hover:bg-purple-700'}`}>
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          {isLoading ? 'Analysing…' : summary ? 'Analyse another file' : 'Choose raw DNA file'}
+          <input ref={fileInput} type="file" accept=".txt,.csv,.zip,text/plain,text/csv" className="hidden" disabled={isLoading}
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+        </label>
       </div>
 
-      {!dnaData && (
-        <div className="text-center py-12">
-          <input
-            type="file"
-            accept=".txt,.csv"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="dna-upload"
-          />
-          <label
-            htmlFor="dna-upload"
-            className="cursor-pointer inline-flex items-center space-x-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Analyzing DNA...</span>
-              </>
-            ) : (
-              <>
-                <Dna className="w-5 h-5" />
-                <span>Upload DNA Data</span>
-              </>
-            )}
-          </label>
-          <p className="text-gray-500 text-sm mt-2">
-            Upload your raw DNA data from 23andMe, AncestryDNA, or similar services
-          </p>
-        </div>
+      <p className="flex items-start gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-900">
+        <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
+        Your file is read on this device and is never uploaded. Only the summary numbers below are saved to your account.
+      </p>
+
+      {!summary && !isLoading && (
+        <p className="text-gray-600 text-sm">
+          Not sure where to find your file? Each testing company has a "Download raw data" option in your account settings. If it arrives as a .zip, unzip it first.
+        </p>
       )}
 
-      {dnaData && (
-        <div>
-          <div className="flex space-x-1 mb-6 bg-gray-100 rounded-lg p-1">
+      {summary && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { id: 'ethnicity', label: 'Ethnicity', icon: Globe },
-              { id: 'health', label: 'Health', icon: Heart },
-              { id: 'migration', label: 'Migration', icon: TrendingUp },
-              { id: 'relatives', label: 'Relatives', icon: Users }
-            ].map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setSelectedTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md transition-colors ${
-                    selectedTab === tab.id
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{tab.label}</span>
-                </button>
-              );
-            })}
+              ['Format', summary.format],
+              ['Markers in file', summary.totalMarkers.toLocaleString()],
+              ['Call rate', pct(summary.callRate)],
+              ['Genome build', summary.build ?? 'Not stated'],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border p-3">
+                <div className="text-xs text-gray-500">{label}</div>
+                <div className="font-semibold text-gray-900 break-words">{value}</div>
+              </div>
+            ))}
           </div>
 
-          <div className="min-h-[400px]">
-            {selectedTab === 'ethnicity' && renderEthnicityBreakdown()}
-            {selectedTab === 'health' && renderHealthInsights()}
-            {selectedTab === 'migration' && renderMigrationHistory()}
-            {selectedTab === 'relatives' && renderRelatives()}
+          <div className="grid gap-3 md:grid-cols-3 text-sm">
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-gray-500">Autosomal heterozygosity</div>
+              <div className="font-semibold">{summary.autosomalHeterozygosity !== null ? pct(summary.autosomalHeterozygosity) : '—'}</div>
+              <p className="text-xs text-gray-500 mt-1">Share of your markers where you inherited two different letters. Typical consumer files fall around 25–35%.</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-gray-500">Y-chromosome markers</div>
+              <div className="font-semibold">{summary.yMarkersCalled > 0 ? `${summary.yMarkersCalled.toLocaleString()} read` : 'None read'}</div>
+              <p className="text-xs text-gray-500 mt-1">Y markers are passed father to son and are used for paternal-line (haplogroup) research.</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-gray-500">Mitochondrial markers</div>
+              <div className="font-semibold">{summary.mtMarkersCalled.toLocaleString()} read</div>
+              <p className="text-xs text-gray-500 mt-1">Mitochondrial DNA is passed down from your mother and is used for maternal-line research.</p>
+            </div>
           </div>
-        </div>
+
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-2">Markers per chromosome</h3>
+            <div className="space-y-1">
+              {CHROM_ORDER.filter((c) => summary.perChromosome[c]).map((c) => (
+                <div key={c} className="flex items-center gap-2 text-xs">
+                  <span className="w-8 text-right text-gray-600">{c}</span>
+                  <div className="flex-1 bg-gray-100 rounded h-3">
+                    <div className="bg-purple-500 h-3 rounded" style={{ width: `${(summary.perChromosome[c] / maxCount) * 100}%` }} />
+                  </div>
+                  <span className="w-16 text-gray-600">{summary.perChromosome[c].toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
+            <Info className="w-4 h-4 mt-0.5 shrink-0" />
+            Coming soon: ethnicity estimates built on open scientific reference data (1000 Genomes and HGDP), and paternal and maternal haplogroups. We show only results we can measure from your own data. This tool does not give medical or health information.
+          </p>
+          <p className="text-xs text-gray-400">Analysed {new Date(summary.analyzedAt).toLocaleString()} · {summary.fileName}</p>
+        </motion.div>
       )}
     </div>
   );
 };
+
+export default DNAInsights;

@@ -1,27 +1,20 @@
-name: Ingest Data to Knowledge Base
+name: Ingest data to knowledge base
 
+# Manual only: loads the datasets listed in data/manifest.json (each with source and license).
+# Needs repository secrets SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and OPENAI_API_KEY.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Deno
-        uses: denoland/setup-deno@v1
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.x
-
-      - name: Set up environment variables
-        run: |
-          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> $GITHUB_ENV
-          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
-
-      - name: Run ingestion script
-        run: deno run -A scripts/ingest_data.ts 
+          deno-version: v2.x
+      - run: deno run -A scripts/ingest_data.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

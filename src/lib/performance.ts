@@ -42,7 +42,7 @@ export async function measurePerformance(): Promise<PerformanceMetrics> {
   const cpuUsage = Math.min((count / 1000000) * 100, 100);
 
   // Memory Usage
-  const memory = performance.memory || { usedJSHeapSize: 0, jsHeapSizeLimit: 0 };
+  const memory = (performance as any).memory || { usedJSHeapSize: 0, jsHeapSizeLimit: 0 };
   const memoryUsage = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
 
   // FPS Calculation
@@ -74,7 +74,7 @@ export async function measurePerformance(): Promise<PerformanceMetrics> {
   // First Input Delay
   new PerformanceObserver((entryList) => {
     const firstInput = entryList.getEntries()[0];
-    metrics.firstInputDelay = firstInput.processingStart - firstInput.startTime;
+    metrics.firstInputDelay = (firstInput as any).processingStart - firstInput.startTime;
   }).observe({ type: 'first-input', buffered: true });
 
   // Cumulative Layout Shift

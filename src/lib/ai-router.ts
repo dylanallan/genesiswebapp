@@ -1,3 +1,4 @@
+import { streamResponse } from './ai';
 import { supabase } from './supabase';
 import { toast } from 'sonner';
 import { circuitBreakerManager } from './circuit-breaker';
@@ -218,60 +219,9 @@ Please try your request again in a moment, or refresh the page if issues persist
     `);
   }
 
+  /** Streams an answer from the secure ai-router function (see streamResponse in ./ai). */
   async routeRequest(request: AIRequest): Promise<AsyncGenerator<string>> {
-    try {
-      // Ensure providers are initialized
-      await this.initializeProviders();
-
-      const circuitBreaker = circuitBreakerManager.getBreaker('ai-router');
-      
-      return circuitBreaker.execute(async () => {
-        // Check if we have a valid session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.access_token) {
-          return this.getFallbackResponse(request);
-        }
-
-        // Use the ai-stream edge function
-        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-router`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: request.prompt,
-            context: request.context,
-            model: request.type === 'business' ? 'gpt-4' : 
-                   request.type === 'cultural' ? 'claude-3-opus' : 
-                   'auto'
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`AI Router error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        return this.createTextStream(data.text);
-      });
-    } catch (error) {
-      console.error('AI Router error:', error);
-      
-      await errorRecovery.handleError({
-        component: 'ai-router',
-        error: error instanceof Error ? error : new Error('Unknown routing error'),
-        timestamp: new Date()
-      });
-      
-      return this.getFallbackResponse(request);
-    }
+    return streamResponse(request.prompt, 'auto', request.context);
   }
 
   private async* createTextStream(text: string): AsyncGenerator<string> {

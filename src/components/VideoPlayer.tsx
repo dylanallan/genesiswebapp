@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, Settings, SkipForward, SkipBack } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, Settings, SkipForward, SkipBack, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface VideoPlayerProps {

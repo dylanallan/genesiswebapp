@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SampleDataBanner from './SampleDataBanner';
 import { motion } from 'framer-motion';
 import { 
   Zap, 
@@ -12,8 +13,7 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle,
-  X
-} from 'lucide-react';
+  X, DollarSign, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 const HackathonPitch: React.FC = () => {
@@ -707,6 +707,7 @@ const HackathonPitch: React.FC = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <SampleDataBanner what="figures in this pitch" />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Brain className="w-6 h-6 text-genesis-600" />

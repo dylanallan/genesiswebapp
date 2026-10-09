@@ -54,6 +54,7 @@ export const EnhancedAIAssistant: React.FC = () => {
   const [showCustomInstructionsEditor, setShowCustomInstructionsEditor] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationIdRef = useRef<string | undefined>(undefined);
   const session = useSession();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
@@ -89,12 +90,13 @@ How can I assist you today?`,
 
   const initializeSpeechRecognition = () => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+      const SpeechRecognition = (window.SpeechRecognition || window.webkitSpeechRecognition)!;
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.continuous = true;
+      recognition.interimResults = true;
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
           .map((result: any) => result[0])
           .map((result: any) => result.transcript)
@@ -103,13 +105,13 @@ How can I assist you today?`,
         setInput(transcript);
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         toast.error('Speech recognition error. Please try again.');
       };
 
-      recognitionRef.current.onend = () => {
+      recognition.onend = () => {
         setIsListening(false);
       };
     }
@@ -153,12 +155,12 @@ How can I assist you today?`,
       console.log('🔄 EnhancedAIAssistant sending message:', input);
       
       // Use the new chatApi
-      const response = await chatApi.sendMessage(
-        input,
-        undefined, // conversationId
-        'auto', // provider
-        currentModel === 'auto' ? undefined : currentModel // model
-      );
+      const response = await chatApi.sendMessage(input, {
+        conversationId: conversationIdRef.current,
+        provider: currentModel,
+      });
+      conversationIdRef.current = response.conversationId;
+      if (response.code === 'UPGRADE_REQUIRED') toast.info('Free daily limit reached — upgrade to Pro to keep chatting.');
 
       console.log('📥 EnhancedAIAssistant received response:', response);
       

@@ -1,377 +1,105 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import { corsFor } from '../_shared/cors.ts'
+import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
+import { callAI, getAIProvider, type AIMessage } from '../_shared/ai-utils.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// Use-case aware AI processing. Provider keys come only from function secrets (never the database).
+type UseCase = 'genealogy' | 'business' | 'creative' | 'analysis' | 'document' | 'voice' | 'coding'
+type Provider = 'openai' | 'anthropic' | 'gemini'
 
 interface AIRequest {
   prompt: string
-  useCase: 'genealogy' | 'business' | 'creative' | 'analysis' | 'document' | 'voice' | 'coding'
-  userId: string
-  context?: any
-  preferences?: {
-    provider?: string
-    model?: string
-    temperature?: number
-    maxTokens?: number
-  }
-  metadata?: any
+  useCase: UseCase
+  userId?: string // honored only for trusted internal calls
+  context?: unknown
+  preferences?: { provider?: string; temperature?: number; maxTokens?: number }
+  metadata?: unknown
 }
 
-interface AIProvider {
-  name: string
-  models: string[]
-  capabilities: string[]
-  costPerToken: number
-  reliability: number
-  speed: number
+const USE_CASE_PROVIDERS: Record<UseCase, Provider[]> = {
+  genealogy: ['anthropic', 'openai', 'gemini'],
+  business: ['openai', 'anthropic', 'gemini'],
+  creative: ['anthropic', 'openai', 'gemini'],
+  analysis: ['anthropic', 'openai', 'gemini'],
+  document: ['anthropic', 'openai', 'gemini'],
+  voice: ['gemini', 'anthropic', 'openai'],
+  coding: ['openai', 'anthropic', 'gemini'],
 }
 
-const AI_PROVIDERS: Record<string, AIProvider> = {
-  openai: {
-    name: 'OpenAI',
-    models: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-    capabilities: ['coding', 'business', 'analysis', 'creative'],
-    costPerToken: 0.002,
-    reliability: 0.95,
-    speed: 0.9
-  },
-  anthropic: {
-    name: 'Anthropic',
-    models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
-    capabilities: ['genealogy', 'analysis', 'document', 'creative'],
-    costPerToken: 0.0015,
-    reliability: 0.98,
-    speed: 0.85
-  },
-  google: {
-    name: 'Google',
-    models: ['gemini-pro', 'gemini-pro-vision'],
-    capabilities: ['voice', 'creative', 'analysis'],
-    costPerToken: 0.001,
-    reliability: 0.92,
-    speed: 0.95
-  }
+const SYSTEM_PROMPTS: Record<UseCase, string> = {
+  genealogy: 'You are an expert genealogist. Cite which facts come from the user and flag anything uncertain.',
+  business: 'You are a practical small-business advisor. Give concrete, actionable steps.',
+  creative: 'You are a warm, skilled storyteller.',
+  analysis: 'You are a careful analyst. Separate facts from inferences.',
+  document: 'You extract and summarize information from historical documents accurately.',
+  voice: 'Write text that sounds natural when read aloud.',
+  coding: 'You are a senior software engineer. Be precise.',
 }
 
-const USE_CASE_PROVIDER_MAPPING = {
-  genealogy: ['anthropic', 'openai'],
-  business: ['openai', 'anthropic'],
-  creative: ['anthropic', 'openai', 'google'],
-  analysis: ['anthropic', 'openai'],
-  document: ['anthropic', 'openai'],
-  voice: ['google', 'anthropic'],
-  coding: ['openai', 'anthropic']
-}
+const normalizeProvider = (p?: string): Provider | undefined =>
+  p === 'google' ? 'gemini' : p === 'openai' || p === 'anthropic' || p === 'gemini' ? p : undefined
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+Deno.serve(async (req) => {
+  const cors = corsFor(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
 
   try {
-    const aiRequest: AIRequest = await req.json()
-    
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const caller = await requireCaller(req)
+    const body: AIRequest = await req.json()
+    if (typeof body.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 16000) {
+      return json({ success: false, error: 'A prompt (max 16000 characters) is required' }, 400, cors)
+    }
+    const useCase: UseCase = body.useCase in USE_CASE_PROVIDERS ? body.useCase : 'analysis'
+    const userId = caller.internal ? body.userId ?? null : caller.userId
 
-    // Get API keys and service configuration
-    const { data: configs, error: configError } = await supabase
-      .from('ai_service_config')
-      .select('*')
-      .eq('is_active', true)
+    const preferred = normalizeProvider(body.preferences?.provider)
+    const order = [...new Set([...(preferred ? [preferred] : []), ...USE_CASE_PROVIDERS[useCase]])]
+      .filter((p) => getAIProvider(p))
+    if (order.length === 0) return json({ success: false, error: 'No AI provider is configured' }, 503, cors)
 
-    if (configError || !configs) {
-      throw new Error('Failed to load AI service configuration')
+    const messages: AIMessage[] = [
+      { role: 'system', content: SYSTEM_PROMPTS[useCase] },
+      ...(body.context ? [{ role: 'system' as const, content: `Context: ${JSON.stringify(body.context).slice(0, 8000)}` }] : []),
+      { role: 'user', content: body.prompt },
+    ]
+    const opts = {
+      temperature: Math.min(1, Math.max(0, Number(body.preferences?.temperature ?? 0.7))),
+      maxTokens: Math.min(4000, Math.max(64, Number(body.preferences?.maxTokens ?? 1500))),
     }
 
-    // Create provider map with API keys
-    const providerMap = configs.reduce((acc, config) => {
-      acc[config.service_name] = config.api_key
-      return acc
-    }, {} as Record<string, string>)
-
-    // Select optimal provider based on use case and preferences
-    const selectedProvider = selectOptimalProvider(aiRequest, providerMap)
-    
-    if (!selectedProvider) {
-      throw new Error('No suitable AI provider available')
-    }
-
-    // Process request with selected provider
-    const result = await processWithProvider(aiRequest, selectedProvider, providerMap[selectedProvider])
-
-    // Log the request and result
-    await logAIRequest(supabase, {
-      userId: aiRequest.userId,
-      provider: selectedProvider,
-      useCase: aiRequest.useCase,
-      prompt: aiRequest.prompt,
-      result: result,
-      metadata: aiRequest.metadata
-    })
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        provider: selectedProvider,
-        result: result,
-        metadata: {
-          processingTime: Date.now(),
-          tokensUsed: result.tokensUsed,
-          cost: result.cost
+    const started = Date.now()
+    let lastError: unknown
+    for (const provider of order) {
+      try {
+        const res = await callAI({ messages, provider, ...opts })
+        const result = {
+          content: res.content,
+          model: res.model,
+          tokensUsed: res.usage?.total_tokens ?? ((res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0)),
+          processingTime: Date.now() - started,
+          provider,
         }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        if (userId) {
+          const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+          const { error } = await db.from('ai_request_logs').insert({
+            user_id: userId,
+            provider_id: provider,
+            success: true,
+            request_data: { useCase, prompt: body.prompt.slice(0, 2000), metadata: body.metadata ?? null },
+            response_data: { tokensUsed: result.tokensUsed, model: result.model },
+          })
+          if (error) console.error('Failed to log AI request:', (error instanceof Error ? error.message : String(error)))
+        }
+        return json({ success: true, provider, result, metadata: { processingTime: result.processingTime, tokensUsed: result.tokensUsed } }, 200, cors)
+      } catch (e) {
+        lastError = e
+        console.error(`advanced-ai-processor: ${provider} failed`, (e as Error).message)
       }
-    )
-
-  } catch (error) {
-    console.error('Advanced AI Processor Error:', error)
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    }
+    console.error('All providers failed', lastError)
+    return json({ success: false, error: 'The AI service is temporarily unavailable. Please try again.' }, 503, cors)
+  } catch (e) {
+    return errorResponse(e, cors)
   }
 })
-
-function selectOptimalProvider(request: AIRequest, availableProviders: Record<string, string>): string | null {
-  // If user has specific provider preference and it's available
-  if (request.preferences?.provider && availableProviders[request.preferences.provider]) {
-    return request.preferences.provider
-  }
-
-  // Get recommended providers for this use case
-  const recommendedProviders = USE_CASE_PROVIDER_MAPPING[request.useCase] || []
-  
-  // Filter to only available providers
-  const available = recommendedProviders.filter(provider => availableProviders[provider])
-  
-  if (available.length === 0) {
-    return null
-  }
-
-  // Score providers based on multiple factors
-  const providerScores = available.map(provider => {
-    const providerInfo = AI_PROVIDERS[provider]
-    const score = (
-      providerInfo.reliability * 0.4 +
-      providerInfo.speed * 0.3 +
-      (1 - providerInfo.costPerToken * 1000) * 0.3
-    )
-    return { provider, score }
-  })
-
-  // Return the highest scoring provider
-  return providerScores.sort((a, b) => b.score - a.score)[0].provider
-}
-
-async function processWithProvider(request: AIRequest, provider: string, apiKey: string): Promise<any> {
-  const startTime = Date.now()
-  
-  try {
-    let result: any
-
-    switch (provider) {
-      case 'openai':
-        result = await processWithOpenAI(request, apiKey)
-        break
-      case 'anthropic':
-        result = await processWithAnthropic(request, apiKey)
-        break
-      case 'google':
-        result = await processWithGoogle(request, apiKey)
-        break
-      default:
-        throw new Error(`Unsupported provider: ${provider}`)
-    }
-
-    const processingTime = Date.now() - startTime
-    
-    return {
-      ...result,
-      processingTime,
-      provider
-    }
-
-  } catch (error) {
-    console.error(`Error processing with ${provider}:`, error)
-    throw error
-  }
-}
-
-async function processWithOpenAI(request: AIRequest, apiKey: string): Promise<any> {
-  const model = request.preferences?.model || 'gpt-4'
-  const temperature = request.preferences?.temperature || 0.7
-  const maxTokens = request.preferences?.maxTokens || 4096
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: getSystemPrompt(request.useCase)
-        },
-        {
-          role: 'user',
-          content: request.prompt
-        }
-      ],
-      temperature,
-      max_tokens: maxTokens
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  
-  return {
-    content: data.choices[0].message.content,
-    tokensUsed: data.usage.total_tokens,
-    cost: calculateCost('openai', data.usage.total_tokens)
-  }
-}
-
-async function processWithAnthropic(request: AIRequest, apiKey: string): Promise<any> {
-  const model = request.preferences?.model || 'claude-3-opus'
-  const temperature = request.preferences?.temperature || 0.7
-  const maxTokens = request.preferences?.maxTokens || 4096
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        {
-          role: 'user',
-          content: request.prompt
-        }
-      ],
-      temperature,
-      max_tokens: maxTokens,
-      system: getSystemPrompt(request.useCase)
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error(`Anthropic API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  
-  return {
-    content: data.content[0].text,
-    tokensUsed: data.usage.input_tokens + data.usage.output_tokens,
-    cost: calculateCost('anthropic', data.usage.input_tokens + data.usage.output_tokens)
-  }
-}
-
-async function processWithGoogle(request: AIRequest, apiKey: string): Promise<any> {
-  const model = request.preferences?.model || 'gemini-pro'
-  const temperature = request.preferences?.temperature || 0.7
-  const maxTokens = request.preferences?.maxTokens || 4096
-
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            {
-              text: `${getSystemPrompt(request.useCase)}\n\n${request.prompt}`
-            }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature,
-        maxOutputTokens: maxTokens
-      }
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error(`Google API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  
-  return {
-    content: data.candidates[0].content.parts[0].text,
-    tokensUsed: data.usageMetadata.totalTokenCount,
-    cost: calculateCost('google', data.usageMetadata.totalTokenCount)
-  }
-}
-
-function getSystemPrompt(useCase: string): string {
-  const prompts = {
-    genealogy: `You are an expert genealogist and family historian. Provide detailed, accurate analysis of family history, DNA results, and genealogical research. Focus on historical accuracy and cultural context.`,
-    business: `You are a business consultant and automation expert. Help with business processes, automation strategies, and operational efficiency. Provide practical, actionable advice.`,
-    creative: `You are a creative writing assistant specializing in family stories, cultural narratives, and personal memoirs. Help create engaging, meaningful content that preserves family heritage.`,
-    analysis: `You are a data analyst and research specialist. Provide thorough analysis of documents, records, and information. Focus on patterns, insights, and actionable conclusions.`,
-    document: `You are a document analysis expert. Help interpret, summarize, and extract key information from various types of documents and records.`,
-    voice: `You are a voice and audio content specialist. Help create scripts, narratives, and content optimized for voice generation and audio storytelling.`,
-    coding: `You are a software development expert. Help with coding, automation scripts, and technical implementation. Provide clean, efficient, and well-documented code.`
-  }
-  
-  return prompts[useCase] || prompts.analysis
-}
-
-function calculateCost(provider: string, tokens: number): number {
-  const providerInfo = AI_PROVIDERS[provider]
-  return tokens * providerInfo.costPerToken
-}
-
-async function logAIRequest(supabase: any, logData: any): Promise<void> {
-  try {
-    await supabase
-      .from('ai_request_logs')
-      .insert({
-        user_id: logData.userId,
-        provider_id: logData.provider,
-        success: true,
-        request_data: {
-          useCase: logData.useCase,
-          prompt: logData.prompt,
-          metadata: logData.metadata
-        },
-        response_data: {
-          result: logData.result,
-          tokensUsed: logData.result.tokensUsed,
-          cost: logData.result.cost
-        }
-      })
-  } catch (error) {
-    console.error('Failed to log AI request:', error)
-  }
-} 

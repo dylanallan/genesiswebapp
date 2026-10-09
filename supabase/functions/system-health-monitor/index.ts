@@ -1,10 +1,6 @@
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -70,9 +66,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('System health monitor error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      // Only the access error is shown to the caller; internal details stay in the logs.
+      JSON.stringify({ error: String(error).includes('Unauthorized') ? 'Admin access required' : 'Internal server error' }),
       {
-        status: error.message.includes('Unauthorized') ? 403 : 500,
+        status: String(error).includes('Unauthorized') ? 403 : 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
@@ -158,13 +155,13 @@ async function getAIServiceMetrics(supabase: any) {
     
     // Calculate success rate and average response time
     const totalRequests = aiStats?.length || 0;
-    const successfulRequests = aiStats?.filter(log => log.success).length || 0;
+    const successfulRequests = aiStats?.filter((log: any) => log.success).length || 0;
     const successRate = totalRequests > 0 ? successfulRequests / totalRequests : 1;
     
-    const avgResponseTime = aiStats?.reduce((sum, log) => sum + (log.response_time_ms || 0), 0) / (totalRequests || 1);
+    const avgResponseTime = aiStats?.reduce((sum: any, log: any) => sum + (log.response_time_ms || 0), 0) / (totalRequests || 1);
     
     // Get provider-specific metrics
-    const providers = aiStats?.reduce((acc, log) => {
+    const providers = aiStats?.reduce((acc: any, log: any) => {
       if (!acc[log.provider_id]) {
         acc[log.provider_id] = { total: 0, successful: 0, avgTime: 0 };
       }
@@ -212,10 +209,10 @@ async function getUserActivityMetrics(supabase: any) {
     if (activityError) throw activityError;
     
     // Calculate active users
-    const activeUsers = new Set(activityStats?.map(log => log.user_id)).size;
+    const activeUsers = new Set(activityStats?.map((log: any) => log.user_id)).size;
     
     // Calculate activity by type
-    const activityByType = activityStats?.reduce((acc, log) => {
+    const activityByType = activityStats?.reduce((acc: any, log: any) => {
       if (!acc[log.activity_type]) {
         acc[log.activity_type] = 0;
       }
@@ -224,7 +221,7 @@ async function getUserActivityMetrics(supabase: any) {
     }, {});
     
     // Calculate activity by hour
-    const activityByHour = activityStats?.reduce((acc, log) => {
+    const activityByHour = activityStats?.reduce((acc: any, log: any) => {
       const hour = new Date(log.created_at).getHours();
       if (!acc[hour]) {
         acc[hour] = 0;
@@ -264,7 +261,7 @@ async function getPerformanceMetrics(supabase: any) {
     if (perfError) throw perfError;
     
     // Group metrics by name
-    const metricsByName = perfStats?.reduce((acc, metric) => {
+    const metricsByName = perfStats?.reduce((acc: any, metric: any) => {
       if (!acc[metric.metric_name]) {
         acc[metric.metric_name] = [];
       }
@@ -273,9 +270,9 @@ async function getPerformanceMetrics(supabase: any) {
     }, {});
     
     // Calculate average for each metric
-    const avgMetrics = {};
+    const avgMetrics: Record<string, number> = {};
     Object.keys(metricsByName || {}).forEach(key => {
-      avgMetrics[key] = metricsByName[key].reduce((sum, val) => sum + val, 0) / metricsByName[key].length;
+      avgMetrics[key] = metricsByName[key].reduce((sum: any, val: any) => sum + val, 0) / metricsByName[key].length;
     });
     
     return {

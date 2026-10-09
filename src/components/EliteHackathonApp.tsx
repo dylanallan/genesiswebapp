@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import SampleDataBanner from './SampleDataBanner';
 import { 
   Bot, 
   TrendingUp, 
@@ -36,7 +37,7 @@ const EliteHackathonApp = () => {
   });
   const [automationDemo, setAutomationDemo] = useState(false);
   const [culturalContext, setCulturalContext] = useState('global');
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<Array<{ id: number; message: string; type: string }>>([]);
 
   // Simulated real-time updates
   useEffect(() => {
@@ -86,7 +87,7 @@ const EliteHackathonApp = () => {
   }, []);
 
   // Memoized components for performance
-  const MetricCard = useMemo(() => ({ title, value, icon: Icon, change, color = 'blue' }) => (
+  const MetricCard = useMemo(() => ({ title, value, icon: Icon, change, color = 'blue' }: any) => (
     <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 border-${color}-500 transform hover:scale-105 transition-all duration-300`}>
       <div className="flex items-center justify-between">
         <div>
@@ -106,7 +107,7 @@ const EliteHackathonApp = () => {
     </div>
   ), []);
 
-  const CulturalInsightCard = useMemo(() => ({ culture, insight, confidence, impact }) => (
+  const CulturalInsightCard = useMemo(() => ({ culture, insight, confidence, impact }: any) => (
     <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
       <div className="flex items-center justify-between mb-4">
         <h4 className="font-semibold text-gray-900">{culture} Context</h4>
@@ -128,6 +129,7 @@ const EliteHackathonApp = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <SampleDataBanner what="metrics and insights" />
       {/* Elite Header */}
       <header className="bg-white shadow-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -220,7 +222,7 @@ const EliteHackathonApp = () => {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <section className="max-w-7xl mx-auto px-6 py-8">
         {currentView === 'dashboard' && (
           <div className="space-y-8">
             {/* Hero Stats */}
@@ -543,7 +545,7 @@ const EliteHackathonApp = () => {
             </div>
           </div>
         )}
-      </main>
+      </section>
 
       {/* Elite Footer */}
       <footer className="bg-gray-900 text-white py-12 mt-16">

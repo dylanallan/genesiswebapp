@@ -81,14 +81,15 @@ export const AIAdminDashboard: React.FC = () => {
       
       const data = await response.json();
       
+      if (!data.systemMetrics) throw new Error('Metrics service returned an unexpected response');
       setMetrics({
         totalUsers: data.systemMetrics.totalUsers,
         activeUsers: data.systemMetrics.activeUsers,
         totalRequests: data.systemMetrics.totalRequests,
         successRate: data.systemMetrics.successRate,
         averageResponseTime: data.systemMetrics.averageResponseTime,
-        totalTokens: data.userMetrics.totalTokens || 0,
-        estimatedCost: data.userMetrics.estimatedCost || 0
+        totalTokens: data.userMetrics?.totalTokens ?? 0,
+        estimatedCost: data.userMetrics?.estimatedCost ?? 0
       });
     } catch (error) {
       console.error('Error loading metrics:', error);

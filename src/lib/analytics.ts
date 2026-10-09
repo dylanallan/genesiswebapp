@@ -59,7 +59,7 @@ function getMostUsedFeatures(events: any[]) {
   }, {} as Record<string, number>);
 
   return Object.entries(featureCounts)
-    .sort(([, a], [, b]) => b - a)
+    .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 5)
     .map(([feature]) => feature);
 }

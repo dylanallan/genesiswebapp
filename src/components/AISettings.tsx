@@ -138,36 +138,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
         if (instructionsError) throw instructionsError;
       }
       
-      // Save API keys to provider config (admin only)
-      const { data: adminRole } = await supabase
-        .from('admin_roles')
-        .select('*')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .maybeSingle();
-      
-      if (adminRole && settings.providers) {
-        if (settings.providers.openaiApiKey) {
-          await supabase
-            .from('ai_service_config')
-            .update({ api_key: settings.providers.openaiApiKey })
-            .eq('service_name', 'openai');
-        }
-        
-        if (settings.providers.anthropicApiKey) {
-          await supabase
-            .from('ai_service_config')
-            .update({ api_key: settings.providers.anthropicApiKey })
-            .eq('service_name', 'anthropic');
-        }
-        
-        if (settings.providers.googleApiKey) {
-          await supabase
-            .from('ai_service_config')
-            .update({ api_key: settings.providers.googleApiKey })
-            .eq('service_name', 'google');
-        }
-      }
-      
       toast.success('Settings saved successfully');
       onClose();
     } catch (error) {
@@ -613,68 +583,13 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                     
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-gray-900">API Keys (Admin Only)</h4>
-                      <p className="text-sm text-gray-500">
-                        These settings are only available to administrators. API keys are stored securely and used to connect to AI providers.
+                    <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <h4 className="font-medium text-gray-900">API keys</h4>
+                      <p className="text-sm text-gray-600">
+                        For security, AI provider keys are never entered in the app or stored in the database. An administrator sets them once as server secrets:
                       </p>
-                      
-                      <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          OpenAI API Key
-                        </label>
-                        <input
-                          type="password"
-                          value={settings.providers.openaiApiKey}
-                          onChange={(e) => setSettings({
-                            ...settings,
-                            providers: {
-                              ...settings.providers,
-                              openaiApiKey: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="sk-..."
-                        />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Anthropic API Key
-                        </label>
-                        <input
-                          type="password"
-                          value={settings.providers.anthropicApiKey}
-                          onChange={(e) => setSettings({
-                            ...settings,
-                            providers: {
-                              ...settings.providers,
-                              anthropicApiKey: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="sk-ant-..."
-                        />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Google AI API Key
-                        </label>
-                        <input
-                          type="password"
-                          value={settings.providers.googleApiKey}
-                          onChange={(e) => setSettings({
-                            ...settings,
-                            providers: {
-                              ...settings.providers,
-                              googleApiKey: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="AIza..."
-                        />
-                      </div>
+                      <pre className="overflow-x-auto rounded bg-gray-900 p-3 text-xs text-gray-100">supabase secrets set ANTHROPIC_API_KEY=... OPENAI_API_KEY=... GEMINI_API_KEY=...</pre>
+                      <p className="text-xs text-gray-500">The assistant automatically uses whichever providers have keys set.</p>
                     </div>
                   </div>
                 )}

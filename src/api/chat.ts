@@ -16,6 +16,15 @@ export interface ChatResponse {
   provider: string;
   model: string;
   timestamp: string;
+  /** Set when the request was refused, e.g. 'UPGRADE_REQUIRED' (free limit) or 'LIMIT_REACHED'. */
+  code?: string;
+  remaining?: number;
+}
+
+export interface AvailableModel {
+  id: string; // provider id sent to the backend; 'auto' lets the server pick
+  name: string;
+  description: string;
 }
 
 export interface ConversationInfo {
@@ -24,63 +33,82 @@ export interface ConversationInfo {
   last_updated: string;
 }
 
-/**
- * Sends a message to the AI and stores the conversation history.
- * This function now securely calls our backend `ai-router` Edge Function.
- */
-async function sendMessage(message: string, userId: string, conversationId?: string): Promise<ChatResponse> {
-  console.log('✉️ Sending message via secure AI Router...');
-  
+/** Providers the user can choose between. 'auto' = the first one that is configured and healthy. */
+function getAvailableModels(): AvailableModel[] {
+  return [
+    { id: 'auto', name: 'Auto', description: 'best available' },
+    { id: 'anthropic', name: 'Claude', description: 'Anthropic' },
+    { id: 'openai', name: 'GPT', description: 'OpenAI' },
+    { id: 'gemini', name: 'Gemini', description: 'Google' },
+  ];
+}
+
+/** Turns a failed Edge Function call into { message, code } using the server's own JSON error. */
+async function describeFunctionError(error: unknown): Promise<{ message: string; code?: string }> {
   try {
-    const { data: functionData, error: functionError } = await supabase.functions.invoke('ai-router', {
-      body: { message },
-    });
+    const body = await (error as { context?: Response }).context?.json();
+    if (body?.error) return { message: body.error, code: body.code };
+  } catch { /* fall through */ }
+  return { message: 'The AI service is temporarily unavailable. Please try again in a moment.' };
+}
 
-    if (functionError) throw new Error(`AI Router invocation failed: ${functionError.message}`);
-    if (functionData.error) throw new Error(`AI Router error: ${functionData.error}`);
-    
-    const aiResult = {
-      response: functionData.response,
-      provider: functionData.provider,
-      model: functionData.model || 'default',
-    };
-    console.log('✅ AI Router responded:', aiResult);
+/**
+ * Sends a message through the secure `ai-router` Edge Function, then saves the exchange to the
+ * user's conversation history. Saving is best-effort: a good answer is never discarded because
+ * history could not be written.
+ */
+async function sendMessage(
+  message: string,
+  options: { conversationId?: string; provider?: string; persist?: boolean } = {},
+): Promise<ChatResponse> {
+  const { conversationId, provider, persist = true } = options;
+  const now = () => new Date().toISOString();
 
-    let currentConversationId = conversationId;
-    if (!currentConversationId) {
-      const { data: convData, error: convError } = await supabase
-        .from('conversations')
-        .insert({ user_id: userId, title: message.substring(0, 40) })
-        .select('id')
-        .single();
-      if (convError) throw convError;
-      currentConversationId = convData.id;
-    }
+  const { data, error } = await supabase.functions.invoke('ai-router', {
+    body: { message, ...(provider && provider !== 'auto' ? { provider } : {}) },
+  });
 
-    const { error: messageError } = await supabase.from('messages').insert([
-      { conversation_id: currentConversationId, role: 'user', content: message },
-      { conversation_id: currentConversationId, role: 'assistant', content: aiResult.response, metadata: { provider: aiResult.provider, model: aiResult.model } },
-    ]);
-    if (messageError) console.warn('Could not save message history:', messageError);
-
-    return { 
-      response: aiResult.response, 
-      conversationId: currentConversationId,
-      provider: aiResult.provider,
-      model: aiResult.model,
-      timestamp: new Date().toISOString()
-    };
-
-  } catch (error) {
-    console.error("An error occurred in sendMessage:", error);
-    return {
-      response: "I'm sorry, but I was unable to connect to the AI service. Please check your Supabase Function logs for the 'ai-router' and ensure your provider API keys are set correctly in the environment variables.",
-      provider: 'error',
-      model: 'error',
-      conversationId,
-      timestamp: new Date().toISOString(),
-    };
+  if (error || data?.error) {
+    const { message: errorText, code } = error ? await describeFunctionError(error) : { message: data.error as string, code: data.code as string | undefined };
+    return { response: errorText, provider: 'error', model: 'error', conversationId, timestamp: now(), code };
   }
+
+  const result: ChatResponse = {
+    response: data.response,
+    provider: data.provider,
+    model: data.model || 'default',
+    conversationId,
+    timestamp: now(),
+    remaining: data.remaining,
+  };
+
+  if (!persist) return result;
+
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth?.user?.id;
+    if (userId) {
+      let id = conversationId;
+      if (!id) {
+        const { data: conv, error: convError } = await supabase
+          .from('conversations')
+          .insert({ user_id: userId, title: message.substring(0, 40) })
+          .select('id')
+          .single();
+        if (convError) throw convError;
+        id = conv.id;
+      }
+      const { error: messageError } = await supabase.from('messages').insert([
+        { conversation_id: id, role: 'user', content: message },
+        { conversation_id: id, role: 'assistant', content: result.response, metadata: { provider: result.provider, model: result.model } },
+      ]);
+      if (messageError) throw messageError;
+      result.conversationId = id;
+    }
+  } catch (e) {
+    console.warn('Could not save conversation history:', e);
+  }
+  return result;
 }
 
 /**
@@ -129,6 +157,7 @@ async function getConversationList(): Promise<ConversationInfo[]> {
 
 export const chatApi = {
   sendMessage,
+  getAvailableModels,
   getHistory,
   getConversationList
 };

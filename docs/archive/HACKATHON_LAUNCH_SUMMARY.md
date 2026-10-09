@@ -8,7 +8,7 @@
 
 ### 🧠 Core AI Features
 - **Multi-Provider AI Router**: Automatically selects the best AI provider (OpenAI, Anthropic, Gemini, Ollama) based on task type
-- **Voice-Powered Assistant**: Morgan Freeman-style voice synthesis with multi-language support
+- **Voice-Powered Assistant**: natural AI voice narration with multi-language support
 - **Business Automation Hub**: AI-driven workflow automation and optimization
 - **Cultural Intelligence**: Real-time pattern recognition and predictive analytics
 
@@ -23,7 +23,7 @@
 - **Frontend**: React/Vite with TypeScript, Tailwind CSS, Framer Motion
 - **Backend**: Supabase with PostgreSQL, Edge Functions, Real-time subscriptions
 - **AI Integration**: OpenAI GPT-4, Claude 3 Opus, Gemini Pro, custom providers
-- **Voice Synthesis**: ElevenLabs integration with Morgan Freeman-style voice
+- **Voice Synthesis**: Self-hosted open-source or ElevenLabs text-to-speech
 - **Deployment**: Ready for Netlify, Vercel, and Entri
 
 ## 📊 System Performance
@@ -44,7 +44,7 @@
 
 ### 1. **Voice-Powered Family History**
 - Speak to your ancestors through AI
-- Morgan Freeman-style narration
+- natural AI narration
 - Multi-language support (English, Spanish, French, Chinese, Hindi)
 
 ### 2. **Business Automation**
@@ -83,7 +83,7 @@
 
 ### 1. **Unique Value Proposition**
 - First platform combining business automation with cultural preservation
-- Voice-powered AI assistant with celebrity-style narration
+- Voice-powered AI assistant with natural AI narration
 - Multi-generational family engagement
 
 ### 2. **Technical Innovation**

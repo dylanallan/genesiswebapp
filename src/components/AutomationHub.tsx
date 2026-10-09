@@ -139,30 +139,34 @@ export const AutomationHub: React.FC = () => {
   };
 
   const handleRunWorkflow = async (workflowId: string) => {
-    // In a real application, this would make an API call to n8n or a Supabase Edge Function
-    // to trigger the workflow execution.
     const workflow = workflows.find(w => w.id === workflowId);
     if (!workflow) {
       toast.error('Workflow not found.');
       return;
     }
-    
-    console.log(`Simulating run for workflow: ${workflow.name} (${workflowId})`);
-    toast.promise(
-      new Promise(resolve => setTimeout(resolve, 1500)),
-      {
-        loading: `Executing workflow: ${workflow.name}...`,
-        success: `Successfully triggered workflow: ${workflow.name}`,
-        error: 'Failed to trigger workflow',
+    const run = (async () => {
+      const { data, error } = await supabase.functions.invoke('workflow-orchestrator', {
+        body: { workflowId, trigger: 'manual', data: {} },
+      });
+      if (error || !data?.success) {
+        let message = 'The workflow could not be run.';
+        try { const b = await (error as { context?: Response })?.context?.json(); if (b?.error) message = b.error; } catch { /* default */ }
+        throw new Error(message);
       }
-    );
+      await fetchWorkflows(); // the orchestrator records run count and last run
+      return data;
+    })();
+    toast.promise(run, {
+      loading: `Running ${workflow.name}…`,
+      success: (d: any) => `${workflow.name} finished (${d.metadata?.stepsCompleted ?? 0}/${d.metadata?.totalSteps ?? 0} steps)`,
+      error: (e: Error) => e.message,
+    });
   };
 
   const refreshData = async () => {
     setIsRefreshing(true);
     try {
-      // Simulate data refresh
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await fetchWorkflows();
       toast.success('Data refreshed');
     } catch (error) {
       console.error('Error refreshing data:', error);

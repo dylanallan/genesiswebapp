@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Loader2, Play, Pause, Save, Trash, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { uploadOwnFile, signedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
 interface VoiceRecorderProps {
@@ -127,25 +128,14 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     
     setIsProcessing(true);
     try {
-      const fileName = `voice-recording-${Date.now()}.webm`;
-      
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('voice-recordings')
-        .upload(fileName, audioBlob);
-      
-      if (error) throw error;
-      
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('voice-recordings')
-        .getPublicUrl(fileName);
-      
+      // Private upload into the user's own folder
+      const path = await uploadOwnFile('voice-recordings', 'voice-recording.webm', audioBlob, audioBlob.type || 'audio/webm');
+      const url = await signedUrl('voice-recordings', path);
+
       toast.success('Recording saved successfully');
-      
-      // Return the public URL if needed
+
       if (onRecordingComplete) {
-        onRecordingComplete(audioBlob, urlData.publicUrl);
+        onRecordingComplete(audioBlob, url);
       }
     } catch (error) {
       console.error('Error saving recording:', error);

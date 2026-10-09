@@ -21,3 +21,5 @@ export const createLogger = (context: string): Logger => {
     }
   };
 }; 
+// Alias used by health-check
+export const initLogger = createLogger;

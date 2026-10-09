@@ -107,8 +107,9 @@ const UniversalSearch: React.FC = () => {
         const insightsPrompt = `Based on these search results about "${query}", provide 2-3 key insights and suggestions for further research: ${JSON.stringify(processedResults.slice(0, 5))}`;
         
         try {
-          const aiResponse = await chatApi.sendMessage(insightsPrompt);
-          setAiInsights(aiResponse.response);
+          // Insights are a convenience: don't clutter chat history with them, and never show an error as an "insight".
+          const aiResponse = await chatApi.sendMessage(insightsPrompt, { persist: false });
+          if (aiResponse.provider !== 'error') setAiInsights(aiResponse.response);
         } catch (error) {
           console.error('Error getting AI insights:', error);
         }

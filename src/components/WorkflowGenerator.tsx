@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { streamResponse } from '../lib/ai';
+import { n8n, type N8nWorkflow } from '../lib/n8n';
 
 interface WorkflowGeneratorProps {
   isOpen: boolean;
@@ -39,6 +40,31 @@ interface GeneratedWorkflow {
   description: string;
   steps: WorkflowStep[];
   n8nJson?: string;
+}
+
+// Builds an importable n8n workflow: a webhook trigger followed by one placeholder node per
+// generated step (named after it), plus a note listing each step's description. AI-suggested node
+// types are not trusted blindly, so every step imports cleanly and is finished in n8n's editor.
+function toN8nWorkflow(wf: GeneratedWorkflow): N8nWorkflow {
+  const steps = (wf.steps ?? []).slice(0, 25);
+  const nodes: any[] = [
+    { parameters: { content: `## ${wf.name}\n${wf.description ?? ''}\n\n${steps.map((st, i) => `${i + 1}. **${st.name}** – ${st.description}`).join('\n')}`, height: 300, width: 420 },
+      name: 'Plan', type: 'n8n-nodes-base.stickyNote', typeVersion: 1, position: [160, 40] },
+    { parameters: { httpMethod: 'POST', path: `genesis-${Math.random().toString(36).slice(2, 10)}`, responseMode: 'onReceived', options: {} },
+      name: 'Trigger', type: 'n8n-nodes-base.webhook', typeVersion: 1, position: [200, 420] },
+  ];
+  const connections: Record<string, any> = {};
+  let prev = 'Trigger';
+  const used = new Set(['Plan', 'Trigger']);
+  steps.forEach((st, i) => {
+    let name = (st.name || `Step ${i + 1}`).slice(0, 60);
+    while (used.has(name)) name = `${name} ${i + 1}`;
+    used.add(name);
+    nodes.push({ parameters: {}, name, type: 'n8n-nodes-base.noOp', typeVersion: 1, position: [440 + i * 240, 420] });
+    connections[prev] = { main: [[{ node: name, type: 'main', index: 0 }]] };
+    prev = name;
+  });
+  return { name: wf.name || 'Genesis workflow', nodes, connections, settings: {} };
 }
 
 export const WorkflowGenerator: React.FC<WorkflowGeneratorProps> = ({ 
@@ -123,50 +149,12 @@ export const WorkflowGenerator: React.FC<WorkflowGeneratorProps> = ({
           toast.success('Workflow generated successfully!');
         } catch (parseError) {
           console.error('Error parsing workflow JSON:', parseError);
-          toast.error('Failed to parse generated workflow');
-          setGeneratedWorkflow({
-            name: selectedType,
-            description: 'Automatically generated workflow based on your requirements',
-            steps: [
-              {
-                id: 'step1',
-                name: 'Trigger',
-                description: 'Starts the workflow',
-                nodeType: 'n8n-nodes-base.webhook',
-                config: { endpoint: '/webhook' }
-              },
-              {
-                id: 'step2',
-                name: 'Process Data',
-                description: 'Processes the incoming data',
-                nodeType: 'n8n-nodes-base.function',
-                config: { functionCode: 'return items;' }
-              }
-            ]
-          });
+          toast.error('The AI returned an unexpected format. Please try again.');
+          return;
         }
       } else {
-        toast.error('Failed to generate workflow in the correct format');
-        setGeneratedWorkflow({
-          name: selectedType,
-          description: 'Automatically generated workflow based on your requirements',
-          steps: [
-            {
-              id: 'step1',
-              name: 'Trigger',
-              description: 'Starts the workflow',
-              nodeType: 'n8n-nodes-base.webhook',
-              config: { endpoint: '/webhook' }
-            },
-            {
-              id: 'step2',
-              name: 'Process Data',
-              description: 'Processes the incoming data',
-              nodeType: 'n8n-nodes-base.function',
-              config: { functionCode: 'return items;' }
-            }
-          ]
-        });
+        toast.error('The AI returned an unexpected format. Please try again.');
+        return;
       }
 
       setCurrentStep('result');
@@ -183,19 +171,12 @@ export const WorkflowGenerator: React.FC<WorkflowGeneratorProps> = ({
     
     setIsExporting(true);
     try {
-      // In a real implementation, this would call the n8n API to create the workflow
-      // For demo purposes, we'll simulate success
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success('Workflow exported to n8n successfully!');
-      
-      // Open n8n in a new tab
-      if (n8nUrl) {
-        window.open(n8nUrl, '_blank');
-      }
+      const created = await n8n.createWorkflow(toN8nWorkflow(generatedWorkflow));
+      toast.success('Workflow created in your n8n. Opening it now…');
+      window.open(created.url, '_blank', 'noopener');
     } catch (error) {
       console.error('Error exporting to n8n:', error);
-      toast.error('Failed to export workflow to n8n');
+      toast.error(error instanceof Error ? error.message : 'Failed to export workflow to n8n');
     } finally {
       setIsExporting(false);
     }

@@ -1,14 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsFor } from '../_shared/cors.ts'
+import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
+import { assertPublicHttpsUrl } from '../_shared/net.ts'
 
 interface WorkflowRequest {
   workflowId: string
-  userId: string
+  userId?: string // honored only for trusted internal calls (e.g. a scheduler)
   trigger: 'manual' | 'schedule' | 'event' | 'webhook'
   data: any
   metadata?: any
@@ -22,13 +20,18 @@ interface WorkflowStep {
   timeout?: number
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  const corsHeaders = corsFor(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    const caller = await requireCaller(req)
     const workflowRequest: WorkflowRequest = await req.json()
+    const userId = caller.internal ? workflowRequest.userId : caller.userId
+    if (!userId) return json({ error: 'userId is required' }, 400, corsHeaders)
+    workflowRequest.userId = userId
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -40,6 +43,7 @@ serve(async (req) => {
       .from('automation_workflows')
       .select('*')
       .eq('id', workflowRequest.workflowId)
+      .eq('user_id', userId) // only the owner may run a workflow
       .single()
 
     if (workflowError || !workflow) {
@@ -48,6 +52,18 @@ serve(async (req) => {
 
     // Execute workflow
     const result = await executeWorkflow(workflow, workflowRequest, supabase)
+
+    // Keep the Automation Hub's run statistics accurate
+    const runs = (workflow.executionCount ?? 0) + 1
+    const prevSuccess = Number(workflow.successRate ?? 0)
+    const ok = result.status === 'completed' ? 1 : 0
+    await supabase.from('automation_workflows').update({
+      lastRun: new Date().toISOString(),
+      executionCount: runs,
+      successRate: Math.round(((prevSuccess / 100) * (runs - 1) + ok) / runs * 1000) / 10,
+      averageExecutionTime: Math.round(((Number(workflow.averageExecutionTime ?? 0) * (runs - 1)) + result.executionTime) / runs),
+      updated_at: new Date().toISOString(),
+    }).eq('id', workflow.id)
 
     return new Response(
       JSON.stringify({
@@ -68,33 +84,29 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Workflow Orchestrator Error:', error)
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    // Workflow-not-found and validation errors are the caller's problem; hide internals otherwise
+    if (error instanceof Error && /not found|must use|not allowed|Invalid URL/.test((error instanceof Error ? error.message : String(error)))) {
+      return json({ success: false, error: (error instanceof Error ? error.message : String(error)) }, 400, corsHeaders)
+    }
+    return errorResponse(error, corsHeaders)
   }
 })
 
 async function executeWorkflow(workflow: any, request: WorkflowRequest, supabase: any): Promise<any> {
   const executionId = crypto.randomUUID()
   const startTime = Date.now()
-  const steps = workflow.steps || []
+  let steps: WorkflowStep[] = workflow.steps ?? workflow.actions ?? []
+  // A workflow linked to an n8n webhook (Automation Hub "n8n URL") is run by calling that webhook.
+  if ((!Array.isArray(steps) || steps.length === 0) && workflow.n8nUrl) {
+    steps = [{ id: 'n8n-webhook', type: 'api_call', config: { url: workflow.n8nUrl, method: 'POST', headers: { 'Content-Type': 'application/json' }, bodyTemplate: JSON.stringify({ trigger: request.trigger, workflowId: workflow.id }) } }]
+  }
   const results: any = {}
   let stepsCompleted = 0
 
   try {
     // Execute steps in dependency order
     for (const step of steps) {
-      const stepResult = await executeStep(step, request.data, supabase)
+      const stepResult = await executeStep(step, { ...(request.data ?? {}), __userId: request.userId }, supabase)
       results[step.id] = stepResult
       stepsCompleted++
     }
@@ -131,7 +143,7 @@ async function executeWorkflow(workflow: any, request: WorkflowRequest, supabase
       workflowId: request.workflowId,
       userId: request.userId,
       status: 'failed',
-      error: error.message,
+      error: (error instanceof Error ? error.message : String(error)),
       executionTime,
       stepsCompleted,
       totalSteps: steps.length
@@ -179,7 +191,7 @@ async function executeStep(step: WorkflowStep, data: any, supabase: any): Promis
     const executionTime = Date.now() - startTime
     return {
       success: false,
-      error: error.message,
+      error: (error instanceof Error ? error.message : String(error)),
       executionTime
     }
   }
@@ -196,9 +208,9 @@ async function executeAIStep(step: WorkflowStep, data: any, supabase: any): Prom
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      prompt: prompt.replace(/\{(\w+)\}/g, (match, key) => data[key] || match),
+      prompt: prompt.replace(/\{(\w+)\}/g, (match: any, key: any) => data[key] || match),
       useCase,
-      userId: data.userId,
+      userId: data.__userId,
       preferences: { provider }
     })
   })
@@ -225,7 +237,7 @@ async function executeDataTransformationStep(step: WorkflowStep, data: any): Pro
     )
   } else if (transformation === 'map') {
     transformedData = data.map((item: any) => {
-      const mapped = {}
+      const mapped: Record<string, unknown> = {}
       step.config.mappings.forEach((mapping: any) => {
         mapped[mapping.target] = item[mapping.source]
       })
@@ -278,24 +290,28 @@ async function executeNotificationStep(step: WorkflowStep, data: any, supabase: 
 
 async function executeAPICallStep(step: WorkflowStep, data: any): Promise<any> {
   const { url, method, headers, bodyTemplate } = step.config
+  const target = assertPublicHttpsUrl(String(url))
   
   // Process body template with data
-  let body = bodyTemplate
-  Object.keys(data).forEach(key => {
-    body = body.replace(new RegExp(`\\{${key}\\}`, 'g'), data[key])
-  })
+  const body = typeof bodyTemplate === 'string'
+    ? bodyTemplate.replace(/\{(\w+)\}/g, (m: string, key: string) => (key in data && key !== '__userId' ? String(data[key]) : m))
+    : undefined
 
-  const response = await fetch(url, {
+  const response = await fetch(target, {
     method: method || 'GET',
     headers: headers || {},
-    body: method !== 'GET' ? body : undefined
+    body: method && method !== 'GET' ? body : undefined,
+    redirect: 'manual', // a redirect could point back into a private network
+    signal: AbortSignal.timeout(15000),
   })
 
   if (!response.ok) {
     throw new Error(`API call failed: ${response.status}`)
   }
 
-  return await response.json()
+  // Webhooks often answer with plain text or nothing at all
+  const text = await response.text()
+  try { return JSON.parse(text) } catch { return { status: response.status, body: text.slice(0, 2000) } }
 }
 
 async function executeConditionStep(step: WorkflowStep, data: any): Promise<any> {

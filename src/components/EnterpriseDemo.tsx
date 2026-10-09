@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SampleDataBanner from './SampleDataBanner';
 import { motion } from 'framer-motion';
 import { 
   Play, 
@@ -285,6 +286,7 @@ const EnterpriseDemo: React.FC = () => {
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 ${isFullscreen ? 'fixed inset-0 z-50 overflow-auto' : ''}`}>
+      <SampleDataBanner what="figures in this demo" />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Play className="w-6 h-6 text-blue-500" />

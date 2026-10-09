@@ -16,6 +16,8 @@ import 'reactflow/dist/style.css';
 import { Brain, Workflow, Database, Send, Loader2, Bot, FileText, Users, Calendar, Mail, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { streamResponse } from '../lib/ai';
+import { supabase } from '../lib/supabase';
 
 const initialNodes: Node[] = [
   {
@@ -46,6 +48,8 @@ export const AutomationFlow: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [steps, setSteps] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -103,34 +107,45 @@ export const AutomationFlow: React.FC = () => {
       
       setEdges((currentEdges) => [...currentEdges, newEdge]);
 
-      // Simulate AI response
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setMessages((prev) => [
-        ...prev,
-        { 
-          role: 'assistant', 
-          content: `Created a new automation node for: ${userMessage}` 
-        },
-      ]);
+      setSteps((prev) => [...prev, userMessage]);
 
-      // Create Zapier webhook
-      const zapierWebhookUrl = 'https://hooks.zapier.com/hooks/catch/123/abc/';
-      await fetch(zapierWebhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: userMessage,
-          timestamp: new Date().toISOString()
-        })
-      });
-
-      toast.success('Automation flow updated and Zapier webhook triggered');
+      let reply = '';
+      for await (const chunk of streamResponse(
+        `I am designing a ${selectedCategory} automation. Steps so far: ${[...steps, userMessage].map((st, i) => `${i + 1}. ${st}`).join(' ')}. ` +
+        `In 2-4 short sentences, explain how to implement the newest step ("${userMessage}") and suggest the next step.`,
+      )) {
+        reply += chunk;
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Failed to create automation');
+      toast.error(error instanceof Error ? error.message : 'Failed to create automation');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Saves the flow so it can be run from the Automation Hub (each step runs as an AI step).
+  const saveFlow = async () => {
+    if (steps.length === 0) return;
+    const name = window.prompt('Name this workflow', `${selectedCategory ?? 'My'} automation`);
+    if (!name?.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('automation_workflows').insert({
+        name: name.trim().slice(0, 120),
+        description: steps.join(' → ').slice(0, 1000),
+        status: 'draft',
+        tags: selectedCategory ? [selectedCategory] : [],
+        actions: steps.map((st, i) => ({ id: `step${i + 1}`, type: 'ai_processing', config: { prompt: st, useCase: 'business' } })),
+      });
+      if (error) throw error;
+      toast.success('Saved. Open the Automation Hub to run it.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not save this workflow.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -233,6 +248,14 @@ export const AutomationFlow: React.FC = () => {
           </div>
         </div>
 
+        {steps.length > 0 && (
+          <div className="px-4 pt-3">
+            <button type="button" onClick={saveFlow} disabled={isSaving}
+              className="w-full rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50">
+              {isSaving ? 'Saving…' : `Save as workflow (${steps.length} step${steps.length === 1 ? '' : 's'})`}
+            </button>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
           <div className="flex space-x-2">
             <input

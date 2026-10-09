@@ -115,7 +115,7 @@ class PerformanceMonitor {
     if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
       const originalOnCommitFiberRoot = window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot;
       
-      window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot = (id, root, ...args) => {
+      window.__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot = (id: any, root: any, ...args: any[]) => {
         this.metrics.componentCount = this.countComponents(root);
         
         if (this.metrics.componentCount > 1000) {
@@ -244,13 +244,15 @@ class PerformanceMonitor {
     }
   }
 
-  private optimizePerformance() {
+  private optimizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  optimizePerformance() {
     // Debounce optimization calls
-    if (this.optimizePerformance.timeout) {
-      clearTimeout(this.optimizePerformance.timeout);
+    if (this.optimizeTimer) {
+      clearTimeout(this.optimizeTimer);
     }
     
-    this.optimizePerformance.timeout = setTimeout(() => {
+    this.optimizeTimer = setTimeout(() => {
       this.triggerMemoryCleanup();
       
       // Suggest React optimizations
@@ -275,8 +277,6 @@ class PerformanceMonitor {
   }
 }
 
-// Extend the function to include timeout property
-(PerformanceMonitor.prototype.optimizePerformance as any).timeout = null;
 
 // Add missing types for window
 declare global {

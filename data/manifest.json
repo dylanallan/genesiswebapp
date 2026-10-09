@@ -1,0 +1,4 @@
+{
+  "_comment": "Datasets loaded into the shared AI knowledge base by scripts/ingest_data.ts. Only add real, openly licensed data, with its source and license. Paths are relative to data/.",
+  "datasets": []
+}

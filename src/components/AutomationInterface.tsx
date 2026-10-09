@@ -24,8 +24,7 @@ import {
   Database,
   Users,
   Clock,
-  RefreshCw
-} from 'lucide-react';
+  RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { streamResponse } from '../lib/ai';
@@ -92,27 +91,28 @@ export const AutomationInterface: React.FC = () => {
 
   const initializeSpeechRecognition = () => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+      const SpeechRecognition = (window.SpeechRecognition || window.webkitSpeechRecognition)!;
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.continuous = true;
+      recognition.interimResults = true;
 
-      recognitionRef.current.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
+          .map((result: any) => result[0])
+          .map((result: any) => result.transcript)
           .join('');
         setVoiceTranscript(transcript);
         setAssistantInput(transcript);
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsVoiceActive(false);
         toast.error('Speech recognition error. Please try again.');
       };
 
-      recognitionRef.current.onend = () => {
+      recognition.onend = () => {
         setIsVoiceActive(false);
       };
     }
@@ -138,72 +138,24 @@ export const AutomationInterface: React.FC = () => {
   const fetchWorkflows = async () => {
     setIsLoading(true);
     try {
-      // In a real implementation, this would fetch from your n8n instance via an API
-      // For demo purposes, we'll use mock data
-      const mockWorkflows: Workflow[] = [
-        {
-          id: '1',
-          name: 'Customer Onboarding',
-          description: 'Automates the customer onboarding process including welcome emails, data collection, and CRM updates',
-          status: 'active',
-          lastRun: '2025-06-10T15:30:00Z',
-          nextRun: '2025-06-11T15:30:00Z',
-          tags: ['customer', 'email', 'crm'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/1',
-          createdAt: '2025-05-15T10:00:00Z',
-          updatedAt: '2025-06-09T14:20:00Z'
-        },
-        {
-          id: '2',
-          name: 'Invoice Processing',
-          description: 'Extracts data from invoices, updates accounting system, and sends payment reminders',
-          status: 'active',
-          lastRun: '2025-06-10T12:15:00Z',
-          nextRun: '2025-06-11T12:15:00Z',
-          tags: ['finance', 'accounting', 'documents'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/2',
-          createdAt: '2025-05-20T11:30:00Z',
-          updatedAt: '2025-06-08T09:45:00Z'
-        },
-        {
-          id: '3',
-          name: 'Social Media Scheduler',
-          description: 'Schedules and posts content to multiple social media platforms based on optimal timing',
-          status: 'inactive',
-          lastRun: '2025-06-05T08:00:00Z',
-          nextRun: '',
-          tags: ['marketing', 'social media', 'content'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/3',
-          createdAt: '2025-05-25T14:20:00Z',
-          updatedAt: '2025-06-05T16:10:00Z'
-        },
-        {
-          id: '4',
-          name: 'Lead Qualification',
-          description: 'Scores and qualifies leads based on behavior, engagement, and demographic data',
-          status: 'active',
-          lastRun: '2025-06-10T09:00:00Z',
-          nextRun: '2025-06-10T21:00:00Z',
-          tags: ['sales', 'leads', 'crm'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/4',
-          createdAt: '2025-06-01T13:45:00Z',
-          updatedAt: '2025-06-07T11:30:00Z'
-        },
-        {
-          id: '5',
-          name: 'Data Backup',
-          description: 'Automatically backs up critical business data to secure cloud storage',
-          status: 'draft',
-          lastRun: '',
-          nextRun: '',
-          tags: ['data', 'security', 'backup'],
-          n8nUrl: 'https://n8n.yourdomain.com/workflow/5',
-          createdAt: '2025-06-08T16:20:00Z',
-          updatedAt: '2025-06-08T16:20:00Z'
-        }
-      ];
-
-      setWorkflows(mockWorkflows);
+      const { data, error } = await supabase
+        .from('automation_workflows')
+        .select('id,name,description,status,"lastRun","nextRun",tags,"n8nUrl",created_at,updated_at')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const mapped: Workflow[] = (data ?? []).map((w: any) => ({
+        id: w.id,
+        name: w.name,
+        description: w.description ?? '',
+        status: w.status ?? 'draft',
+        lastRun: w.lastRun ?? '',
+        nextRun: w.nextRun ?? '',
+        tags: w.tags ?? [],
+        n8nUrl: w.n8nUrl ?? '',
+        createdAt: w.created_at,
+        updatedAt: w.updated_at,
+      }));
+      setWorkflows(mapped);
     } catch (error) {
       console.error('Error fetching workflows:', error);
       toast.error('Failed to load automation workflows');
@@ -400,14 +352,15 @@ export const AutomationInterface: React.FC = () => {
                     </div>
                     <div className="flex space-x-1">
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          toast.success(`${workflow.status === 'active' ? 'Paused' : 'Activated'} ${workflow.name}`);
-                          setWorkflows(workflows.map(w => 
-                            w.id === workflow.id 
-                              ? {...w, status: w.status === 'active' ? 'inactive' : 'active'} 
-                              : w
-                          ));
+                          const next = workflow.status === 'active' ? 'inactive' : 'active';
+                          const { error } = await supabase.from('automation_workflows')
+                            .update({ status: next, is_active: next === 'active', updated_at: new Date().toISOString() })
+                            .eq('id', workflow.id);
+                          if (error) return toast.error('Could not change this workflow.');
+                          toast.success(`${next === 'active' ? 'Activated' : 'Paused'} ${workflow.name}`);
+                          setWorkflows(workflows.map(w => w.id === workflow.id ? { ...w, status: next } : w));
                         }}
                         className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                       >

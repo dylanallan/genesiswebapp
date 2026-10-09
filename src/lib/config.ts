@@ -25,8 +25,8 @@ export interface AppConfig {
 // Default configuration
 const defaultConfig: AppConfig = {
   supabase: {
-    url: 'https://yomgwdeqsvbapvqpuspq.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbWd3ZGVxc3ZiYXB2cXB1c3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5NzI4NzQsImV4cCI6MjA1MTU0ODg3NH0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8'
+    url: '',
+    anonKey: ''
   },
   ai: {
     providers: ['openai', 'anthropic', 'gemini', 'ollama'],
@@ -72,6 +72,12 @@ export const getConfig = (): AppConfig => {
 
 // Export the current configuration
 export const config = getConfig();
+
+// Without these the app cannot talk to its backend; say so plainly instead of failing mysteriously.
+export const missingConfig: string[] = [
+  ...(config.supabase.url ? [] : ['VITE_SUPABASE_URL']),
+  ...(config.supabase.anonKey ? [] : ['VITE_SUPABASE_ANON_KEY']),
+];
 
 // Helper functions
 export const isDevelopment = () => config.app.environment === 'development';

@@ -70,3 +70,7 @@ Thumbs.db
 .netlify
 unesco-api/
 .env
+
+.env
+.env.*
+!env.example

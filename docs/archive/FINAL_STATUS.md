@@ -23,7 +23,7 @@ The missing `conversations` and `messages` tables have been created in your Supa
 ## 🎯 **Primary Selling Features - READY:**
 
 ### 1. **Voice-Powered AI Assistant** ✅
-- Morgan Freeman-style voice synthesis
+- natural AI voice narration
 - Multi-language support (English, Spanish, French, Chinese, Hindi)
 - Fallback to browser speech synthesis
 - Real-time voice generation
@@ -52,7 +52,7 @@ The missing `conversations` and `messages` tables have been created in your Supa
 ### **Demo Script:**
 1. **Voice Demo**: "Speak to your ancestors through AI"
    - Use the VoicePlayer component
-   - Show Morgan Freeman-style narration
+   - Show natural AI narration
    - Demonstrate multi-language support
 
 2. **Chat Demo**: "AI-powered family history assistant"

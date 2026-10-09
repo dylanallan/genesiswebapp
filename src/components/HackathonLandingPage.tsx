@@ -1,4 +1,5 @@
 import React from 'react';
+import SampleDataBanner from './SampleDataBanner';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
@@ -23,6 +24,7 @@ const HackathonLandingPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      <SampleDataBanner what="figures on this page" />
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0 }}

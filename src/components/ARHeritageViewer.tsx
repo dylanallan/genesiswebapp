@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Scan, MapPin, Clock, Users, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 interface ARMarker {
   id: string;
@@ -40,33 +41,23 @@ export const ARHeritageViewer: React.FC = () => {
         videoRef.current.play();
       }
 
-      // Simulate AR marker detection
-      setTimeout(() => {
-        setMarkers([
-          {
-            id: '1',
-            position: { x: 100, y: 200, z: 0 },
-            content: {
-              title: 'Family Home (1920)',
-              description: 'Your great-grandmother lived here from 1920-1945',
-              historicalDate: '1920-1945'
-            }
-          },
-          {
-            id: '2',
-            position: { x: 300, y: 150, z: 0 },
-            content: {
-              title: 'Community Center',
-              description: 'Traditional gatherings and celebrations took place here',
-              historicalDate: '1900-present'
-            }
-          }
-        ]);
-      }, 2000);
-
+      // Overlay the user's OWN saved places and stories (timeline events and artifacts).
+      const [{ data: events }, { data: artifacts }] = await Promise.all([
+        supabase.from('timeline_events').select('id,title,description,date,location').order('date', { ascending: false }).limit(4),
+        supabase.from('cultural_artifacts').select('id,title,description,media_url').order('created_at', { ascending: false }).limit(4),
+      ]);
+      const items = [
+        ...(events ?? []).map((e: any) => ({ id: `e-${e.id}`, content: { title: e.title, description: [e.location, e.description].filter(Boolean).join(' — '), historicalDate: e.date } })),
+        ...(artifacts ?? []).map((a: any) => ({ id: `a-${a.id}`, content: { title: a.title, description: a.description ?? '', mediaUrl: a.media_url ?? undefined } })),
+      ].slice(0, 6);
+      if (items.length === 0) {
+        toast.info('Add timeline events or cultural artifacts and they will appear here as overlays.');
+      }
+      // Spread overlays across the camera view in a simple grid
+      setMarkers(items.map((it, i) => ({ ...it, position: { x: 80 + (i % 3) * 180, y: 90 + Math.floor(i / 3) * 140, z: 0 } })));
     } catch (error) {
       console.error('AR initialization error:', error);
-      toast.error('Failed to start AR session');
+      toast.error('Could not open the camera. Please allow camera access and try again.');
     }
   };
 
@@ -114,8 +105,8 @@ export const ARHeritageViewer: React.FC = () => {
             <div className="w-full h-96 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <Camera className="w-16 h-16 text-purple-500 mx-auto mb-4" />
-                <p className="text-gray-600">Point your camera at heritage locations</p>
-                <p className="text-sm text-gray-500">Discover hidden stories and historical context</p>
+                <p className="text-gray-600">Point your camera at a place that matters to your family</p>
+                <p className="text-sm text-gray-500">Your saved timeline events and artifacts appear as overlays you can tap</p>
               </div>
             </div>
           )}

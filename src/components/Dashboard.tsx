@@ -1,6 +1,7 @@
 // Cache bust: 2024-07-01-1
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link as RouterLink } from 'react-router-dom';
 import { 
   Home, 
   Users, 
@@ -185,12 +186,23 @@ import { MediaUploader } from './MediaUploader';
 import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
 import FamilySummary from './FamilySummary';
+import RecordsSearch from './RecordsSearch';
+import AdminPayments from './AdminPayments';
+import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
 }
 
 const features = [
+  {
+    id: 'records-search',
+    name: 'Historical Records',
+    icon: Search,
+    component: RecordsSearch,
+    description: 'Search open archives for ancestors',
+    category: 'heritage',
+  },
   // Core System Features
   {
     id: 'search',
@@ -229,6 +241,7 @@ const features = [
     name: 'AI Settings',
     icon: Settings,
     component: AISettings,
+    render: (close: () => void) => <AISettings isOpen onClose={close} />,
     description: 'Configure AI models and preferences',
     category: 'core'
   },
@@ -254,7 +267,7 @@ const features = [
     id: 'family-tree-viz',
     name: 'Family Tree Visualizer',
     icon: Network,
-    component: FamilyTreeVisualizer,
+    component: FamilyTreeFeature,
     description: 'Interactive family tree visualization',
     category: 'heritage'
   },
@@ -353,6 +366,7 @@ const features = [
     name: 'Workflow Generator',
     icon: GitBranch,
     component: WorkflowGenerator,
+    render: (close: () => void) => <WorkflowGenerator isOpen onClose={close} />,
     description: 'Generate automated workflows',
     category: 'business'
   },
@@ -361,6 +375,7 @@ const features = [
     name: 'N8N Integration',
     icon: Network,
     component: N8NIntegration,
+    render: (close: () => void) => <N8NIntegration isOpen onClose={close} />,
     description: 'Connect with N8N automation platform',
     category: 'business'
   },
@@ -384,7 +399,7 @@ const features = [
     id: 'enterprise-roi',
     name: 'Enterprise ROI Calculator',
     icon: Calculator,
-    component: EnterpriseROICalculator,
+    component: ROICalculatorFeature,
     description: 'Calculate return on investment',
     category: 'business'
   },
@@ -416,7 +431,7 @@ const features = [
     id: 'enterprise-metrics',
     name: 'Enterprise Metrics Panel',
     icon: PieChart,
-    component: EnterpriseMetricsPanel,
+    component: MetricsFeature,
     description: 'Track enterprise metrics',
     category: 'business'
   },
@@ -474,7 +489,7 @@ const features = [
     id: 'video-player',
     name: 'Video Player',
     icon: Video,
-    component: VideoPlayer,
+    component: VideoFeature,
     description: 'Advanced video playback',
     category: 'media'
   },
@@ -482,7 +497,7 @@ const features = [
     id: 'audio-player',
     name: 'Audio Player',
     icon: Music,
-    component: AudioPlayer,
+    component: AudioFeature,
     description: 'Audio playback and management',
     category: 'media'
   },
@@ -490,7 +505,7 @@ const features = [
     id: 'media-player',
     name: 'Media Player',
     icon: Play,
-    component: MediaPlayer,
+    component: MediaFeature,
     description: 'Universal media player',
     category: 'media'
   },
@@ -599,6 +614,7 @@ const features = [
     name: 'User Settings',
     icon: Settings,
     component: UserSettings,
+    render: (close: () => void) => <UserSettings isOpen onClose={close} />,
     description: 'User preferences and settings',
     category: 'user'
   },
@@ -615,6 +631,7 @@ const features = [
     name: 'Profile Editor',
     icon: Edit,
     component: ProfileEditor,
+    render: (close: () => void) => <ProfileEditor isOpen onClose={close} onProfileUpdate={() => toast.success('Profile updated')} />,
     description: 'Edit user profiles',
     category: 'user'
   },
@@ -623,6 +640,7 @@ const features = [
     name: 'Profile History',
     icon: Clock,
     component: ProfileHistoryViewer,
+    render: (close: () => void) => <ProfileHistoryViewer isOpen onClose={close} />,
     description: 'View profile change history',
     category: 'user'
   },
@@ -633,6 +651,7 @@ const features = [
     name: 'AI Context Manager',
     icon: Brain,
     component: AIContextManager,
+    render: (close: () => void) => <AIContextManager onClose={close} />,
     description: 'Manage AI conversation context',
     category: 'ai'
   },
@@ -641,6 +660,7 @@ const features = [
     name: 'AI Custom Instructions',
     icon: FileText,
     component: AICustomInstructionsEditor,
+    render: (close: () => void) => <AICustomInstructionsEditor isOpen onClose={close} />,
     description: 'Edit AI custom instructions',
     category: 'ai'
   },
@@ -657,6 +677,7 @@ const features = [
     name: 'Conversation Summarizer',
     icon: FileText,
     component: ConversationSummarizer,
+    render: (close: () => void) => <SummarizerFeature onClose={close} />,
     description: 'Summarize conversations',
     category: 'ai'
   },
@@ -727,14 +748,15 @@ const features = [
     name: 'Cultural Artifact Form',
     icon: Edit,
     component: CulturalArtifactForm,
+    render: (close: () => void) => <CulturalArtifactForm onClose={close} onSuccess={() => { toast.success('Artifact saved'); close(); }} />,
     description: 'Add cultural artifacts',
     category: 'tools'
   },
   {
     id: 'data-table',
-    name: 'Data Table',
+    name: 'My Saved Records',
     icon: Table,
-    component: DataTable,
+    component: SavedRecordsTableFeature,
     description: 'Interactive data tables',
     category: 'tools'
   },
@@ -750,29 +772,35 @@ const features = [
     id: 'seo',
     name: 'SEO Tools',
     icon: Search,
-    component: SEO,
+    component: SEOFeature,
     description: 'Search engine optimization',
     category: 'tools'
   },
   {
-    id: 'settings',
+    id: 'app-settings',
     name: 'Settings',
     icon: Settings,
     component: SettingsPanel,
     description: 'Manage application settings',
     category: 'tools'
+  },
+  {
+    id: 'admin-payments',
+    name: 'Payments (admin)',
+    icon: CreditCard,
+    component: AdminPayments,
+    description: 'Confirm Interac e-Transfers',
+    category: 'user',
   }
 ];
 
-export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
+export const Dashboard: React.FC<DashboardProps> = () => {
   const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [notifications] = useState<string[]>([]);
   const [preferences] = useAtom(userPreferencesAtom);
-  const [activeFeature, setActiveFeature] = useState('search');
+  const [activeFeature, setActiveFeature] = useState('records-search');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [testResult, setTestResult] = useState<string>('');
   
   const { colorScheme } = preferences;
 
@@ -780,7 +808,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
     ? features 
     : features.filter(f => f.category === selectedCategory);
 
-  const ActiveComponent = features.find(f => f.id === activeFeature)?.component || features[0].component;
+  const activeEntry = (features.find(f => f.id === activeFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
+  const ActiveComponent = activeEntry.component as React.ComponentType;
+  const closeFeature = () => setActiveFeature('records-search');
+
+  // Pop-up features close with the Escape key, as people expect.
+  useEffect(() => {
+    if (!activeEntry.render) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('records-search'); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeEntry]);
 
   const categories = [
     { id: 'all', name: 'All Features', icon: Plus },
@@ -795,20 +833,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
     { id: 'hackathon', name: 'Hackathon Features', icon: Rocket },
     { id: 'tools', name: 'Additional Tools', icon: Settings }
   ];
-
-  const testChatAPI = async () => {
-    try {
-      console.log('🧪 Testing Chat API...');
-      const response = await chatApi.sendMessage('Hello! Can you help me with genealogy research?');
-      console.log('✅ Test result:', response);
-      setTestResult(`✅ Success! Provider: ${response.provider}, Model: ${response.model}, Response: ${response.response.substring(0, 100)}...`);
-      toast.success('Chat API test successful!');
-    } catch (error: any) {
-      console.error('❌ Test failed:', error);
-      setTestResult(`❌ Error: ${error.message || 'Unknown error'}`);
-      toast.error('Chat API test failed');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
@@ -831,32 +855,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
             </div>
 
             <div className="flex items-center space-x-2">
-              <button
-                onClick={testChatAPI}
-                className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-                title="Test Chat API"
+              <RouterLink
+                to="/pricing"
+                className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
               >
-                Test Chat
-              </button>
-              
-              <div className="relative">
-                <button
-                  onClick={() => onViewModeChange('enterprise')}
-                  className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  Switch to Enterprise
-                </button>
-              </div>
+                Plans &amp; billing
+              </RouterLink>
 
-              <button 
-                className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <Bell className="w-5 h-5 text-gray-600" />
-                {notifications.length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                )}
-              </button>
-              
               <UserProfileButton />
             </div>
           </div>
@@ -928,33 +933,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
-            >
-              <Home className="w-4 h-4 text-green-500" />
-              <span>All Systems Active</span>
-            </motion.div>
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-genesis-50 text-genesis-700 rounded-full text-sm"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Processing Optimized</span>
-            </motion.div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <FamilySummary />
-            <ErrorBoundary>
-              {typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
+            {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
+            <ErrorBoundary key={activeFeature}>
+              {activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
                   <h2 className="text-xl font-bold mb-2">Component Error</h2>
                   <p>Feature component is not available or is not a valid React component.</p>
@@ -962,19 +946,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewModeChange }) => {
               )}
             </ErrorBoundary>
             
-            {/* Test Results Display */}
-            {testResult && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-                <h3 className="font-semibold mb-2">Chat API Test Result:</h3>
-                <p className="text-sm">{testResult}</p>
-                <button
-                  onClick={() => setTestResult('')}
-                  className="mt-2 text-xs text-gray-500 hover:text-gray-700"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
           </div>
           <div className="space-y-6">
             <ErrorBoundary>

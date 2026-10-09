@@ -16,6 +16,7 @@ import 'reactflow/dist/style.css';
 import { Brain, Workflow, Database, Send, Loader2, Bot, FileText, Users, Calendar, Mail, Settings, Briefcase, Zap, Globe, Clock, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 const workflowCategories = [
   {
@@ -191,9 +192,15 @@ export const FlowBuilder: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Here you would typically send this to your backend
-      // For now, we'll simulate a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase.from('contact_requests').insert({
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        company: contactForm.company.trim() || null,
+        requirements: contactForm.requirements.trim() || null,
+        plan: contactForm.plan || null,
+        source: 'flow-builder',
+      });
+      if (error) throw error;
       
       toast.success('Thank you for your interest! Our team will contact you shortly.');
       setShowContactForm(false);

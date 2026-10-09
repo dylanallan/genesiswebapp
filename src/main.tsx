@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
 
 console.log('🚀 Starting React app...');
@@ -26,7 +27,9 @@ try {
   console.log('🎭 Rendering App component...');
   reactRoot.render(
     <React.StrictMode>
-      <App />
+      <HelmetProvider>
+        <App />
+      </HelmetProvider>
     </React.StrictMode>
   );
   console.log('✅ React app rendered successfully');

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Loader2, Play, Pause, Volume2, VolumeX, Settings, X, Users, UserPlus, File as FileTree, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { loadFamilyMembers as fetchFamilyMembers, saveFamilyMember } from '../lib/family';
 import { supabase } from '../lib/supabase';
 import { streamResponse } from '../lib/ai';
 
@@ -65,45 +66,8 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
   const loadFamilyMembers = async () => {
     try {
-      // In a real implementation, fetch from database
-      // For demo, we'll use mock data
-      const mockFamilyMembers: FamilyMember[] = [
-        {
-          id: '1',
-          name: 'Maria Elena Rodriguez',
-          relationship: 'Great-grandmother',
-          birthDate: '1920-03-15',
-          birthPlace: 'Tuscany, Italy',
-          deathDate: '1995-11-22',
-          deathPlace: 'New York, USA',
-          notes: 'Immigrated to the United States in 1945',
-          confidence: 0.95,
-          source: 'validated'
-        },
-        {
-          id: '2',
-          name: 'Giuseppe Rodriguez',
-          relationship: 'Great-grandfather',
-          birthDate: '1918-06-20',
-          birthPlace: 'Sicily, Italy',
-          deathDate: '1980-04-10',
-          deathPlace: 'New York, USA',
-          notes: 'Worked as a carpenter after immigration',
-          confidence: 0.92,
-          source: 'validated'
-        },
-        {
-          id: '3',
-          name: 'Robert Chen',
-          relationship: 'Grandfather',
-          birthDate: '1945-09-12',
-          birthPlace: 'San Francisco, USA',
-          confidence: 0.88,
-          source: 'user'
-        }
-      ];
-      
-      setFamilyMembers(mockFamilyMembers);
+      setFamilyMembers((await fetchFamilyMembers()).filter((m) => m.source !== 'ai'));
+
     } catch (error) {
       console.error('Error loading family members:', error);
       toast.error('Failed to load family tree');
@@ -112,26 +76,27 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
   const initializeSpeechRecognition = () => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+      const SpeechRecognition = (window.SpeechRecognition || window.webkitSpeechRecognition)!;
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.continuous = true;
+      recognition.interimResults = true;
 
-      recognitionRef.current.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
+          .map((result: any) => result[0])
+          .map((result: any) => result.transcript)
           .join('');
         setTranscript(transcript);
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         toast.error('Speech recognition error. Please try again.');
       };
 
-      recognitionRef.current.onend = () => {
+      recognition.onend = () => {
         if (isListening) {
           // If we're still supposed to be listening, restart
           recognitionRef.current?.start();
@@ -365,14 +330,16 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
     }
   };
 
-  const addToFamilyTree = (member: FamilyMember) => {
-    // Add to family tree
-    setFamilyMembers(prev => [...prev, {...member, source: 'validated'}]);
-    
-    // Remove from pending
-    setPendingMembers(prev => prev.filter(m => m.id !== member.id));
-    
-    toast.success(`Added ${member.name} to your family tree`);
+  const addToFamilyTree = async (member: FamilyMember) => {
+    try {
+      const saved = await saveFamilyMember({ ...member, source: 'validated' });
+      setFamilyMembers(prev => [...prev, saved]);
+      setPendingMembers(prev => prev.filter(m => m.id !== member.id));
+      toast.success(`Added ${member.name} to your family tree`);
+    } catch (error) {
+      console.error('Error saving family member:', error);
+      toast.error(`Could not save ${member.name}. Please try again.`);
+    }
   };
 
   const rejectFamilyMember = (memberId: string) => {

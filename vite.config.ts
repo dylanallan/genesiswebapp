@@ -73,23 +73,12 @@ export default defineConfig({
   },
   server: {
     headers: {
-      'Cache-Control': 'public, max-age=31536000',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'Content-Security-Policy': `
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.supabase.co;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-        img-src 'self' data: https: blob:;
-        font-src 'self' https://fonts.gstatic.com;
-        connect-src 'self' https://api.supabase.co https://*.supabase.co https://api.openai.com https://api.anthropic.com https://api.pinecone.io;
-        frame-src 'self' https://js.stripe.com;
-        worker-src 'self' blob:;
-        manifest-src 'self';
-      `.replace(/\s+/g, ' ').trim(),
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; media-src 'self' blob: data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: http://localhost:* http://127.0.0.1:* https://*.supabase.co wss://*.supabase.co; frame-src 'none'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'",
+      'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(), interest-cohort=()',
       'Referrer-Policy': 'strict-origin-when-cross-origin'
     }
   }
