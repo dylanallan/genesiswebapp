@@ -18,7 +18,7 @@ for f in $(ls migrations/*.sql | sort); do
 done
 # Re-apply everything: migrations must be safe to run twice.
 for f in migrations/2025*.sql; do
-  sql=$(sed -E 's/create extension if not exists ("?vector"?)[^;]*;//Ig; s/extensions\.vector\(1536\)/extensions.vector/g' "$f")
+  sql=$(sed -E 's/create extension if not exists ("?vector"?)[^;]*;//Ig; s/extensions\.vector\(1536\)/extensions.vector/g; s/\bvector\(1536\)/extensions.vector/g' "$f")
   printf '%s' "$sql" | psql -d "$DB" -q -v ON_ERROR_STOP=1 >/dev/null 2>&1 || { echo "NOT RE-RUNNABLE  $f"; fail=1; }
 done
 psql -qc "drop database $DB" >/dev/null
