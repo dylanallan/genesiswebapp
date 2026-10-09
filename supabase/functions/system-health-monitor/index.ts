@@ -155,10 +155,10 @@ async function getAIServiceMetrics(supabase: any) {
     
     // Calculate success rate and average response time
     const totalRequests = aiStats?.length || 0;
-    const successfulRequests = aiStats?.filter(log: any => log.success).length || 0;
+    const successfulRequests = aiStats?.filter((log: any) => log.success).length || 0;
     const successRate = totalRequests > 0 ? successfulRequests / totalRequests : 1;
     
-    const avgResponseTime = aiStats?.reduce((sum: any, log: any) => sum + (log: any.response_time_ms || 0), 0) / (totalRequests || 1);
+    const avgResponseTime = aiStats?.reduce((sum: any, log: any) => sum + (log.response_time_ms || 0), 0) / (totalRequests || 1);
     
     // Get provider-specific metrics
     const providers = aiStats?.reduce((acc: any, log: any) => {
@@ -209,7 +209,7 @@ async function getUserActivityMetrics(supabase: any) {
     if (activityError) throw activityError;
     
     // Calculate active users
-    const activeUsers = new Set(activityStats?.map(log: any => log.user_id)).size;
+    const activeUsers = new Set(activityStats?.map((log: any) => log.user_id)).size;
     
     // Calculate activity by type
     const activityByType = activityStats?.reduce((acc: any, log: any) => {
@@ -270,7 +270,7 @@ async function getPerformanceMetrics(supabase: any) {
     }, {});
     
     // Calculate average for each metric
-    const avgMetrics = {};
+    const avgMetrics: Record<string, number> = {};
     Object.keys(metricsByName || {}).forEach(key => {
       avgMetrics[key] = metricsByName[key].reduce((sum: any, val: any) => sum + val, 0) / metricsByName[key].length;
     });
