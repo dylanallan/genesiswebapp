@@ -39,7 +39,7 @@ create table public.sources (
 -- 5️⃣ Vector embeddings for AI search (pgvector 1536 dims)
 create table public.node_embeddings (
   node_id bigint primary key references family_nodes(id) on delete cascade,
-  embedding extensions.vector(1536)  -- match your OpenAI model dims
+  embedding vector(1536)  -- match your OpenAI model dims
 );
 
 -- Enable RLS

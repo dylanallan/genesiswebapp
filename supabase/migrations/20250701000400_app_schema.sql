@@ -101,6 +101,9 @@ returns trigger language plpgsql security definer set search_path = public as $$
 begin
   insert into public.user_profiles (id, display_name) values (new.id, split_part(new.email, '@', 1)) on conflict do nothing;
   insert into public.user_data (user_id) values (new.id) on conflict do nothing;
+  -- Kept from the original signup trigger: the older family-tree tables hang off public.profiles.
+  insert into public.profiles (id, full_name, avatar_url)
+  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url') on conflict do nothing;
   return new;
 end;
 $$;
@@ -385,15 +388,17 @@ create table if not exists public.ai_embeddings (
   content_id text,
   content_type text,
   source text,
-  embedding extensions.vector(1536),
+  embedding vector(1536),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 select public._owner_policy('ai_embeddings');
 
 -- Semantic search over a user's own embedded content (memory-search function).
+-- Older projects have a find_similar_messages with a different result shape; replace it.
+drop function if exists public.find_similar_messages(vector, double precision, integer, uuid);
 create or replace function public.find_similar_messages(
-  p_embedding extensions.vector(1536), p_match_threshold float default 0.75, p_match_count integer default 10, p_user_id uuid default null)
+  p_embedding vector(1536), p_match_threshold float default 0.75, p_match_count integer default 10, p_user_id uuid default null)
 returns table (id uuid, content text, content_type text, metadata jsonb, created_at timestamptz, similarity float)
 language plpgsql stable security definer set search_path = public, extensions as $$
 declare uid uuid := coalesce(p_user_id, auth.uid());
@@ -413,7 +418,7 @@ create table if not exists public.knowledge_base (
   content text not null,
   content_length integer not null,
   content_tokens integer not null,
-  embedding extensions.vector(1536),
+  embedding vector(1536),
   metadata jsonb not null default '{}'::jsonb,
   source text,
   created_at timestamptz not null default now()
@@ -803,6 +808,7 @@ end;
 $$;
 
 -- Marks active workflows that are due (nextRun in the past) so the scheduler can pick them up.
+drop function if exists public.process_automation_rules(); -- older projects return void
 create or replace function public.process_automation_rules()
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare due integer;
