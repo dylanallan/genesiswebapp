@@ -21,12 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check secrets
+        id: secrets
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "::error::Add SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF and SUPABASE_DB_PASSWORD as repository secrets."
-            exit 1
+            echo "::warning::Skipped: add SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF and SUPABASE_DB_PASSWORD as repository secrets to deploy automatically."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ready == 'true'
         with:
           node-version: 20
-      - run: scripts/deploy-supabase.sh
+      - if: steps.secrets.outputs.ready == 'true'
+        run: scripts/deploy-supabase.sh
