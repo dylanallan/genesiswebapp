@@ -1,119 +1,53 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import OpenAI from "npm:openai@4.28.0";
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import OpenAI from 'npm:openai@4.28.0'
+import { corsFor } from '../_shared/cors.ts'
+import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 
-import { corsHeaders } from '../_shared/cors.ts';
-
-// Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-
-interface RequestBody {
-  content: string;
-  contentType: string;
-  contentId: string;
-  metadata?: Record<string, any>;
-}
+// Adds a document or note to the caller's private AI memory: splits it into chunks, embeds them
+// (OpenAI text-embedding-3-small, 1536 dimensions) and stores them in ai_embeddings.
+const MAX_CHARS = 200_000
+const MAX_CHUNKS = 25
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  const cors = corsFor(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    const user = await requireUser(req)
+    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!apiKey) return json({ error: 'AI memory needs an OpenAI API key to be configured' }, 503, cors)
+
+    const { content, contentType, contentId, metadata } = await req.json()
+    if (typeof content !== 'string' || !content.trim() || typeof contentType !== 'string' || typeof contentId !== 'string' || !contentId) {
+      return json({ error: 'content, contentType and contentId are required' }, 400, cors)
     }
+    if (content.length > MAX_CHARS) return json({ error: `That is too long to add at once (max ${MAX_CHARS.toLocaleString()} characters)` }, 400, cors)
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const chunks = chunkContent(content)
+    if (chunks.length > MAX_CHUNKS) return json({ error: 'That document is too long to add at once. Please split it up.' }, 400, cors)
 
-    if (authError || !user) {
-      throw new Error('Invalid authentication');
-    }
+    // One request embeds every chunk
+    const openai = new OpenAI({ apiKey })
+    const embeddings = await openai.embeddings.create({ model: 'text-embedding-3-small', input: chunks, encoding_format: 'float' })
 
-    // Parse request body
-    const { content, contentType, contentId, metadata } = await req.json() as RequestBody;
+    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const now = new Date().toISOString()
+    const { error } = await db.from('ai_embeddings').insert(chunks.map((chunk, index) => ({
+      user_id: user.id,
+      content_type: contentType.slice(0, 50),
+      content_id: (chunks.length > 1 ? `${contentId}-chunk-${index + 1}` : contentId).slice(0, 300),
+      content: chunk,
+      embedding: embeddings.data[index].embedding,
+      metadata: { ...(metadata && typeof metadata === 'object' ? metadata : {}), chunkIndex: index, totalChunks: chunks.length, chunkSize: chunk.length, processedAt: now },
+    })))
+    if (error) throw error
 
-    if (!content || !contentType || !contentId) {
-      throw new Error('Content, contentType, and contentId are required');
-    }
-
-    // Process large content by chunking
-    const chunks = chunkContent(content);
-    const processedChunks = [];
-
-    for (const [index, chunk] of chunks.entries()) {
-      // Generate embedding for the chunk
-      const embeddingResponse = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: chunk,
-        encoding_format: "float"
-      });
-      
-      const embedding = embeddingResponse.data[0].embedding;
-      
-      // Store the chunk with its embedding
-      const { data, error } = await supabase
-        .from('ai_embeddings')
-        .insert({
-          user_id: user.id,
-          content_type: contentType,
-          content_id: chunks.length > 1 ? `${contentId}-chunk-${index+1}` : contentId,
-          content: chunk,
-          embedding,
-          metadata: {
-            ...metadata,
-            chunkIndex: index,
-            totalChunks: chunks.length,
-            chunkSize: chunk.length,
-            processedAt: new Date().toISOString()
-          }
-        })
-        .select();
-
-      if (error) throw error;
-      
-      processedChunks.push(data[0]);
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Content processed and stored successfully in ${processedChunks.length} chunks`,
-        chunks: processedChunks.length
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  } catch (error) {
-    console.error('Content processing error:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return json({ success: true, message: `Content processed and stored successfully in ${chunks.length} chunks`, chunks: chunks.length }, 200, cors)
+  } catch (e) {
+    return errorResponse(e, cors)
   }
-});
+})
 
 /**
  * Split content into chunks of appropriate size for embeddings

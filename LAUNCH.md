@@ -86,6 +86,9 @@ npx supabase secrets set SITE_URL=https://your-domain.com ALLOWED_ORIGINS=https:
 |---|---|
 | Voice narration | `TTS_SERVER_URL` (self-hosted open-source Kokoro-FastAPI) **or** `ELEVENLABS_API_KEY` + `VOICE_ID_EN` |
 | Voice stories | `GOOGLE_TTS_API_KEY` (Google Cloud Text-to-Speech) |
+| Family voice preservation (cloning, with consent) | `ELEVENLABS_API_KEY` (ElevenLabs plan that includes Instant Voice Cloning) |
+| Family photo analysis (faces, places, printed dates) | `GOOGLE_VISION_API_KEY` (Google Cloud Vision API enabled) |
+| AI memory (search your own notes and documents) | `OPENAI_API_KEY` (used for embeddings even if chat uses another provider) |
 | More record sources | `DPLA_API_KEY`, `EUROPEANA_API_KEY` (both free) |
 | Automation | each customer connects their own n8n instance inside the app |
 
@@ -107,4 +110,6 @@ npm test               # unit tests
 npm run build          # production build
 npm run test:beta      # opens every screen in a real browser against a simulated backend
 npm run test:db        # applies every migration to a blank Postgres (needs PGHOST/PGPORT/PGUSER)
+npm run check:functions  # type-checks every Supabase Edge Function (Deno)
+npm run test:functions   # Edge Function unit tests
 ```

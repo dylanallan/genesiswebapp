@@ -57,7 +57,9 @@ export function validateRequest(req: VoiceStoryRequest): void {
   if (d.person && !d.person.name?.trim()) throw new AppError(ERROR_MESSAGES.VALIDATION.PERSON_NAME_REQUIRED, 400)
   if (d.family && !d.family.name?.trim()) throw new AppError(ERROR_MESSAGES.VALIDATION.FAMILY_NAME_REQUIRED, 400)
   const o = req.options
-  if (o?.language && !SUPPORTED_LANGUAGES.includes(o.language)) throw new AppError(ERROR_MESSAGES.VALIDATION.UNSUPPORTED_LANGUAGE, 400)
+  if (o?.language && (!SUPPORTED_LANGUAGES.includes(o.language) || !VOICE_CONFIGS[o.language]?.length)) {
+    throw new AppError(`${ERROR_MESSAGES.VALIDATION.UNSUPPORTED_LANGUAGE}. Available: ${Object.keys(VOICE_CONFIGS).join(', ')}`, 400)
+  }
   if (o?.audioFormat && !['MP3', 'WAV'].includes(o.audioFormat)) throw new AppError(ERROR_MESSAGES.VALIDATION.UNSUPPORTED_AUDIO_FORMAT, 400)
   if (o?.style && !STORY_STYLES.includes(o.style)) throw new AppError('Unsupported story style', 400)
   if (o?.tone && !STORY_TONES.includes(o.tone)) throw new AppError('Unsupported story tone', 400)

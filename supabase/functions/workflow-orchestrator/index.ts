@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     // Workflow-not-found and validation errors are the caller's problem; hide internals otherwise
-    if (error instanceof Error && /not found|must use|not allowed|Invalid URL/.test(error.message)) {
-      return json({ success: false, error: error.message }, 400, corsHeaders)
+    if (error instanceof Error && /not found|must use|not allowed|Invalid URL/.test((error instanceof Error ? error.message : String(error)))) {
+      return json({ success: false, error: (error instanceof Error ? error.message : String(error)) }, 400, corsHeaders)
     }
     return errorResponse(error, corsHeaders)
   }
@@ -143,7 +143,7 @@ async function executeWorkflow(workflow: any, request: WorkflowRequest, supabase
       workflowId: request.workflowId,
       userId: request.userId,
       status: 'failed',
-      error: error.message,
+      error: (error instanceof Error ? error.message : String(error)),
       executionTime,
       stepsCompleted,
       totalSteps: steps.length
@@ -191,7 +191,7 @@ async function executeStep(step: WorkflowStep, data: any, supabase: any): Promis
     const executionTime = Date.now() - startTime
     return {
       success: false,
-      error: error.message,
+      error: (error instanceof Error ? error.message : String(error)),
       executionTime
     }
   }
@@ -208,7 +208,7 @@ async function executeAIStep(step: WorkflowStep, data: any, supabase: any): Prom
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      prompt: prompt.replace(/\{(\w+)\}/g, (match, key) => data[key] || match),
+      prompt: prompt.replace(/\{(\w+)\}/g, (match: any, key: any) => data[key] || match),
       useCase,
       userId: data.__userId,
       preferences: { provider }
@@ -237,7 +237,7 @@ async function executeDataTransformationStep(step: WorkflowStep, data: any): Pro
     )
   } else if (transformation === 'map') {
     transformedData = data.map((item: any) => {
-      const mapped = {}
+      const mapped: Record<string, unknown> = {}
       step.config.mappings.forEach((mapping: any) => {
         mapped[mapping.target] = item[mapping.source]
       })

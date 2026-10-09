@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     if (error) {
       // Same message for unknown email and wrong password, so accounts can't be probed.
       const status = error.status && error.status >= 400 && error.status < 500 ? error.status : 400
-      return json({ error: isSignUp ? error.message : 'Invalid email or password' }, status, cors)
+      return json({ error: isSignUp ? (error instanceof Error ? error.message : String(error)) : 'Invalid email or password' }, status, cors)
     }
     return json({ user: data.user, session: data.session }, 200, cors)
   } catch (e) {

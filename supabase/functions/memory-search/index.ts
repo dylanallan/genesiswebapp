@@ -1,121 +1,49 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import OpenAI from "npm:openai@4.28.0";
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import OpenAI from 'npm:openai@4.28.0'
+import { corsFor } from '../_shared/cors.ts'
+import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 
-import { corsHeaders } from '../_shared/cors.ts';
-
-// Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-
-interface RequestBody {
-  query: string;
-  sessionId?: string;
-  threshold?: number;
-  limit?: number;
-  includeContent?: boolean;
-}
-
+// Semantic search over the caller's own AI memory (ai_embeddings, via find_similar_messages).
+// Body: { query, threshold?: 0..1, limit?: 1..20, contentType?, includeContent? }
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  const cors = corsFor(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
+    const user = await requireUser(req)
+    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!apiKey) return json({ error: 'AI memory needs an OpenAI API key to be configured' }, 503, cors)
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const body = await req.json()
+    const query = typeof body.query === 'string' ? body.query.trim() : ''
+    if (!query || query.length > 2000) return json({ error: 'A query of up to 2000 characters is required' }, 400, cors)
+    const threshold = Math.min(1, Math.max(0, Number(body.threshold ?? 0.7)))
+    const limit = Math.min(20, Math.max(1, Math.round(Number(body.limit ?? 5))))
+    const includeContent = body.includeContent !== false
 
-    if (authError || !user) {
-      throw new Error('Invalid authentication');
-    }
+    const openai = new OpenAI({ apiKey })
+    const embedding = (await openai.embeddings.create({ model: 'text-embedding-3-small', input: query, encoding_format: 'float' })).data[0].embedding
 
-    // Parse request body
-    const { 
-      query, 
-      sessionId, 
-      threshold = 0.7, 
-      limit = 5,
-      includeContent = true
-    } = await req.json() as RequestBody;
+    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const { data, error } = await db.rpc('find_similar_messages', {
+      p_embedding: embedding, p_match_threshold: threshold, p_match_count: limit, p_user_id: user.id,
+    })
+    if (error) throw error
 
-    if (!query) {
-      throw new Error('Query is required');
-    }
-
-    // Generate embedding for the query
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: query,
-      encoding_format: "float"
-    });
-    
-    const embedding = embeddingResponse.data[0].embedding;
-    
-    // Search for similar messages in conversation history
-    let queryBuilder = supabase.rpc('find_similar_messages', {
-      p_embedding: embedding,
-      p_match_threshold: threshold,
-      p_match_count: limit,
-      p_user_id: user.id
-    });
-    
-    // Filter by session if provided
-    if (sessionId) {
-      queryBuilder = queryBuilder.eq('session_id', sessionId);
-    }
-    
-    const { data, error } = await queryBuilder;
-
-    if (error) throw error;
-    
-    // Format the response
-    const results = data?.map(item => ({
-      id: item.id,
-      role: item.role,
-      similarity: item.similarity,
-      timestamp: item.created_at,
-      session_id: item.session_id,
-      ...(includeContent && { content: item.content })
-    })) || [];
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        results,
-        count: results.length
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  } catch (error) {
-    console.error('Memory search error:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    type Match = { id: string; content: string; content_type: string | null; metadata: unknown; created_at: string; similarity: number }
+    const results = ((data ?? []) as Match[])
+      .filter((m) => !body.contentType || m.content_type === body.contentType)
+      .map((m) => ({
+        id: m.id,
+        contentType: m.content_type,
+        similarity: m.similarity,
+        timestamp: m.created_at,
+        metadata: m.metadata,
+        ...(includeContent ? { content: m.content } : {}),
+      }))
+    return json({ success: true, results, count: results.length }, 200, cors)
+  } catch (e) {
+    return errorResponse(e, cors)
   }
-});
+})

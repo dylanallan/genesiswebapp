@@ -317,3 +317,7 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # PayPal calls this endpoint directly with no user JWT; it is authenticated by PayPal signature verification.
 [functions.paypal-webhook]
 verify_jwt = false
+
+# Public liveness check used by the status indicator; returns no sensitive data.
+[functions.health-check]
+verify_jwt = false

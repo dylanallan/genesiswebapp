@@ -1,86 +1,27 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import OpenAI from "npm:openai@4.28.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import OpenAI from 'npm:openai@4.28.0'
+import { corsFor } from '../_shared/cors.ts'
+import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 
-// Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-
-interface RequestBody {
-  text: string;
-  model?: string;
-}
+// Returns an embedding vector for a piece of text (signed-in users only).
+// The model is fixed so callers cannot switch to a more expensive one.
+const MODEL = 'text-embedding-3-small'
+const MAX_CHARS = 8000
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
+  const cors = corsFor(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    await requireUser(req)
+    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!apiKey) return json({ error: 'Embeddings need an OpenAI API key to be configured' }, 503, cors)
+    const { text } = await req.json()
+    if (typeof text !== 'string' || !text.trim() || text.length > MAX_CHARS) {
+      return json({ error: `text is required (max ${MAX_CHARS} characters)` }, 400, cors)
     }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Invalid authentication');
-    }
-
-    // Parse request body
-    const { text, model = 'text-embedding-3-small' } = await req.json() as RequestBody;
-
-    if (!text) {
-      throw new Error('Text is required');
-    }
-
-    // Generate embedding
-    const embeddingResponse = await openai.embeddings.create({
-      model,
-      input: text,
-      encoding_format: "float"
-    });
-    
-    const embedding = embeddingResponse.data[0].embedding;
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        embedding,
-        model,
-        dimensions: embedding.length
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  } catch (error) {
-    console.error('Embedding generation error:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const embedding = (await new OpenAI({ apiKey }).embeddings.create({ model: MODEL, input: text, encoding_format: 'float' })).data[0].embedding
+    return json({ success: true, embedding, model: MODEL, dimensions: embedding.length }, 200, cors)
+  } catch (e) {
+    return errorResponse(e, cors)
   }
-});
+})

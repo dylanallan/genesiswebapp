@@ -14,7 +14,9 @@ Family-history research and heritage preservation, with AI help and light busine
 - **Heritage library**: traditions, celebrations, recipes, stories, artifacts, family contacts and a timeline,
   all private to your account.
 - **AI assistant** (Claude, GPT or Gemini, whichever is configured) with a free daily allowance and a Pro plan.
-- **Voice narration** through a self-hosted open-source TTS server or ElevenLabs.
+- **Voice narration** through a self-hosted open-source TTS server or ElevenLabs, and **family voice preservation**
+  (recreating a relative's voice, with recorded consent) via ElevenLabs.
+- **Photo analysis** of family photos (faces, places, objects, printed dates) via Google Vision; photos stay private.
 - **Automation**: connect your own n8n instance, import starter workflows and run workflows.
 - **Billing** with PayPal subscriptions (cards accepted) and Interac e-Transfer (confirmed by an admin).
 
@@ -48,6 +50,8 @@ Going live: follow **[LAUNCH.md](LAUNCH.md)** step by step.
 | `npm test` | Unit tests (`src/**/*.test.ts`) |
 | `npm run test:beta` | Opens every screen in Chromium against a simulated backend; fails on crashes |
 | `npm run test:db` | Applies all migrations to a blank Postgres, checks they can be re-run |
+| `npm run check:functions` | Type-checks every Supabase Edge Function |
+| `npm run test:functions` | Edge Function unit tests (SSRF guard, voice stories) |
 | `psql -f supabase/tests/rls_test.sql` | Two-user privacy test (see the file header) |
 | `psql -f supabase/tests/payments_test.sql` | e-Transfer flow and payment abuse checks |
 

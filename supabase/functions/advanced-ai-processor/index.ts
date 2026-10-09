@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         const result = {
           content: res.content,
           model: res.model,
-          tokensUsed: res.usage?.total_tokens ?? ((res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0)) ?? null,
+          tokensUsed: res.usage?.total_tokens ?? ((res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0)),
           processingTime: Date.now() - started,
           provider,
         }
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
             request_data: { useCase, prompt: body.prompt.slice(0, 2000), metadata: body.metadata ?? null },
             response_data: { tokensUsed: result.tokensUsed, model: result.model },
           })
-          if (error) console.error('Failed to log AI request:', error.message)
+          if (error) console.error('Failed to log AI request:', (error instanceof Error ? error.message : String(error)))
         }
         return json({ success: true, provider, result, metadata: { processingTime: result.processingTime, tokensUsed: result.tokensUsed } }, 200, cors)
       } catch (e) {

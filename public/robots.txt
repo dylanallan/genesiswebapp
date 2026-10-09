@@ -6,4 +6,4 @@ Disallow: /admin/
 Disallow: /private/
 
 # Sitemap location
-Sitemap: https://your-domain.com/sitemap.xml
+Sitemap: https://example.com/sitemap.xml

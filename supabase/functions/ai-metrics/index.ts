@@ -111,11 +111,11 @@ Deno.serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error.message.includes('Admin access required') ? error.message : 'Internal server error',
+        error: (error instanceof Error ? error.message : String(error)).includes('Admin access required') ? (error instanceof Error ? error.message : String(error)) : 'Internal server error',
         timestamp: new Date().toISOString()
       }),
       {
-        status: error.message.includes('Admin access required') ? 403 : 500,
+        status: (error instanceof Error ? error.message : String(error)).includes('Admin access required') ? 403 : 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
