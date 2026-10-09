@@ -11,7 +11,7 @@ const PAID_DAILY_MESSAGES = Number(Deno.env.get('PAID_DAILY_MESSAGES') ?? '500')
 const MODELS: Record<string, string> = {
   anthropic: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
   openai: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
-  gemini: Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.0-flash',
+  gemini: Deno.env.get('GEMINI_MODEL') ?? 'gemini-flash-latest',
   ...Object.fromEntries(Object.keys(OPENAI_COMPATIBLE).map((name) => [name, compatibleModel(name)])),
 }
 
