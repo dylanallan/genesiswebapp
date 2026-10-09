@@ -137,143 +137,66 @@ class AdvancedAnalytics {
     }
   }
 
+  private metric(id: string, name: string, value: number, category: AnalyticsMetric['category']): AnalyticsMetric {
+    // No historical baseline yet, so trend is reported as stable rather than invented.
+    return { id, name, value, trend: 'stable', change: 0, timestamp: new Date(), category };
+  }
+
+  private async countRows(table: string, since?: Date, filter?: (q: any) => any): Promise<number | null> {
+    let q = supabase.from(table).select('*', { count: 'exact', head: true });
+    if (since) q = q.gte(table === 'analytics_events' ? 'timestamp' : 'created_at', since.toISOString());
+    if (filter) q = filter(q);
+    const { count, error } = await q;
+    return error ? null : count ?? 0;
+  }
+
+  // Measured, not estimated: a timed database round trip, and (for admins) real AI latency from logs.
   private async collectPerformanceMetrics(): Promise<AnalyticsMetric[]> {
     const metrics: AnalyticsMetric[] = [];
-    
     try {
-      // Mock database performance metrics instead of calling missing RPC
-      console.log('📊 Mock database performance metrics collected');
-      
-      metrics.push({
-        id: 'db-query-time',
-        name: 'Database Query Time',
-        value: 85, // Mock value
-        trend: 'stable',
-        change: 0,
-        timestamp: new Date(),
-        category: 'performance'
-      });
+      const started = performance.now();
+      const { error } = await supabase.from('health_check').select('id').limit(1);
+      if (!error) metrics.push(this.metric('db-query-time', 'Database Round Trip (ms)', Math.round(performance.now() - started), 'performance'));
 
-      metrics.push({
-        id: 'cache-hit-ratio',
-        name: 'Cache Hit Ratio',
-        value: 92, // Mock value
-        trend: 'up',
-        change: 2.1,
-        timestamp: new Date(),
-        category: 'performance'
-      });
-
-      // AI Router Performance with fallback
-      try {
-        // Mock AI logs instead of querying missing table
-        console.log('🤖 Mock AI performance metrics collected');
-        
-        metrics.push({
-          id: 'ai-response-time',
-          name: 'AI Response Time',
-          value: 1200, // Mock value
-          trend: 'stable',
-          change: 0,
-          timestamp: new Date(),
-          category: 'performance'
-        });
-
-      } catch (aiError) {
-        console.warn('AI metrics collection failed:', aiError);
-        // Add default AI metrics
-        metrics.push({
-          id: 'ai-response-time',
-          name: 'AI Response Time',
-          value: 1500, // Default reasonable response time
-          trend: 'stable',
-          change: 0,
-          timestamp: new Date(),
-          category: 'performance'
-        });
+      const { data: logs } = await supabase
+        .from('ai_request_logs')
+        .select('response_time_ms')
+        .not('response_time_ms', 'is', null)
+        .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+        .limit(500);
+      if (logs && logs.length > 0) {
+        const avg = logs.reduce((sum: number, r: any) => sum + (r.response_time_ms ?? 0), 0) / logs.length;
+        metrics.push(this.metric('ai-response-time', 'AI Response Time (ms, 24h)', Math.round(avg), 'performance'));
       }
-
     } catch (error) {
       console.error('Error collecting performance metrics:', error);
-      // Return minimal safe metrics
-      metrics.push({
-        id: 'system-health',
-        name: 'System Health',
-        value: 85, // Conservative health score
-        trend: 'stable',
-        change: 0,
-        timestamp: new Date(),
-        category: 'performance'
-      });
     }
-    
     return metrics;
   }
 
+  // The signed-in user's own activity over the last 30 days (row-level security scopes every count).
   private async collectUsageMetrics(): Promise<AnalyticsMetric[]> {
     const metrics: AnalyticsMetric[] = [];
-    
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
     try {
-      // Mock user activity metrics instead of querying missing table
-      console.log('👥 Mock user activity metrics collected');
-      
-      metrics.push({
-        id: 'active-users',
-        name: 'Active Users',
-        value: 156, // Mock value
-        trend: 'up',
-        change: 12.5,
-        timestamp: new Date(),
-        category: 'usage'
-      });
-
-      metrics.push({
-        id: 'session-duration',
-        name: 'Average Session Duration',
-        value: 25, // Mock value in minutes
-        trend: 'stable',
-        change: 0,
-        timestamp: new Date(),
-        category: 'usage'
-      });
-
-      metrics.push({
-        id: 'page-views',
-        name: 'Page Views',
-        value: 1247, // Mock value
-        trend: 'up',
-        change: 8.3,
-        timestamp: new Date(),
-        category: 'usage'
-      });
-
-      // Mock feature usage metrics
-      metrics.push({
-        id: 'ai-feature-usage',
-        name: 'AI Feature Usage',
-        value: 89, // Mock percentage
-        trend: 'up',
-        change: 15.2,
-        timestamp: new Date(),
-        category: 'usage'
-      });
-
-      metrics.push({
-        id: 'heritage-feature-usage',
-        name: 'Heritage Feature Usage',
-        value: 67, // Mock percentage
-        trend: 'up',
-        change: 22.1,
-        timestamp: new Date(),
-        category: 'usage'
-      });
-
+      const [conversations, pageViews, records, family, stories] = await Promise.all([
+        this.countRows('conversations', since),
+        this.countRows('analytics_events', since, (q) => q.eq('event_type', 'page_view')),
+        this.countRows('saved_records', since),
+        this.countRows('family_members'),
+        this.countRows('cultural_stories'),
+      ]);
+      if (conversations !== null) metrics.push(this.metric('ai-conversations', 'AI Conversations (30d)', conversations, 'usage'));
+      if (pageViews !== null) metrics.push(this.metric('page-views', 'Page Views (30d)', pageViews, 'usage'));
+      if (records !== null) metrics.push(this.metric('saved-records', 'Records Saved (30d)', records, 'usage'));
+      if (family !== null) metrics.push(this.metric('family-members', 'People in Family Tree', family, 'usage'));
+      if (stories !== null) metrics.push(this.metric('stories', 'Stories Preserved', stories, 'usage'));
     } catch (error) {
       console.error('Error collecting usage metrics:', error);
     }
-    
     return metrics;
   }
+
 
   private async collectBusinessMetrics(): Promise<AnalyticsMetric[]> {
     const metrics: AnalyticsMetric[] = [];
@@ -404,10 +327,7 @@ class AdvancedAnalytics {
 
   private async storeMetrics(metrics: AnalyticsMetric[]) {
     try {
-      // Mock metrics storage instead of inserting to missing table
-      console.log(`📊 Mock storage of ${metrics.length} metrics`);
-      
-      // Store in memory for now
+      // Kept in memory for this session; persistent metrics are written server-side (system_health_metrics).
       metrics.forEach(metric => {
         if (!this.metrics.has(metric.category)) {
           this.metrics.set(metric.category, []);

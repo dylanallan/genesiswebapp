@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SampleDataBanner from './SampleDataBanner';
 import { GlobalDataHub } from '../lib/global-data-hub.js';
 import { AdvancedAnalyticsEngine } from '../lib/advanced-analytics-engine.js';
 
@@ -136,6 +137,7 @@ const GlobalIntelligenceDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <SampleDataBanner what="trends and confidence scores" />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

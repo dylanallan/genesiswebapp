@@ -18,7 +18,25 @@ export interface TreeMember {
 }
 
 
-export const fromRow = (r: any): TreeMember => ({
+interface FamilyRow {
+  id: string;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
+  relationship: string | null;
+  birth_date: string | null;
+  birth_location: string | null;
+  death_date: string | null;
+  death_location: string | null;
+  notes: string | null;
+  confidence: number | null;
+  source: TreeMember['source'] | null;
+  parent_ids: string[] | null;
+  spouse_ids: string[] | null;
+  children_ids: string[] | null;
+}
+
+export const fromRow = (r: FamilyRow): TreeMember => ({
   id: r.id,
   name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' '),
   relationship: r.relationship ?? '',
