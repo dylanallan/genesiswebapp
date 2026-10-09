@@ -1,0 +1,28 @@
+-- Older versions of the app gave every signed-in user read/write access to some tables ("using (true)"),
+-- including other people's saved voices and stored API keys. Postgres combines policies with OR, so those
+-- rules override the private ones added by later migrations. This removes only those blanket rules on the
+-- tables listed below; rules limited to the service role and the app's own per-user rules stay.
+-- Tables that never had row-level security get it switched on (no policies = server-side access only).
+-- Removes no tables and no rows. On a fresh project there is nothing to remove and this is a no-op.
+do $$
+declare r record;
+begin
+  for r in
+    select tablename, policyname from pg_policies
+    where schemaname = 'public'
+      and tablename = any (array[
+        'voice_profiles', 'voice_generations', 'api_key_management', 'api_keys', 'user_metadata',
+        'user_security_metadata', 'system_settings', 'error_recovery_logs', 'system_logs', 'system_performance_logs',
+        'system_health_metrics', 'model_performance_metrics_staging', 'function_logs', 'function_metrics',
+        'notification_logs', 'notification_channels', 'notification_templates'])
+      and (qual = 'true' or with_check = 'true')
+      and roles <> '{service_role}'
+  loop
+    execute format('drop policy %I on public.%I', r.policyname, r.tablename);
+  end loop;
+end $$;
+
+alter table if exists public.media_assets enable row level security;
+alter table if exists public.documents enable row level security;
+alter table if exists public.external_sources enable row level security;
+alter table if exists public.historical_events enable row level security;
