@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
+import { createClient } from 'npm:@supabase/supabase-js@2';
 import OpenAI from "npm:openai@4.28.0";
 
 import { corsHeaders } from '../_shared/cors.ts';

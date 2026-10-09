@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
@@ -56,7 +55,7 @@ const PROVIDERS = [
 
 const admin = () => createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = corsFor(req)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
@@ -69,8 +68,8 @@ serve(async (req) => {
 
     // Plan + daily quota (counted before the call so failures can't be used to dodge the limit)
     const db = admin()
-    const { data: sub } = await db.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle()
-    const paid = sub?.status === 'active' || sub?.status === 'trialing'
+    const { data: paid, error: planError } = await db.rpc('has_pro_access', { p_user: user.id })
+    if (planError) throw planError
     const limit = paid ? PAID_DAILY_MESSAGES : FREE_DAILY_MESSAGES
     const { data: used, error: usageError } = await db.rpc('increment_ai_usage', { p_user: user.id })
     if (usageError) throw usageError

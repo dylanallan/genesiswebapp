@@ -64,23 +64,24 @@ test('every dashboard feature opens without crashing', async ({ page }) => {
   expect(report.filter((r) => !r.startsWith('ok'))).toEqual([]);
 });
 
-test('pricing page: free user can start checkout', async ({ page }) => {
+test('pricing page: free user can start PayPal checkout', async ({ page }) => {
   current = 'pricing';
   await page.goto('/pricing');
   await expect(page.getByRole('heading', { name: /choose your plan/i })).toBeVisible();
   const [req] = await Promise.all([
-    page.waitForRequest((r) => r.url().includes('create-checkout-session')),
-    page.getByRole('button', { name: 'Upgrade' }).first().click(),
+    page.waitForRequest((r) => r.url().includes('paypal-subscription')),
+    page.getByRole('button', { name: 'Subscribe with PayPal' }).first().click(),
   ]);
-  expect(JSON.parse(req.postData() ?? '{}')).toEqual({ plan: 'monthly' });
+  expect(JSON.parse(req.postData() ?? '{}')).toEqual({ action: 'create', plan: 'monthly' });
 });
 
-test('pricing page: subscriber sees Pro and can manage billing', async ({ page }) => {
+test('pricing page: subscriber sees Pro and can cancel', async ({ page }) => {
   current = 'pricing-pro';
   state.subscribed = true;
   await page.goto('/pricing');
   await expect(page.getByText(/You're on/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Manage billing' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cancel subscription' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Change payment method' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Upgrade' })).toHaveCount(0);
   state.subscribed = false;
 });

@@ -3,24 +3,29 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSession } from '../lib/session-context';
 import { signOut } from '../lib/supabase';
+import { syncPayPalSubscription } from '../lib/billing';
 
 // Slim top bar on every screen: navigation, plan badge, upgrade / sign out.
 export default function AccountBar() {
   const { user, subscription, refreshSubscription } = useSession();
   const [params, setParams] = useSearchParams();
 
-  // Stripe sends people back with ?checkout=success|cancelled
+  // PayPal sends people back with ?checkout=success|cancelled
   useEffect(() => {
     const result = params.get('checkout');
     if (!result) return;
     if (result === 'success') {
-      toast.success('Payment received — welcome to Pro!');
-      void refreshSubscription();
-      // The webhook can land a moment after the redirect; check again shortly.
-      const t = setTimeout(() => void refreshSubscription(), 3000);
       params.delete('checkout');
       setParams(params, { replace: true });
-      return () => clearTimeout(t);
+      // Confirm with PayPal right away instead of waiting for the webhook.
+      syncPayPalSubscription()
+        .then(({ status }) => {
+          if (status === 'active' || status === 'unchanged') toast.success('Payment confirmed — welcome to Pro!');
+          else toast.info('PayPal is still confirming your payment. Your plan will update shortly.');
+        })
+        .catch(() => toast.info('PayPal is still confirming your payment. Your plan will update shortly.'))
+        .finally(() => void refreshSubscription());
+      return;
     }
     toast.info('Checkout cancelled — you have not been charged.');
     params.delete('checkout');

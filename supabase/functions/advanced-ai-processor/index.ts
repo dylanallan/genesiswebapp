@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
@@ -40,7 +39,7 @@ const SYSTEM_PROMPTS: Record<UseCase, string> = {
 const normalizeProvider = (p?: string): Provider | undefined =>
   p === 'google' ? 'gemini' : p === 'openai' || p === 'anthropic' || p === 'gemini' ? p : undefined
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = corsFor(req)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)

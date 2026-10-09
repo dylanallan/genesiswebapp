@@ -1,11 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import { processMessageWithContext, callAI, AIMessage } from '../_shared/ai-utils.ts'
 
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, errorResponse } from '../_shared/auth.ts'
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsHeaders = corsFor(req)
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {

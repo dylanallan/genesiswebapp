@@ -1,5 +1,4 @@
 // Follow this pattern to import other modules from the Deno registry.
-// import * as mod from "https://deno.land/std@0.170.0/node/module.ts";
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import OpenAI from "npm:openai@4.28.0";

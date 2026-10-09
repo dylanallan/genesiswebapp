@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { corsFor } from "../_shared/cors.ts";
 import { requireUser, requireActiveSubscription, json, errorResponse } from "../_shared/auth.ts";
 
@@ -35,7 +34,7 @@ async function elevenLabsSpeech(text: string, language: string): Promise<Respons
   });
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method Not Allowed" }, 405, cors);

@@ -28,7 +28,6 @@
     "@pinecone-database/pinecone": "^2.0.0",
     "@sentry/react": "^7.107.0",
     "@sentry/tracing": "^7.107.0",
-    "@stripe/stripe-js": "^2.4.0",
     "@supabase/auth-helpers-react": "^0.4.2",
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",

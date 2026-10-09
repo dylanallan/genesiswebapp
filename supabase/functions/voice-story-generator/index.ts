@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { callAI } from '../_shared/ai-utils.ts'
 import { withCors } from '../_shared/cors.ts'
@@ -273,4 +272,4 @@ export async function handleRequest(req: Request): Promise<Response> {
   return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }
 
-if (import.meta.main) serve(withCors(withErrorHandling(handleRequest)))
+if (import.meta.main) Deno.serve(withCors(withErrorHandling(handleRequest)))

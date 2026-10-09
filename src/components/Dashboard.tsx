@@ -187,6 +187,7 @@ import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
 import FamilySummary from './FamilySummary';
 import RecordsSearch from './RecordsSearch';
+import AdminPayments from './AdminPayments';
 import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
 interface DashboardProps {
@@ -782,6 +783,14 @@ const features = [
     component: SettingsPanel,
     description: 'Manage application settings',
     category: 'tools'
+  },
+  {
+    id: 'admin-payments',
+    name: 'Payments (admin)',
+    icon: CreditCard,
+    component: AdminPayments,
+    description: 'Confirm Interac e-Transfers',
+    category: 'user',
   }
 ];
 

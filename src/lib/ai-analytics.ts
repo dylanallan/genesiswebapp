@@ -191,11 +191,12 @@ export async function trackAIUsage(tokensUsed: number, model: string): Promise<b
 // The real limit the AI router enforces: messages per UTC day, by plan.
 export async function getAIUsageQuota(): Promise<{ plan: string; limit: number; used: number; remaining: number; resetDate: Date }> {
   const today = new Date().toISOString().slice(0, 10);
-  const [{ data: sub }, { data: usage }] = await Promise.all([
-    supabase.from('subscriptions').select('status').maybeSingle(),
+  const { data: auth } = await supabase.auth.getUser();
+  const [{ data: hasPro }, { data: usage }] = await Promise.all([
+    supabase.rpc('has_pro_access', { p_user: auth?.user?.id }),
     supabase.from('ai_usage_daily').select('count').eq('day', today).maybeSingle(),
   ]);
-  const paid = sub?.status === 'active' || sub?.status === 'trialing';
+  const paid = hasPro === true;
   const limit = paid ? Number(import.meta.env.VITE_PAID_DAILY_MESSAGES ?? 500) : Number(import.meta.env.VITE_FREE_DAILY_MESSAGES ?? 10);
   const used = usage?.count ?? 0;
   const reset = new Date();

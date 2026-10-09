@@ -8,7 +8,7 @@ interface PaymentFormProps {
   onError?: (error: Error) => void;
 }
 
-// Payments happen on Stripe's hosted checkout page, so card details never touch this app.
+// Payments happen on PayPal's own approval page, so card and bank details never touch this app.
 export const PaymentForm = ({ plan = 'monthly', onError }: PaymentFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
 

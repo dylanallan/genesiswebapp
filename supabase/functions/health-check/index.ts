@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import { withCors } from '../_shared/cors.ts'
 import { withErrorHandling } from '../_shared/error-handler.ts'
 import { initLogger } from '../_shared/logger.ts'
@@ -367,7 +366,4 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 
 // Serve the endpoint
-serve(
-  withCors(withErrorHandling(handleRequest)),
-  { port: 8000 }
-)
+Deno.serve(withCors(withErrorHandling(handleRequest)))

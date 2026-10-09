@@ -20,18 +20,15 @@ export async function requireUser(req: Request): Promise<User> {
   return data.user
 }
 
-// Requires an active paid subscription (see supabase/migrations/*_billing.sql).
+// Requires Pro access (see public.has_pro_access: active plan, or a cancelled/e-Transfer plan
+// still inside its paid period).
 export async function requireActiveSubscription(user: User): Promise<void> {
   const admin = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   )
-  const { data } = await admin
-    .from('subscriptions')
-    .select('status,current_period_end')
-    .eq('user_id', user.id)
-    .in('status', ['active', 'trialing'])
-    .maybeSingle()
+  const { data, error } = await admin.rpc('has_pro_access', { p_user: user.id })
+  if (error) throw error
   if (!data) throw new HttpError(402, 'An active subscription is required')
 }
 

@@ -63,18 +63,18 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (fn === 'voice-synthesis') {
         return route.fulfill({ status: 200, contentType: 'audio/mpeg', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from([0xff, 0xfb, 0x90, 0x00]) });
       }
-      if (fn === 'create-checkout-session') return json(route, { url: 'https://checkout.stripe.test/session' });
-      if (fn === 'create-portal-session') return json(route, { url: 'https://billing.stripe.test/portal' });
+      if (fn === 'paypal-subscription') return json(route, { url: 'https://www.sandbox.paypal.test/approve', status: state.subscribed ? 'active' : 'pending' });
       return json(route, { status: 'healthy', data: [], results: [] });
     }
 
+    if (path === '/rest/v1/rpc/has_pro_access') return json(route, state.subscribed);
     if (path.startsWith('/rest/v1/rpc/')) return json(route, []);
     if (path.startsWith('/rest/v1/')) {
       const table = path.split('/')[3];
       const wantsObject = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object');
       let rows: unknown[] = [];
       if (table === 'subscriptions' && state.subscribed) {
-        rows = [{ user_id: USER.id, status: 'active', current_period_end: '2030-01-01T00:00:00Z', cancel_at_period_end: false }];
+        rows = [{ user_id: USER.id, status: 'active', provider: 'paypal', current_period_end: '2030-01-01T00:00:00Z', cancel_at_period_end: false }];
       }
       if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111' }];
       if (wantsObject) return rows.length ? json(route, rows[0]) : json(route, { code: 'PGRST116', message: 'no rows' }, 406);

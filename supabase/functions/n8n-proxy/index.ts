@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
@@ -22,7 +21,7 @@ async function n8nFetch(base: URL, apiKey: string, path: string, init: RequestIn
   return { ok: res.ok, status: res.status, body }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = corsFor(req)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)

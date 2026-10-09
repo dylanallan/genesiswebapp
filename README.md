@@ -16,7 +16,7 @@ Family-history research and heritage preservation, with AI help and light busine
 - **AI assistant** (Claude, GPT or Gemini, whichever is configured) with a free daily allowance and a Pro plan.
 - **Voice narration** through a self-hosted open-source TTS server or ElevenLabs.
 - **Automation**: connect your own n8n instance, import starter workflows and run workflows.
-- **Billing** with Stripe Checkout and the Stripe customer portal.
+- **Billing** with PayPal subscriptions (cards accepted) and Interac e-Transfer (confirmed by an admin).
 
 Demo and showcase screens are labelled **Sample data** wherever their numbers are illustrative.
 
@@ -25,9 +25,9 @@ Demo and showcase screens are labelled **Sample data** wherever their numbers ar
 - **Frontend:** React + Vite + Tailwind (`src/`), deployed to Netlify or Vercel.
 - **Backend:** Supabase. Postgres with row-level security on every user table (`supabase/migrations/`),
   Auth, Storage, and Edge Functions (`supabase/functions/`).
-- **Security model:** every Edge Function verifies the caller's session. AI and Stripe keys exist only as
-  function secrets. Users can only read and write their own rows. Plans can only be granted by the signed
-  Stripe webhook.
+- **Security model:** every Edge Function verifies the caller's session. AI and PayPal keys exist only as
+  function secrets. Users can only read and write their own rows. Pro is granted only by verified PayPal
+  data (signed webhook or a direct check with PayPal) or by an admin confirming an e-Transfer.
 
 ## Getting started
 
@@ -49,6 +49,7 @@ Going live: follow **[LAUNCH.md](LAUNCH.md)** step by step.
 | `npm run test:beta` | Opens every screen in Chromium against a simulated backend; fails on crashes |
 | `npm run test:db` | Applies all migrations to a blank Postgres, checks they can be re-run |
 | `psql -f supabase/tests/rls_test.sql` | Two-user privacy test (see the file header) |
+| `psql -f supabase/tests/payments_test.sql` | e-Transfer flow and payment abuse checks |
 
 ## Data sources
 

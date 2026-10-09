@@ -314,6 +314,6 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
-# Stripe calls this endpoint directly with no user JWT; it authenticates by verifying Stripe's signature.
-[functions.stripe-webhook]
+# PayPal calls this endpoint directly with no user JWT; it is authenticated by PayPal signature verification.
+[functions.paypal-webhook]
 verify_jwt = false

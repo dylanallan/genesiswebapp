@@ -3,8 +3,9 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 export interface SubscriptionInfo {
-  status: string; // active | trialing | past_due | canceled | none ...
-  active: boolean; // true when the user has paid access
+  status: string; // active | pending | past_due | canceled | none ...
+  active: boolean; // true when the user has Pro access (server rule: has_pro_access)
+  provider: string | null; // paypal | etransfer
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
 }
@@ -18,7 +19,7 @@ interface SessionContextType {
   refreshSubscription: () => Promise<void>;
 }
 
-const NO_SUBSCRIPTION: SubscriptionInfo = { status: 'none', active: false, currentPeriodEnd: null, cancelAtPeriodEnd: false };
+const NO_SUBSCRIPTION: SubscriptionInfo = { status: 'none', active: false, provider: null, currentPeriodEnd: null, cancelAtPeriodEnd: false };
 
 const SessionContext = createContext<SessionContextType | null>(null);
 
@@ -64,17 +65,18 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     }
     setSubscriptionLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('status,current_period_end,cancel_at_period_end')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const [{ data, error }, { data: hasPro, error: accessError }] = await Promise.all([
+        supabase.from('subscriptions').select('status,provider,current_period_end,cancel_at_period_end').eq('user_id', userId).maybeSingle(),
+        supabase.rpc('has_pro_access', { p_user: userId }),
+      ]);
       if (error) throw error;
+      if (accessError) throw accessError;
       setSubscription(
         data
           ? {
               status: data.status,
-              active: data.status === 'active' || data.status === 'trialing',
+              active: hasPro === true,
+              provider: data.provider ?? null,
               currentPeriodEnd: data.current_period_end,
               cancelAtPeriodEnd: data.cancel_at_period_end,
             }

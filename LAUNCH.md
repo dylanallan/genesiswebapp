@@ -34,21 +34,37 @@ Get an API key from Anthropic, OpenAI or Google AI Studio, then:
 npx supabase secrets set ANTHROPIC_API_KEY=...   # and/or OPENAI_API_KEY / GEMINI_API_KEY
 ```
 
-## 3. Stripe (getting paid)
+## 3. Getting paid
 
-1. Create a Stripe account and complete business verification.
-2. Products → add **Genesis Pro** with a monthly price (and optionally a yearly price). Copy the price IDs (`price_...`).
-3. Developers → Webhooks → add endpoint:
-   `https://YOUR-PROJECT.supabase.co/functions/v1/stripe-webhook`
-   with events: `checkout.session.completed`, `customer.subscription.created`,
-   `customer.subscription.updated`, `customer.subscription.deleted`. Copy the signing secret (`whsec_...`).
-4. Settings → Billing → Customer portal → turn it on (lets customers cancel / update cards).
+### PayPal (automatic monthly / yearly subscriptions; customers can pay by card or PayPal)
+1. Open a **PayPal Business** account and finish verification.
+2. Go to https://developer.paypal.com → **Apps & Credentials** → create an app. Copy the **Client ID** and **Secret**
+   (use the **Sandbox** tab first for testing, then **Live**).
+3. Create the plans (prints two plan IDs):
+   ```sh
+   PAYPAL_CLIENT_ID=... PAYPAL_CLIENT_SECRET=... PAYPAL_ENV=sandbox \
+   MONTHLY_PRICE=19.00 YEARLY_PRICE=190.00 CURRENCY=USD node scripts/paypal-setup.mjs
+   ```
+4. In the same app → **Webhooks** → add
+   `https://YOUR-PROJECT.supabase.co/functions/v1/paypal-webhook`
+   with events `BILLING.SUBSCRIPTION.ACTIVATED`, `BILLING.SUBSCRIPTION.UPDATED`, `BILLING.SUBSCRIPTION.CANCELLED`,
+   `BILLING.SUBSCRIPTION.SUSPENDED`, `BILLING.SUBSCRIPTION.EXPIRED`, `BILLING.SUBSCRIPTION.PAYMENT.FAILED`,
+   `PAYMENT.SALE.COMPLETED`. Copy the **Webhook ID**.
 5. Save the secrets:
    ```sh
-   npx supabase secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_WEBHOOK_SECRET=whsec_... \
-     STRIPE_PRICE_MONTHLY=price_... STRIPE_PRICE_YEARLY=price_...
+   npx supabase secrets set PAYPAL_ENV=sandbox PAYPAL_CLIENT_ID=... PAYPAL_CLIENT_SECRET=... \
+     PAYPAL_WEBHOOK_ID=... PAYPAL_PLAN_MONTHLY=P-... PAYPAL_PLAN_YEARLY=P-...
    ```
-   Test first with `sk_test_` keys and card `4242 4242 4242 4242`, then switch to live keys.
+6. Test with a PayPal **sandbox buyer** account (Developer Dashboard → Sandbox → Accounts). When everything works,
+   repeat steps 2–5 on the **Live** tab with `PAYPAL_ENV=live`.
+
+### Interac e-Transfer (manual; Canada)
+1. Sign in to the app as an admin → Dashboard → **Payments (admin)**.
+2. Enter the email that receives your e-Transfers and the monthly / yearly prices in CAD → **Save**.
+   The e-Transfer option now appears on the Plans page.
+3. Customers get a reference code like `GEN-3F9A2C` to put in the e-Transfer message.
+   When the money arrives, find that code in **Payments (admin)** and press **Received**. Pro switches on immediately.
+4. Tip: turn on **Autodeposit** with your bank so transfers land without security questions.
 
 ## 4. Site settings for the backend
 
@@ -76,11 +92,12 @@ npx supabase secrets set SITE_URL=https://your-domain.com ALLOWED_ORIGINS=https:
 ## 7. Before you announce it
 
 - [ ] Sign up, confirm email, sign in, sign out.
-- [ ] Chat with the AI assistant; hit the free limit; upgrade with a Stripe test card; confirm the plan badge says **Pro**.
-- [ ] Manage billing → cancel → plan returns to Free at period end.
+- [ ] Chat with the AI assistant; hit the free limit; subscribe with a PayPal sandbox buyer; confirm the badge says **Pro**.
+- [ ] Plans → **Cancel subscription** → Pro stays until the paid-through date, then returns to Free.
+- [ ] Request an e-Transfer, confirm it in **Payments (admin)**, and check the customer becomes **Pro**.
 - [ ] Search historical records and save one.
 - [ ] Add a family member; upload a raw DNA file.
-- [ ] Add a **Privacy Policy** and **Terms of Service** (required for Stripe and for handling DNA and family data). Have a lawyer review them; genetic data has extra rules in many states and countries.
+- [ ] Add a **Privacy Policy** and **Terms of Service** (required by PayPal and for handling DNA and family data). Have a lawyer review them; genetic data has extra rules in many states and countries.
 
 ## Checks you can run any time
 
