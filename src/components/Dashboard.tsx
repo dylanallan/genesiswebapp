@@ -187,7 +187,7 @@ import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
 import FamilySummary from './FamilySummary';
 import RecordsSearch from './RecordsSearch';
-import { FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
+import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -753,9 +753,9 @@ const features = [
   },
   {
     id: 'data-table',
-    name: 'Data Table',
+    name: 'My Saved Records',
     icon: Table,
-    component: DataTable,
+    component: SavedRecordsTableFeature,
     description: 'Interactive data tables',
     category: 'tools'
   },
@@ -771,7 +771,7 @@ const features = [
     id: 'seo',
     name: 'SEO Tools',
     icon: Search,
-    component: SEO,
+    component: SEOFeature,
     description: 'Search engine optimization',
     category: 'tools'
   },

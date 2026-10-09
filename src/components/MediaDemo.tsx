@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SampleDataBanner from './SampleDataBanner';
 import { Table as Tabs, Table as Tab } from 'lucide-react';
 import { VideoPlayer } from './VideoPlayer';
 import { AudioPlayer } from './AudioPlayer';
@@ -13,6 +14,7 @@ export const MediaDemo: React.FC = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <SampleDataBanner what="sample video and song" />
       <div className="p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Media Components Demo</h2>
         

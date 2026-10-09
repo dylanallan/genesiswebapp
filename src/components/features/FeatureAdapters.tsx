@@ -11,6 +11,8 @@ import { VideoPlayer } from '../VideoPlayer';
 import { AudioPlayer } from '../AudioPlayer';
 import { MediaPlayer } from '../MediaPlayer';
 import { ConversationSummarizer } from '../ConversationSummarizer';
+import { DataTable } from '../DataTable';
+import { SEO } from '../SEO';
 
 // ---------- Family tree ----------
 export function FamilyTreeFeature() {
@@ -177,6 +179,73 @@ export function SummarizerFeature({ onClose }: { onClose: () => void }) {
         </ul>
       )}
       <button className="mt-4 text-sm text-gray-600 underline" onClick={onClose}>Back</button>
+    </div>
+  );
+}
+
+// ---------- Research records table (saved from Historical Records search) ----------
+interface SavedRecordRow {
+  id: string; title: string; source: string; record_date: string | null; url: string;
+  attribution: string | null; license: string | null; notes: string | null; created_at: string;
+}
+
+export function SavedRecordsTableFeature() {
+  const [rows, setRows] = useState<SavedRecordRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from('saved_records')
+      .select('id,title,source,record_date,url,attribution,license,notes,created_at')
+      .order('created_at', { ascending: false });
+    if (error) toast.error('Could not load your saved records.');
+    setRows((data ?? []) as SavedRecordRow[]);
+    setLoading(false);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold">My saved records</h2>
+      <DataTable<SavedRecordRow>
+        data={rows}
+        isLoading={loading}
+        onRefresh={load}
+        searchable
+        searchKeys={['title', 'source', 'attribution', 'notes']}
+        keyExtractor={(r) => r.id}
+        onRowClick={(r) => window.open(r.url, '_blank', 'noopener')}
+        emptyState={<p className="p-6 text-gray-600">No saved records yet. Use Historical Records search and press Save on anything useful.</p>}
+        columns={[
+          { key: 'title', header: 'Record', sortable: true },
+          { key: 'source', header: 'Source', sortable: true },
+          { key: 'record_date', header: 'Date', sortable: true, render: (r) => r.record_date ?? '—' },
+          { key: 'created_at', header: 'Saved', sortable: true, render: (r) => new Date(r.created_at).toLocaleDateString() },
+        ]}
+      />
+    </div>
+  );
+}
+
+// ---------- Search & sharing preview for the public site ----------
+export function SEOFeature() {
+  const site = typeof window !== 'undefined' ? window.location.origin : '';
+  const title = 'Genesis Heritage - Automate your business and unlock your roots';
+  const description = 'Genesis Heritage helps businesses automate their operations and discover their roots through advanced AI technology.';
+  return (
+    <div className="space-y-4 rounded-xl border bg-white p-6">
+      <SEO title="SEO Tools" />
+      <h2 className="text-lg font-semibold">How your site appears</h2>
+      <div className="rounded-lg border p-4">
+        <p className="text-xs text-gray-500 mb-1">Search result preview</p>
+        <p className="text-sm text-green-700">{site}</p>
+        <p className="text-lg text-blue-800">{title}</p>
+        <p className="text-sm text-gray-700">{description}</p>
+      </div>
+      <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+        <li>Sitemap: <a className="text-blue-700 underline" href="/sitemap.xml" target="_blank" rel="noopener">{site}/sitemap.xml</a> (regenerated on every deploy)</li>
+        <li>Robots rules: <a className="text-blue-700 underline" href="/robots.txt" target="_blank" rel="noopener">{site}/robots.txt</a></li>
+        <li>Every page sets its own title and sharing (Open Graph / Twitter) tags.</li>
+      </ul>
     </div>
   );
 }
