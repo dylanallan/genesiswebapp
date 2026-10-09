@@ -1,16 +1,18 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { OPENAI_COMPATIBLE, compatibleKey, compatibleModel, orderByPreference, DEFAULT_PROVIDER_ORDER } from '../_shared/ai-providers.ts'
 
 const MAX_MESSAGE_CHARS = 8000
 const FREE_DAILY_MESSAGES = Number(Deno.env.get('FREE_DAILY_MESSAGES') ?? '10')
 const PAID_DAILY_MESSAGES = Number(Deno.env.get('PAID_DAILY_MESSAGES') ?? '500') // abuse backstop
 
 // Models are configurable so a provider retiring a model never needs a code change.
-const MODELS = {
+const MODELS: Record<string, string> = {
   anthropic: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
   openai: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
   gemini: Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.0-flash',
+  ...Object.fromEntries(Object.keys(OPENAI_COMPATIBLE).map((name) => [name, compatibleModel(name)])),
 }
 
 const SYSTEM_PROMPT =
@@ -27,14 +29,19 @@ async function callAnthropic(message: string, apiKey: string): Promise<string> {
   return (await r.json()).content[0].text
 }
 
-async function callOpenAI(message: string, apiKey: string): Promise<string> {
-  const r = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: MODELS.openai, max_tokens: 1024, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message }] }),
-  })
-  if (!r.ok) throw new Error(`OpenAI API error: ${r.status}`)
-  return (await r.json()).choices[0].message.content
+// Any OpenAI-compatible chat API: OpenAI itself, a self-hosted OmniRoute gateway, and the free tiers.
+function openAICompatible(name: string, baseUrl: string) {
+  return async (message: string, apiKey: string): Promise<string> => {
+    const r = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: MODELS[name], max_tokens: 1024, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message }] }),
+    })
+    if (!r.ok) throw new Error(`${name} API error: ${r.status}`)
+    const text = (await r.json()).choices?.[0]?.message?.content
+    if (typeof text !== 'string' || !text) throw new Error(`${name} returned an empty answer`)
+    return text
+  }
 }
 
 async function callGemini(message: string, apiKey: string): Promise<string> {
@@ -47,11 +54,19 @@ async function callGemini(message: string, apiKey: string): Promise<string> {
   return (await r.json()).candidates[0].content.parts[0].text
 }
 
-const PROVIDERS = [
-  { name: 'anthropic', key: () => Deno.env.get('ANTHROPIC_API_KEY'), call: callAnthropic },
-  { name: 'openai', key: () => Deno.env.get('OPENAI_API_KEY'), call: callOpenAI },
+interface Provider { name: string; key: () => string | undefined; call: (message: string, apiKey: string) => Promise<string> }
+
+const ALL_PROVIDERS: Provider[] = [
+  ...Object.entries(OPENAI_COMPATIBLE).map(([name, p]) => ({ name, key: () => compatibleKey(name), call: openAICompatible(name, p.baseUrl()) })),
   { name: 'gemini', key: () => Deno.env.get('GEMINI_API_KEY'), call: callGemini },
+  { name: 'anthropic', key: () => Deno.env.get('ANTHROPIC_API_KEY'), call: callAnthropic },
+  { name: 'openai', key: () => Deno.env.get('OPENAI_API_KEY'), call: openAICompatible('openai', 'https://api.openai.com/v1') },
 ]
+// Free services first; whichever is configured and answering wins, so one running out of quota never stops the chat.
+const PROVIDERS = orderByPreference(
+  orderByPreference(ALL_PROVIDERS, (p) => p.name, DEFAULT_PROVIDER_ORDER.join(',')),
+  (p) => p.name, Deno.env.get('AI_PROVIDER_ORDER'),
+)
 
 const admin = () => createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
@@ -80,15 +95,16 @@ Deno.serve(async (req) => {
       }, 429, cors)
     }
 
-    const candidates = provider ? PROVIDERS.filter((p) => p.name === provider) : PROVIDERS
-    if (provider && candidates.length === 0) return json({ error: 'Unknown provider' }, 400, cors)
+    if (provider && provider !== 'auto' && !PROVIDERS.some((p) => p.name === provider)) return json({ error: 'Unknown provider' }, 400, cors)
+    // The chosen provider goes first; the others stay as fallbacks so a choice that is down or not set up still gets an answer.
+    const candidates = provider ? orderByPreference(PROVIDERS, (p) => p.name, provider) : PROVIDERS
 
     for (const p of candidates) {
       const key = p.key()
       if (!key) continue
       try {
         const response = await p.call(message, key)
-        return json({ response, provider: p.name, model: MODELS[p.name as keyof typeof MODELS], remaining: Math.max(0, limit - used) }, 200, cors)
+        return json({ response, provider: p.name, model: MODELS[p.name], remaining: Math.max(0, limit - used) }, 200, cors)
       } catch (e) {
         console.error(`ai-router: ${p.name} failed:`, (e as Error).message)
       }

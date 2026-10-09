@@ -1,4 +1,5 @@
 import { createLogger } from './logger.ts';
+import { OPENAI_COMPATIBLE, compatibleKey, compatibleModel, providerOrder } from './ai-providers.ts';
 
 const logger = createLogger('ai-utils');
 
@@ -18,7 +19,7 @@ export interface AIRequest {
   model?: string;
   maxTokens?: number;
   temperature?: number;
-  provider?: 'openai' | 'anthropic' | 'gemini';
+  provider?: string; // openai | anthropic | gemini | omniroute | groq | openrouter | mistral | nvidia
 }
 
 export interface AIResponse {
@@ -31,6 +32,11 @@ export interface AIResponse {
 
 export const getAIProvider = (providerName: string): AIProvider | null => {
   try {
+    const compatible = OPENAI_COMPATIBLE[providerName.toLowerCase()];
+    if (compatible) {
+      const key = compatibleKey(providerName.toLowerCase());
+      return key ? { name: providerName.toLowerCase(), apiKey: key, baseUrl: compatible.baseUrl() } : null;
+    }
     const apiKey = Deno.env.get(`${providerName.toUpperCase()}_API_KEY`);
     if (!apiKey) {
       logger.warn(`No API key found for provider: ${providerName}`);
@@ -171,23 +177,48 @@ export const callGemini = async (messages: AIMessage[], model: string = DEFAULT_
   };
 };
 
-// Smart AI Router - uses the requested provider, or tries each configured one in order
+// OmniRoute and the free tiers (Groq, OpenRouter, Mistral, NVIDIA) all speak the OpenAI chat format.
+const callCompatible = (name: string) =>
+  async (messages: AIMessage[], model: string = compatibleModel(name), opts: CallOptions = {}): Promise<AIResponse> => {
+    const provider = getAIProvider(name);
+    if (!provider?.baseUrl) throw new Error(`${name} is not configured`);
+    const response = await fetch(`${provider.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${provider.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages, max_tokens: opts.maxTokens ?? 1000, temperature: opts.temperature ?? 0.7 }),
+    });
+    await failIfNotOk(response, name);
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (typeof content !== 'string' || !content) throw new Error(`${name} returned an empty answer`);
+    return { content, provider: name, model: data.model ?? model, usage: data.usage, timestamp: new Date().toISOString() };
+  };
+
+const CALLERS: Record<string, (messages: AIMessage[], model?: string, opts?: CallOptions) => Promise<AIResponse>> = {
+  openai: callOpenAI,
+  anthropic: callAnthropic,
+  gemini: callGemini,
+  ...Object.fromEntries(Object.keys(OPENAI_COMPATIBLE).map((name) => [name, callCompatible(name)])),
+};
+
+export const isKnownProvider = (name: string) => name in CALLERS;
+
+// Smart AI Router - uses the requested provider, or tries each configured one in order (free services first)
 export const callAI = async (request: AIRequest): Promise<AIResponse> => {
   const { messages, provider, model } = request;
   const opts: CallOptions = { maxTokens: request.maxTokens, temperature: request.temperature };
-  const callers = { openai: callOpenAI, anthropic: callAnthropic, gemini: callGemini } as const;
 
   if (provider) {
-    const call = callers[provider];
+    const call = CALLERS[provider];
     if (!call) throw new Error(`Unknown provider: ${provider}`);
     return await call(messages, model, opts);
   }
 
-  for (const name of ['anthropic', 'openai', 'gemini'] as const) {
+  for (const name of providerOrder()) {
     if (!getAIProvider(name)) continue;
     try {
       // A model name only makes sense for the provider that owns it, so it is not forwarded when auto-selecting.
-      return await callers[name](messages, undefined, opts);
+      return await CALLERS[name](messages, undefined, opts);
     } catch (_error) {
       logger.warn(`Provider ${name} failed, trying next...`);
     }

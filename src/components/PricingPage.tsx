@@ -3,8 +3,8 @@ import { Check, Loader2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '../lib/session-context';
 import {
-  cancelPayPalSubscription, createEtransferRequest, formatCad, getEtransferSettings, startCheckout,
-  PAYPAL_MANAGE_URL, type EtransferSettings, type ManualPayment,
+  cancelPayPalSubscription, createManualPaymentRequest, formatCad, getManualPaymentSettings, isPayPalLink,
+  paypalSubscriptionsEnabled, startCheckout, PAYPAL_MANAGE_URL, type ManualPaymentSettings, type ManualPayment,
 } from '../lib/billing';
 
 const FREE_DAILY = Number(import.meta.env.VITE_FREE_DAILY_MESSAGES ?? 10);
@@ -17,10 +17,14 @@ const PRO_FEATURES = ['Generous daily AI chat limits', 'Voice narration of famil
 export default function PricingPage() {
   const { subscription, subscriptionLoading, refreshSubscription } = useSession();
   const [busy, setBusy] = useState<string | null>(null);
-  const [etransfer, setEtransfer] = useState<EtransferSettings | null>(null);
+  const [manual, setManual] = useState<ManualPaymentSettings | null>(null);
+  const [autoPayPal, setAutoPayPal] = useState(true);
   const [request, setRequest] = useState<ManualPayment | null>(null);
 
-  useEffect(() => { getEtransferSettings().then(setEtransfer).catch(() => setEtransfer(null)); }, []);
+  useEffect(() => {
+    getManualPaymentSettings().then(setManual).catch(() => setManual(null));
+    paypalSubscriptionsEnabled().then(setAutoPayPal);
+  }, []);
 
   const run = async (key: string, fn: () => Promise<void>) => {
     setBusy(key);
@@ -59,6 +63,7 @@ export default function PricingPage() {
             You're on <strong>Pro</strong>
             {endDate && <> — {renewing ? `renews ${endDate}` : `paid through ${endDate}`}</>}
             {subscription.provider === 'etransfer' && ' (e-Transfer, does not renew automatically)'}
+            {subscription.provider === 'paypal_link' && ' (PayPal one-time payment, does not renew automatically)'}
           </span>
           {renewing && (
             <span className="flex gap-2">
@@ -89,41 +94,59 @@ export default function PricingPage() {
             <h2 className="text-xl font-semibold">Pro {plan === 'yearly' && <span className="ml-1 rounded bg-blue-100 px-2 text-xs text-blue-800">Best value</span>}</h2>
             <p className="my-3 text-2xl font-bold">{plan === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE}</p>
             <ul className="mb-5 space-y-2 text-sm">{PRO_FEATURES.map((f) => <li key={f} className="flex gap-2"><Check className="h-4 w-4 text-green-600 mt-0.5" />{f}</li>)}</ul>
-            <button
-              onClick={() => run(plan, () => startCheckout(plan))}
-              disabled={renewing || busy !== null}
-              className="w-full rounded bg-[#ffc439] py-2 font-semibold text-gray-900 disabled:opacity-50"
-            >
-              {renewing ? 'Current plan' : busy === plan ? 'Opening PayPal…' : 'Subscribe with PayPal'}
-            </button>
-            {etransfer && (
+            {autoPayPal && (
               <button
-                onClick={() => run(`et-${plan}`, async () => setRequest(await createEtransferRequest(plan)))}
+                onClick={() => run(plan, () => startCheckout(plan))}
+                disabled={renewing || busy !== null}
+                className="w-full rounded bg-[#ffc439] py-2 font-semibold text-gray-900 disabled:opacity-50"
+              >
+                {renewing ? 'Current plan' : busy === plan ? 'Opening PayPal…' : 'Subscribe with PayPal'}
+              </button>
+            )}
+            {manual && isPayPalLink(manual.paypalLinks[plan]) && (
+              <button
+                onClick={() => run(`pl-${plan}`, async () => setRequest(await createManualPaymentRequest(plan, 'paypal_link')))}
+                disabled={renewing || busy !== null}
+                className={`${autoPayPal ? 'mt-2 border border-gray-300 text-sm text-gray-800' : 'bg-[#ffc439] font-semibold text-gray-900'} w-full rounded py-2 disabled:opacity-50`}
+              >
+                {busy === `pl-${plan}` ? 'Preparing…' : `Pay with PayPal or card (${formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents)})`}
+              </button>
+            )}
+            {manual?.etransferEmail && (
+              <button
+                onClick={() => run(`et-${plan}`, async () => setRequest(await createManualPaymentRequest(plan, 'etransfer')))}
                 disabled={busy !== null}
                 className="mt-2 w-full rounded border border-gray-300 py-2 text-sm text-gray-800 disabled:opacity-50"
               >
-                {busy === `et-${plan}` ? 'Preparing…' : `Pay by Interac e-Transfer (${formatCad(plan === 'monthly' ? etransfer.monthlyCents : etransfer.yearlyCents)})`}
+                {busy === `et-${plan}` ? 'Preparing…' : `Pay by Interac e-Transfer (${formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents)})`}
               </button>
             )}
           </section>
         ))}
       </div>
 
-      {request && etransfer && (
+      {request && manual && (
         <section className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-6 text-blue-950" aria-live="polite">
-          <h2 className="text-lg font-semibold mb-2">Send your Interac e-Transfer</h2>
+          <h2 className="text-lg font-semibold mb-2">{request.method === 'paypal_link' ? 'Pay with PayPal' : 'Send your Interac e-Transfer'}</h2>
           <ol className="list-decimal pl-5 space-y-1 text-sm">
-            <li>Send <strong>{formatCad(request.amount_cents)}</strong> to <strong>{etransfer.email}</strong>.</li>
             <li>
-              Put this reference code in the message:{' '}
+              Your reference code:{' '}
               <code className="rounded bg-white px-2 py-0.5 font-mono">{request.reference_code}</code>{' '}
               <button className="inline-flex items-center gap-1 underline" onClick={() => navigator.clipboard.writeText(request.reference_code).then(() => toast.success('Copied'))}>
                 <Copy className="h-3 w-3" />copy
               </button>
             </li>
-            <li>We'll switch on Pro as soon as the transfer arrives (usually within one business day). This page will show it.</li>
+            {request.method === 'paypal_link' ? (
+              <li>
+                <a className="font-semibold underline" href={manual.paypalLinks[request.plan]} target="_blank" rel="noopener noreferrer">Open PayPal checkout</a>{' '}
+                and pay <strong>{formatCad(request.amount_cents)}</strong> with your PayPal account or a card. Paste the reference code into the note box at checkout.
+              </li>
+            ) : (
+              <li>Send <strong>{formatCad(request.amount_cents)}</strong> to <strong>{manual.etransferEmail}</strong> and put the reference code in the message.</li>
+            )}
+            <li>We'll switch on Pro as soon as the payment arrives (usually within one business day). This page will show it.</li>
           </ol>
-          <p className="mt-3 text-xs text-blue-800">e-Transfer plans do not renew automatically. Pay again any time to extend; days are never lost.</p>
+          <p className="mt-3 text-xs text-blue-800">One-time payments do not renew automatically. Pay again any time to extend; days are never lost.</p>
         </section>
       )}
 

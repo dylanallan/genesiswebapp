@@ -1,11 +1,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
-import { callAI, getAIProvider, type AIMessage } from '../_shared/ai-utils.ts'
+import { callAI, getAIProvider, isKnownProvider, type AIMessage } from '../_shared/ai-utils.ts'
+import { providerOrder } from '../_shared/ai-providers.ts'
 
 // Use-case aware AI processing. Provider keys come only from function secrets (never the database).
 type UseCase = 'genealogy' | 'business' | 'creative' | 'analysis' | 'document' | 'voice' | 'coding'
-type Provider = 'openai' | 'anthropic' | 'gemini'
 
 interface AIRequest {
   prompt: string
@@ -14,16 +14,6 @@ interface AIRequest {
   context?: unknown
   preferences?: { provider?: string; temperature?: number; maxTokens?: number }
   metadata?: unknown
-}
-
-const USE_CASE_PROVIDERS: Record<UseCase, Provider[]> = {
-  genealogy: ['anthropic', 'openai', 'gemini'],
-  business: ['openai', 'anthropic', 'gemini'],
-  creative: ['anthropic', 'openai', 'gemini'],
-  analysis: ['anthropic', 'openai', 'gemini'],
-  document: ['anthropic', 'openai', 'gemini'],
-  voice: ['gemini', 'anthropic', 'openai'],
-  coding: ['openai', 'anthropic', 'gemini'],
 }
 
 const SYSTEM_PROMPTS: Record<UseCase, string> = {
@@ -36,8 +26,10 @@ const SYSTEM_PROMPTS: Record<UseCase, string> = {
   coding: 'You are a senior software engineer. Be precise.',
 }
 
-const normalizeProvider = (p?: string): Provider | undefined =>
-  p === 'google' ? 'gemini' : p === 'openai' || p === 'anthropic' || p === 'gemini' ? p : undefined
+const normalizeProvider = (p?: string): string | undefined => {
+  const name = p === 'google' ? 'gemini' : p?.toLowerCase()
+  return name && isKnownProvider(name) ? name : undefined
+}
 
 Deno.serve(async (req) => {
   const cors = corsFor(req)
@@ -50,11 +42,11 @@ Deno.serve(async (req) => {
     if (typeof body.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 16000) {
       return json({ success: false, error: 'A prompt (max 16000 characters) is required' }, 400, cors)
     }
-    const useCase: UseCase = body.useCase in USE_CASE_PROVIDERS ? body.useCase : 'analysis'
+    const useCase: UseCase = body.useCase in SYSTEM_PROMPTS ? body.useCase : 'analysis'
     const userId = caller.internal ? body.userId ?? null : caller.userId
 
     const preferred = normalizeProvider(body.preferences?.provider)
-    const order = [...new Set([...(preferred ? [preferred] : []), ...USE_CASE_PROVIDERS[useCase]])]
+    const order = [...new Set([...(preferred ? [preferred] : []), ...providerOrder()])]
       .filter((p) => getAIProvider(p))
     if (order.length === 0) return json({ success: false, error: 'No AI provider is configured' }, 503, cors)
 

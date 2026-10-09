@@ -6,6 +6,7 @@ import { paypal, adminDb, siteUrl, syncSubscription } from '../_shared/paypal.ts
 //   create { plan: 'monthly' | 'yearly' } -> { url } of PayPal's approval page
 //   sync   {}                              -> re-reads the subscription from PayPal (used right after approval)
 //   cancel { reason? }                     -> stops renewal; Pro stays until the paid period ends
+//   config {}                              -> { subscriptions } whether automatic subscriptions are set up
 const PLANS: Record<string, string | undefined> = {
   monthly: Deno.env.get('PAYPAL_PLAN_MONTHLY'),
   yearly: Deno.env.get('PAYPAL_PLAN_YEARLY'),
@@ -17,8 +18,12 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
 
   try {
-    const user = await requireUser(req)
     const { action = 'create', plan = 'monthly', reason } = await req.json().catch(() => ({}))
+    if (action === 'config') {
+      const configured = Boolean(Deno.env.get('PAYPAL_CLIENT_ID') && Deno.env.get('PAYPAL_CLIENT_SECRET') && PLANS.monthly && PLANS.yearly)
+      return json({ subscriptions: configured }, 200, cors)
+    }
+    const user = await requireUser(req)
     const db = adminDb()
     const { data: current } = await db.from('subscriptions')
       .select('provider,provider_subscription_id,status').eq('user_id', user.id).maybeSingle()

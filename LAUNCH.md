@@ -31,12 +31,31 @@ Commands run in a terminal inside this project folder.
    insert into admin_roles (user_id) select id from auth.users where email = 'YOUR-EMAIL';
    ```
 
-## 2. AI provider (at least one)
+## 2. AI (free options first)
 
-Get an API key from Anthropic, OpenAI or Google AI Studio, then:
+The app tries each AI service you set up, free ones first, and moves to the next one if a service is down or
+out of free quota. One is enough; two or three free ones give a good safety net.
+
+| Service | Cost | Where to get the key | Secret name |
+|---|---|---|---|
+| Google Gemini | free tier | https://aistudio.google.com/apikey | `GEMINI_API_KEY` |
+| Groq (Llama) | free tier | https://console.groq.com/keys | `GROQ_API_KEY` |
+| OpenRouter (`:free` models) | free models | https://openrouter.ai/keys | `OPENROUTER_API_KEY` |
+| Mistral | free Experiment plan | https://console.mistral.ai/api-keys | `MISTRAL_API_KEY` |
+| NVIDIA | free developer access | https://build.nvidia.com | `NVIDIA_API_KEY` |
+| Anthropic / OpenAI | paid | console.anthropic.com / platform.openai.com | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` |
+
 ```sh
-npx supabase secrets set ANTHROPIC_API_KEY=...   # and/or OPENAI_API_KEY / GEMINI_API_KEY
+npx supabase secrets set GEMINI_API_KEY=... GROQ_API_KEY=...
 ```
+
+**OmniRoute (optional):** [OmniRoute](https://github.com/diegosouzapw/OmniRoute) is a free, open-source gateway
+that pools many free AI providers behind one address. It has to run on a server the internet can reach (for
+example a small Docker host); Supabase cannot reach a copy running only on your own computer. Once it runs and you
+have connected providers in its dashboard, set `OMNIROUTE_BASE_URL=https://your-omniroute-host/v1` and, if you
+turned on its API keys, `OMNIROUTE_API_KEY` (Dashboard → Endpoints). It is tried first.
+
+To prefer a paid model, set `AI_PROVIDER_ORDER=anthropic` (comma-separated names go first).
 
 ## 3. Getting paid
 
@@ -61,6 +80,15 @@ npx supabase secrets set ANTHROPIC_API_KEY=...   # and/or OPENAI_API_KEY / GEMIN
    ```
 6. Test with a PayPal **sandbox buyer** account (Developer Dashboard → Sandbox → Accounts). When everything works,
    repeat steps 2–5 on the **Live** tab with `PAYPAL_ENV=live`.
+
+### PayPal payment links (no developer credentials needed)
+Works with any PayPal Business account. Customers get a reference code, pay through your link (PayPal or card),
+and you confirm the payment in the app. It does not renew automatically.
+1. In PayPal → **Pay & get paid → Payment links and buttons**, create two links in **CAD** at the same prices as
+   e-Transfer (for example 19.00 and 190.00). Add a customer note field named **Reference code** (required).
+2. In the app as an admin → **Payments (admin)** → paste the two links → **Save**. A "Pay with PayPal or card" button
+   appears on the Plans page. If automatic subscriptions (above) are not set up, their button is hidden.
+3. When a payment arrives, check that its note shows the customer's code, then press **Received** in **Payments (admin)**.
 
 ### Interac e-Transfer (manual; Canada)
 1. Sign in to the app as an admin → Dashboard → **Payments (admin)**.

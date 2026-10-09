@@ -24,6 +24,8 @@ export interface MockState {
   subscribed: boolean;
   calls: string[]; // every backend call, "METHOD path"
   chatQuotaExceeded: boolean;
+  manualPayments?: boolean; // e-Transfer email and PayPal payment links are configured
+  autoPayPal?: boolean;     // automatic PayPal subscriptions are configured (default true)
 }
 
 export async function signIn(context: BrowserContext) {
@@ -63,11 +65,21 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (fn === 'voice-synthesis') {
         return route.fulfill({ status: 200, contentType: 'audio/mpeg', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from([0xff, 0xfb, 0x90, 0x00]) });
       }
-      if (fn === 'paypal-subscription') return json(route, { url: 'https://www.sandbox.paypal.test/approve', status: state.subscribed ? 'active' : 'pending' });
+      if (fn === 'paypal-subscription') {
+        if (JSON.parse(req.postData() ?? '{}').action === 'config') return json(route, { subscriptions: state.autoPayPal !== false });
+        return json(route, { url: 'https://www.sandbox.paypal.test/approve', status: state.subscribed ? 'active' : 'pending' });
+      }
       return json(route, { status: 'healthy', data: [], results: [] });
     }
 
     if (path === '/rest/v1/rpc/has_pro_access') return json(route, state.subscribed);
+    if (path === '/rest/v1/rpc/create_manual_payment_request') {
+      const { p_plan, p_method } = JSON.parse(req.postData() ?? '{}');
+      return json(route, {
+        id: '22222222-2222-4222-8222-222222222222', method: p_method, plan: p_plan, amount_cents: p_plan === 'monthly' ? 1900 : 19000,
+        currency: 'CAD', reference_code: 'GEN-TEST01', status: 'pending', created_at: '2026-01-01T00:00:00Z',
+      });
+    }
     if (path.startsWith('/rest/v1/rpc/')) return json(route, []);
     if (path.startsWith('/rest/v1/')) {
       const table = path.split('/')[3];
@@ -75,6 +87,15 @@ export async function installMockBackend(page: Page, state: MockState) {
       let rows: unknown[] = [];
       if (table === 'subscriptions' && state.subscribed) {
         rows = [{ user_id: USER.id, status: 'active', provider: 'paypal', current_period_end: '2030-01-01T00:00:00Z', cancel_at_period_end: false }];
+      }
+      if (table === 'app_settings' && state.manualPayments) {
+        rows = [
+          { key: 'etransfer_email', value: 'pay@example.com' },
+          { key: 'etransfer_monthly_cents', value: 1900 },
+          { key: 'etransfer_yearly_cents', value: 19000 },
+          { key: 'paypal_link_monthly_url', value: 'https://www.paypal.com/ncp/payment/TESTMONTH' },
+          { key: 'paypal_link_yearly_url', value: 'https://www.paypal.com/ncp/payment/TESTYEAR' },
+        ];
       }
       if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111' }];
       if (wantsObject) return rows.length ? json(route, rows[0]) : json(route, { code: 'PGRST116', message: 'no rows' }, 406);

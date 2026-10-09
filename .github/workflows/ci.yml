@@ -59,9 +59,15 @@ jobs:
           for f in $(ls supabase/migrations/*.sql | sort); do
             sed -E 's/create extension if not exists ("?vector"?)[^;]*;//Ig; s/extensions\.vector\(1536\)/extensions.vector/g; s/\bvector\(1536\)/extensions.vector/g' "$f" | psql -d checks -q -v ON_ERROR_STOP=1
           done
+          # Notices carry the "must be refused" results, so show them here.
+          export PGOPTIONS="-c client_min_messages=notice"
           out=$(psql -d checks -At -F ' | ' -f supabase/tests/rls_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/payments_test.sql 2>&1)
           echo "$out" | grep -E '\| (t|f)$|CHECK'
           if echo "$out" | grep -qE '\| f$|: FAIL'; then echo "A privacy or payment check failed"; exit 1; fi
+          # A check that prints nothing (for example a query that returns no rows) must not count as a pass.
+          expected=$(cat supabase/tests/rls_test.sql supabase/tests/payments_test.sql | grep -cE "as check|raise notice 'CHECK .*: PASS'")
+          passed=$(echo "$out" | grep -cE '\| t$|: PASS')
+          if [ "$passed" -ne "$expected" ]; then echo "Only $passed of $expected privacy and payment checks reported a pass"; exit 1; fi
 
   browser:
     runs-on: ubuntu-latest
