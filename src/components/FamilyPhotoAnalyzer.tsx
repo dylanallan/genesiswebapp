@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Upload, Image as ImageIcon, Loader2, Users, Tag, MapPin, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { uploadOwnFile } from '../lib/storage';
 
 interface PhotoAnalysis {
   faces: Face[];
@@ -73,11 +74,9 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
       setSelectedImage(imageUrl);
 
       // Upload to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('family-photos')
-        .upload(`photos/${Date.now()}-${file.name}`, file);
-
-      if (uploadError) throw uploadError;
+      // Private upload into the user's own folder
+      const photoPath = await uploadOwnFile('family-photos', file.name, file);
+      const uploadData = { path: photoPath };
 
       // Call Google Vision AI through Edge Function
       const { data: analysisData, error: analysisError } = await supabase.functions
