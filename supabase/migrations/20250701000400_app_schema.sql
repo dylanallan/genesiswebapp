@@ -474,6 +474,12 @@ create table if not exists public.ai_request_logs (
 create index if not exists ai_request_logs_created_idx on public.ai_request_logs (created_at desc);
 select public._admin_read_policy('ai_request_logs');
 
+-- Older projects have a materialized view of this name; the app reads a live view instead.
+do $$ begin
+  if exists (select 1 from pg_matviews where schemaname = 'public' and matviewname = 'model_performance_summary') then
+    drop materialized view public.model_performance_summary;
+  end if;
+end $$;
 create or replace view public.model_performance_summary with (security_invoker = true) as
   select provider_id,
          count(*) as total_requests,
