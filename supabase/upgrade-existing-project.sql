@@ -1217,6 +1217,12 @@ create table if not exists public.ai_request_logs (
 create index if not exists ai_request_logs_created_idx on public.ai_request_logs (created_at desc);
 select public._admin_read_policy('ai_request_logs');
 
+-- Older projects have a materialized view of this name; the app reads a live view instead.
+do $$ begin
+  if exists (select 1 from pg_matviews where schemaname = 'public' and matviewname = 'model_performance_summary') then
+    drop materialized view public.model_performance_summary;
+  end if;
+end $$;
 create or replace view public.model_performance_summary with (security_invoker = true) as
   select provider_id,
          count(*) as total_requests,
@@ -1889,5 +1895,97 @@ end;
 $$;
 revoke all on function public.admin_list_manual_payments(text) from public, anon;
 grant execute on function public.admin_list_manual_payments(text) to authenticated;
+
+
+-- ===== 20250701001000_lock_down_privileged_functions.sql =====
+-- Privileged (SECURITY DEFINER) functions must never be callable by signed-out visitors, and signed-in users may
+-- call only the ones the app itself uses. Several functions accept a user id so Edge Functions (service role) can
+-- act for a user; they reject a mismatched id only when a user is signed in, so the anon role must not reach them.
+-- Older projects also carry legacy functions (API-key readers, chat-history readers taking any user id) that the
+-- app no longer uses. Only privileges change; no function, table or row is removed.
+do $$
+declare
+  f record;
+  app_rpcs text[] := array[
+    'admin_list_manual_payments', 'analyze_conversation', 'create_etransfer_request', 'create_manual_payment_request',
+    'find_similar_messages', 'get_ai_provider_metrics', 'get_user_profile', 'get_user_profile_history',
+    'has_pro_access', 'optimize_database_performance', 'review_manual_payment', 'set_setting',
+    'track_ai_usage', 'update_user_profile_batch'];
+begin
+  for f in
+    select p.oid::regprocedure as sig, p.proname as name
+    from pg_proc p
+    where p.pronamespace = 'public'::regnamespace and p.prosecdef and p.prokind = 'f'
+  loop
+    -- is_admin() is evaluated inside row-level security policies, so every role keeps it (it only says yes for admins).
+    continue when f.name = 'is_admin';
+    execute format('revoke execute on function %s from public, anon', f.sig);
+    if not (f.name = any (app_rpcs)) then
+      execute format('revoke execute on function %s from authenticated', f.sig);
+    end if;
+    execute format('grant execute on function %s to service_role', f.sig);
+  end loop;
+end $$;
+
+-- Views from older projects that ran with their creator's rights now apply the caller's row-level security.
+do $$
+declare v record;
+begin
+  for v in
+    select c.oid::regclass as rel from pg_class c
+    where c.relnamespace = 'public'::regnamespace and c.relkind = 'v'
+      and not coalesce('security_invoker=true' = any (c.reloptions), false)
+  loop
+    execute format('alter view %s set (security_invoker = true)', v.rel);
+  end loop;
+end $$;
+
+-- Materialized views cannot enforce row-level security; signed-out visitors must not read them.
+do $$
+declare m record;
+begin
+  for m in select c.oid::regclass as rel from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'm'
+  loop
+    execute format('revoke select on %s from anon', m.rel);
+  end loop;
+end $$;
+
+-- Tables an older version left without row-level security (all unused by the app): server-side access only.
+alter table if exists public.media_assets enable row level security;
+alter table if exists public.documents enable row level security;
+alter table if exists public.external_sources enable row level security;
+alter table if exists public.historical_events enable row level security;
+
+
+-- ===== 20250701001100_defaults_for_legacy_required_columns.sql =====
+-- Older projects have required columns the app never fills (for example voice_profiles.audio_path), so inserts
+-- from the app fail. Giving them a neutral default keeps the old data and constraints and lets new rows in.
+-- (The 20250701000350 upgrade also makes such columns optional; this covers projects where that step was deferred.)
+-- Columns that do not exist are skipped, so this is a no-op on fresh projects.
+do $$
+declare
+  d record;
+begin
+  for d in select * from (values
+    ('ai_request_logs', 'request_type', $v$''$v$), ('ai_request_logs', 'service_name', $v$''$v$),
+    ('ai_service_config', 'api_key', $v$''$v$),
+    ('automation_workflows', 'actions', $v$'[]'::jsonb$v$), ('automation_workflows', 'trigger_conditions', $v$'{}'::jsonb$v$),
+    ('family_members', 'last_name', $v$''$v$),
+    ('function_logs', 'environment', $v$''$v$), ('function_logs', 'function', $v$''$v$),
+    ('function_logs', 'level', $v$'info'$v$), ('function_logs', 'message', $v$''$v$),
+    ('notification_templates', 'name', $v$''$v$),
+    ('performance_metrics', 'service_name', $v$''$v$),
+    ('recipes', 'ingredients', $v$'[]'::jsonb$v$), ('recipes', 'instructions', $v$'[]'::jsonb$v$),
+    ('system_health_metrics', 'metric_name', $v$'snapshot'$v$), ('system_health_metrics', 'metric_value', $v$0$v$),
+    ('timeline_events', 'event_date', $v$current_date$v$),
+    ('voice_profiles', 'audio_path', $v$''$v$)
+  ) as t(tbl, col, def)
+  loop
+    if exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = d.tbl and column_name = d.col and column_default is null) then
+      execute format('alter table public.%I alter column %I set default %s', d.tbl, d.col, d.def);
+    end if;
+  end loop;
+end $$;
 
 commit;
