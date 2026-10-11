@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import OpenAI from 'npm:openai@4.28.0'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Adds a document or note to the caller's private AI memory: splits it into chunks, embeds them
 // (OpenAI text-embedding-3-small, 1536 dimensions) and stores them in ai_embeddings.
@@ -15,7 +16,7 @@ Deno.serve(async (req) => {
 
   try {
     const user = await requireUser(req)
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    const apiKey = cfg('OPENAI_API_KEY')
     if (!apiKey) return json({ error: 'AI memory needs an OpenAI API key to be configured' }, 503, cors)
 
     const { content, contentType, contentId, metadata } = await req.json()
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
     const openai = new OpenAI({ apiKey })
     const embeddings = await openai.embeddings.create({ model: 'text-embedding-3-small', input: chunks, encoding_format: 'float' })
 
-    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
     const now = new Date().toISOString()
     const { error } = await db.from('ai_embeddings').insert(chunks.map((chunk, index) => ({
       user_id: user.id,

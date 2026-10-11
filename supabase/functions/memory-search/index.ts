@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import OpenAI from 'npm:openai@4.28.0'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Semantic search over the caller's own AI memory (ai_embeddings, via find_similar_messages).
 // Body: { query, threshold?: 0..1, limit?: 1..20, contentType?, includeContent? }
@@ -12,7 +13,7 @@ Deno.serve(async (req) => {
 
   try {
     const user = await requireUser(req)
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    const apiKey = cfg('OPENAI_API_KEY')
     if (!apiKey) return json({ error: 'AI memory needs an OpenAI API key to be configured' }, 503, cors)
 
     const body = await req.json()
@@ -25,7 +26,7 @@ Deno.serve(async (req) => {
     const openai = new OpenAI({ apiKey })
     const embedding = (await openai.embeddings.create({ model: 'text-embedding-3-small', input: query, encoding_format: 'float' })).data[0].embedding
 
-    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
     const { data, error } = await db.rpc('find_similar_messages', {
       p_embedding: embedding, p_match_threshold: threshold, p_match_count: limit, p_user_id: user.id,
     })

@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, requireActiveSubscription, json, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Family voice preservation (Pro), using ElevenLabs Instant Voice Cloning.
 //   create { name, relationship?, samplePath, consent: true } -> voice profile
@@ -13,7 +14,7 @@ const MAX_PROFILES = 5
 const MAX_TEXT = 2500
 const CONSENT = 'I am this person, or I have their permission, to record and recreate their voice for my family\'s private use.'
 
-const db = () => createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+const db = () => createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
 Deno.serve(async (req) => {
   const cors = corsFor(req)
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
 
   try {
     const user = await requireUser(req)
-    const key = Deno.env.get('ELEVENLABS_API_KEY')
+    const key = cfg('ELEVENLABS_API_KEY')
     const body = await req.json()
     const action = String(body.action ?? '')
     const client = db()

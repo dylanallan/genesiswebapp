@@ -5,12 +5,13 @@ import OpenAI from "npm:openai@4.28.0";
 
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts';
 
 // Writes to the global knowledge base, so only admins (app_metadata.role = 'admin') may call it.
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY"),
+  apiKey: cfg("OPENAI_API_KEY"),
 });
 
 Deno.serve(async (req) => {
@@ -38,8 +39,8 @@ Deno.serve(async (req) => {
 
     // 2. Initialize Supabase client
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      cfg('SUPABASE_URL') ?? '',
+      cfg('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // 3. Store in knowledge_base table

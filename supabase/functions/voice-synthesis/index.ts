@@ -1,5 +1,6 @@
 import { corsFor } from "../_shared/cors.ts";
 import { requireUser, requireActiveSubscription, json, errorResponse } from "../_shared/auth.ts";
+import { cfg } from '../_shared/runtime-config.ts';
 
 // Text-to-speech with two interchangeable backends:
 //  1. TTS_SERVER_URL  - any self-hosted, OpenAI-compatible speech server (e.g. Kokoro-FastAPI, Apache-2.0).
@@ -7,13 +8,13 @@ import { requireUser, requireActiveSubscription, json, errorResponse } from "../
 //  2. ELEVENLABS_API_KEY - hosted fallback; voices come from VOICE_ID_<LANG> env vars.
 // Voices are chosen server-side from an allow-list so callers cannot run arbitrary voices on our account.
 const MAX_CHARS = 2500;
-const TTS_SERVER_URL = Deno.env.get("TTS_SERVER_URL")?.replace(/\/$/, "");
-const TTS_SERVER_KEY = Deno.env.get("TTS_SERVER_KEY");
-const TTS_MODEL = Deno.env.get("TTS_MODEL") ?? "kokoro";
-const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+const TTS_SERVER_URL = cfg("TTS_SERVER_URL")?.replace(/\/$/, "");
+const TTS_SERVER_KEY = cfg("TTS_SERVER_KEY");
+const TTS_MODEL = cfg("TTS_MODEL") ?? "kokoro";
+const ELEVENLABS_API_KEY = cfg("ELEVENLABS_API_KEY");
 
 // Neutral, descriptive voices (no real-person likenesses). Override with TTS_VOICES="id1,id2,...".
-const OPEN_VOICES = (Deno.env.get("TTS_VOICES") ?? "af_heart,am_adam,bf_emma,bm_george").split(",").map((v) => v.trim());
+const OPEN_VOICES = (cfg("TTS_VOICES") ?? "af_heart,am_adam,bf_emma,bm_george").split(",").map((v) => v.trim());
 const DEFAULT_OPEN_VOICE = OPEN_VOICES[0];
 
 async function openServerSpeech(text: string, voice: string): Promise<Response> {
@@ -25,7 +26,7 @@ async function openServerSpeech(text: string, voice: string): Promise<Response> 
 }
 
 async function elevenLabsSpeech(text: string, language: string): Promise<Response> {
-  const voiceId = Deno.env.get(`VOICE_ID_${language.toUpperCase().slice(0, 5)}`) ?? Deno.env.get("VOICE_ID_EN");
+  const voiceId = cfg(`VOICE_ID_${language.toUpperCase().slice(0, 5)}`) ?? cfg("VOICE_ID_EN");
   if (!voiceId) return new Response("no voice", { status: 503 });
   return await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`, {
     method: "POST",

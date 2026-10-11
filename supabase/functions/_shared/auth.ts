@@ -1,4 +1,5 @@
 import { createClient, type User } from 'npm:@supabase/supabase-js@2'
+import { cfg } from './runtime-config.ts'
 
 export class HttpError extends Error {
   constructor(public status: number, message: string) {
@@ -12,8 +13,8 @@ export async function requireUser(req: Request): Promise<User> {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
   if (!token) throw new HttpError(401, 'Authentication required')
   const admin = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    cfg('SUPABASE_URL') ?? '',
+    cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   )
   const { data, error } = await admin.auth.getUser(token)
   if (error || !data.user) throw new HttpError(401, 'Invalid or expired session')
@@ -24,8 +25,8 @@ export async function requireUser(req: Request): Promise<User> {
 // still inside its paid period).
 export async function requireActiveSubscription(user: User): Promise<void> {
   const admin = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    cfg('SUPABASE_URL') ?? '',
+    cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   )
   const { data, error } = await admin.rpc('has_pro_access', { p_user: user.id })
   if (error) throw error
@@ -57,7 +58,7 @@ function safeEqual(a: string, b: string): boolean {
 // trusted internal call (the caller vouches for userId); anything else must be a signed-in user.
 export async function requireCaller(req: Request): Promise<{ userId: string | null; internal: boolean }> {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const serviceKey = cfg('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   if (serviceKey && token && safeEqual(token, serviceKey)) return { userId: null, internal: true }
   const user = await requireUser(req)
   return { userId: user.id, internal: false }

@@ -2,16 +2,17 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 import { OPENAI_COMPATIBLE, compatibleKey, compatibleModel, orderByPreference, DEFAULT_PROVIDER_ORDER } from '../_shared/ai-providers.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 const MAX_MESSAGE_CHARS = 8000
-const FREE_DAILY_MESSAGES = Number(Deno.env.get('FREE_DAILY_MESSAGES') ?? '10')
-const PAID_DAILY_MESSAGES = Number(Deno.env.get('PAID_DAILY_MESSAGES') ?? '500') // abuse backstop
+const FREE_DAILY_MESSAGES = Number(cfg('FREE_DAILY_MESSAGES') ?? '10')
+const PAID_DAILY_MESSAGES = Number(cfg('PAID_DAILY_MESSAGES') ?? '500') // abuse backstop
 
 // Models are configurable so a provider retiring a model never needs a code change.
 const MODELS: Record<string, string> = {
-  anthropic: Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
-  openai: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
-  gemini: Deno.env.get('GEMINI_MODEL') ?? 'gemini-flash-latest',
+  anthropic: cfg('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
+  openai: cfg('OPENAI_MODEL') ?? 'gpt-4o-mini',
+  gemini: cfg('GEMINI_MODEL') ?? 'gemini-flash-latest',
   ...Object.fromEntries(Object.keys(OPENAI_COMPATIBLE).map((name) => [name, compatibleModel(name)])),
 }
 
@@ -58,17 +59,17 @@ interface Provider { name: string; key: () => string | undefined; call: (message
 
 const ALL_PROVIDERS: Provider[] = [
   ...Object.entries(OPENAI_COMPATIBLE).map(([name, p]) => ({ name, key: () => compatibleKey(name), call: openAICompatible(name, p.baseUrl()) })),
-  { name: 'gemini', key: () => Deno.env.get('GEMINI_API_KEY'), call: callGemini },
-  { name: 'anthropic', key: () => Deno.env.get('ANTHROPIC_API_KEY'), call: callAnthropic },
-  { name: 'openai', key: () => Deno.env.get('OPENAI_API_KEY'), call: openAICompatible('openai', 'https://api.openai.com/v1') },
+  { name: 'gemini', key: () => cfg('GEMINI_API_KEY'), call: callGemini },
+  { name: 'anthropic', key: () => cfg('ANTHROPIC_API_KEY'), call: callAnthropic },
+  { name: 'openai', key: () => cfg('OPENAI_API_KEY'), call: openAICompatible('openai', 'https://api.openai.com/v1') },
 ]
 // Free services first; whichever is configured and answering wins, so one running out of quota never stops the chat.
 const PROVIDERS = orderByPreference(
   orderByPreference(ALL_PROVIDERS, (p) => p.name, DEFAULT_PROVIDER_ORDER.join(',')),
-  (p) => p.name, Deno.env.get('AI_PROVIDER_ORDER'),
+  (p) => p.name, cfg('AI_PROVIDER_ORDER'),
 )
 
-const admin = () => createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+const admin = () => createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
 Deno.serve(async (req) => {
   const cors = corsFor(req)

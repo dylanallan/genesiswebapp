@@ -4,6 +4,7 @@ import { withCors } from '../_shared/cors.ts'
 import { withErrorHandling, AppError } from '../_shared/error-handler.ts'
 import { requireUser, requireActiveSubscription } from '../_shared/auth.ts'
 import { initLogger } from '../_shared/logger.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 import {
   SUPPORTED_LANGUAGES,
   VOICE_CONFIGS,
@@ -24,7 +25,7 @@ import {
 } from './constants.ts'
 
 const logger = initLogger('voice-story-generator')
-const db = () => createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+const db = () => createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
 // ---- Types ----------------------------------------------------------------
 interface StoryData {
@@ -164,7 +165,7 @@ export function calculateAudioDuration(text: string, speakingRate: number): numb
 
 // Google Cloud Text-to-Speech via REST (the gRPC client library does not run on Edge Functions).
 async function synthesize(ssml: string, language: SupportedLanguage, voiceName: string, options: StoryOptions): Promise<Uint8Array> {
-  const apiKey = Deno.env.get('GOOGLE_TTS_API_KEY')
+  const apiKey = cfg('GOOGLE_TTS_API_KEY')
   if (!apiKey) throw new AppError('Voice service is not configured', 503, 'TTS_NOT_CONFIGURED')
   const quality = AUDIO_QUALITY_SETTINGS[options.audioQuality ?? 'medium']
   const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize', {

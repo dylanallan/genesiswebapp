@@ -1,3 +1,4 @@
+import { cfg } from './runtime-config.ts'
 // AI services the app can use. Free tiers come first by default, so the app runs without paid keys:
 // a self-hosted OmniRoute gateway (pools many free providers), Google Gemini, Groq, OpenRouter ":free"
 // models, Mistral and NVIDIA. Paid Anthropic and OpenAI keys are used after them, or first if
@@ -12,7 +13,7 @@ export interface CompatibleProvider {
 }
 
 export const OPENAI_COMPATIBLE: Record<string, CompatibleProvider> = {
-  omniroute: { baseUrl: () => Deno.env.get('OMNIROUTE_BASE_URL') ?? '', keyEnv: 'OMNIROUTE_API_KEY', modelEnv: 'OMNIROUTE_MODEL', defaultModel: 'auto', keyOptional: true },
+  omniroute: { baseUrl: () => cfg('OMNIROUTE_BASE_URL') ?? '', keyEnv: 'OMNIROUTE_API_KEY', modelEnv: 'OMNIROUTE_MODEL', defaultModel: 'auto', keyOptional: true },
   groq: { baseUrl: () => 'https://api.groq.com/openai/v1', keyEnv: 'GROQ_API_KEY', modelEnv: 'GROQ_MODEL', defaultModel: 'llama-3.3-70b-versatile' },
   openrouter: { baseUrl: () => 'https://openrouter.ai/api/v1', keyEnv: 'OPENROUTER_API_KEY', modelEnv: 'OPENROUTER_MODEL', defaultModel: 'meta-llama/llama-3.3-70b-instruct:free' },
   mistral: { baseUrl: () => 'https://api.mistral.ai/v1', keyEnv: 'MISTRAL_API_KEY', modelEnv: 'MISTRAL_MODEL', defaultModel: 'mistral-small-latest' },
@@ -25,10 +26,10 @@ export const DEFAULT_PROVIDER_ORDER = ['omniroute', 'gemini', 'groq', 'openroute
 export function compatibleKey(name: string): string | undefined {
   const p = OPENAI_COMPATIBLE[name]
   if (!p || !p.baseUrl()) return undefined
-  return Deno.env.get(p.keyEnv) || (p.keyOptional ? 'none' : undefined)
+  return cfg(p.keyEnv) || (p.keyOptional ? 'none' : undefined)
 }
 
-export const compatibleModel = (name: string) => Deno.env.get(OPENAI_COMPATIBLE[name].modelEnv) ?? OPENAI_COMPATIBLE[name].defaultModel
+export const compatibleModel = (name: string) => cfg(OPENAI_COMPATIBLE[name].modelEnv) ?? OPENAI_COMPATIBLE[name].defaultModel
 
 // Names listed in `order` go first (in that order); everything else keeps its place after them.
 export function orderByPreference<T>(items: T[], nameOf: (item: T) => string, order: string | undefined): T[] {
@@ -38,4 +39,4 @@ export function orderByPreference<T>(items: T[], nameOf: (item: T) => string, or
   return [...items].sort((a, b) => rank(a) - rank(b))
 }
 
-export const providerOrder = () => orderByPreference(DEFAULT_PROVIDER_ORDER, (n) => n, Deno.env.get('AI_PROVIDER_ORDER'))
+export const providerOrder = () => orderByPreference(DEFAULT_PROVIDER_ORDER, (n) => n, cfg('AI_PROVIDER_ORDER'))

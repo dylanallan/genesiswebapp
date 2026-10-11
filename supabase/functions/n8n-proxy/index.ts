@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 import { assertPublicHttpsUrl } from '../_shared/net.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Talks to the user's OWN n8n instance through n8n's public REST API (X-N8N-API-KEY).
 // Actions:
@@ -29,7 +30,7 @@ Deno.serve(async (req) => {
   try {
     const user = await requireUser(req)
     const { action, url, apiKey, workflow } = await req.json()
-    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
     if (action === 'test') {
       if (typeof url !== 'string' || typeof apiKey !== 'string' || !apiKey) return json({ error: 'Enter your n8n URL and API key' }, 400, cors)

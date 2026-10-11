@@ -3,6 +3,7 @@ import { processMessageWithContext, callAI, AIMessage } from '../_shared/ai-util
 
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 Deno.serve(async (req) => {
   const corsHeaders = corsFor(req)
@@ -24,8 +25,8 @@ Deno.serve(async (req) => {
     }
 
     // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = cfg('SUPABASE_URL')!
+    const supabaseServiceKey = cfg('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get conversation history for context

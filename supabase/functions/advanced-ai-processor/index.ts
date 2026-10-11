@@ -3,6 +3,7 @@ import { corsFor } from '../_shared/cors.ts'
 import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
 import { callAI, getAIProvider, isKnownProvider, type AIMessage } from '../_shared/ai-utils.ts'
 import { providerOrder } from '../_shared/ai-providers.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Use-case aware AI processing. Provider keys come only from function secrets (never the database).
 type UseCase = 'genealogy' | 'business' | 'creative' | 'analysis' | 'document' | 'voice' | 'coding'
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
           provider,
         }
         if (userId) {
-          const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+          const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
           const { error } = await db.from('ai_request_logs').insert({
             user_id: userId,
             provider_id: provider,

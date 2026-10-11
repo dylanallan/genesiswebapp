@@ -1,3 +1,4 @@
+import { cfg } from './runtime-config.ts'
 // Federated historical-records search over OPEN, free, legal sources (official APIs / public-domain collections).
 // Each connector returns normalized hits that keep their source, license and attribution.
 // We deliberately do NOT scrape sites whose terms forbid it (Ancestry, MyHeritage, Find a Grave, ...).
@@ -27,7 +28,7 @@ export interface Connector {
   search(q: RecordQuery, signal: AbortSignal): Promise<RecordHit[]>
 }
 
-const UA = `GenesisHeritage/1.0 (${Deno.env.get('CONTACT_EMAIL') ?? 'contact-not-set'})`
+const UA = `GenesisHeritage/1.0 (${cfg('CONTACT_EMAIL') ?? 'contact-not-set'})`
 const getJson = async (url: string, signal: AbortSignal, headers: Record<string, string> = {}) => {
   const res = await fetch(url, { signal, headers: { 'User-Agent': UA, Accept: 'application/json', ...headers } })
   if (!res.ok) throw new Error(`${res.status} from ${new URL(url).host}`)
@@ -91,7 +92,7 @@ const dpla: Connector = {
   label: 'Digital Public Library of America',
   needsKey: 'DPLA_API_KEY',
   async search(q, signal) {
-    const url = `https://api.dp.la/v2/items?page_size=8&api_key=${Deno.env.get('DPLA_API_KEY')}&q=${encodeURIComponent(terms(q))}`
+    const url = `https://api.dp.la/v2/items?page_size=8&api_key=${cfg('DPLA_API_KEY')}&q=${encodeURIComponent(terms(q))}`
     const data = await getJson(url, signal)
     return (data.docs ?? []).map((d: any): RecordHit => ({
       source: 'dpla', sourceLabel: 'DPLA', sourceId: d.id,
@@ -108,7 +109,7 @@ const europeana: Connector = {
   label: 'Europeana',
   needsKey: 'EUROPEANA_API_KEY',
   async search(q, signal) {
-    const url = `https://api.europeana.eu/record/v2/search.json?rows=8&wskey=${Deno.env.get('EUROPEANA_API_KEY')}&query=${encodeURIComponent(terms(q))}`
+    const url = `https://api.europeana.eu/record/v2/search.json?rows=8&wskey=${cfg('EUROPEANA_API_KEY')}&query=${encodeURIComponent(terms(q))}`
     const data = await getJson(url, signal)
     return (data.items ?? []).map((d: any): RecordHit => ({
       source: 'europeana', sourceLabel: 'Europeana', sourceId: d.id,
@@ -131,7 +132,7 @@ export async function searchAll(q: RecordQuery, timeoutMs = 8000): Promise<Searc
   const outcome: SearchOutcome = { hits: [], sources: [] }
   await Promise.all(
     CONNECTORS.map(async (c) => {
-      if (c.needsKey && !Deno.env.get(c.needsKey)) {
+      if (c.needsKey && !cfg(c.needsKey)) {
         outcome.sources.push({ id: c.id, label: c.label, status: 'not_configured', count: 0 })
         return
       }

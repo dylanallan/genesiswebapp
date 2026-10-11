@@ -1,9 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from './cors.ts'
+import { cfg } from './runtime-config.ts'
 
 export const createSupabaseClient = (req: Request) => {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const supabaseUrl = cfg('SUPABASE_URL') ?? ''
+  const supabaseServiceKey = cfg('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
