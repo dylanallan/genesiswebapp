@@ -66,12 +66,14 @@ export const FamilyContactManager: React.FC = () => {
       return;
     }
     setIsLoading(true);
+    // An empty date field must be saved as "no date", not as an empty string (the database rejects '').
+    const row = { ...formData, birth_date: formData.birth_date || null };
     try {
       if (isEditing && selectedContact) {
         // Update
         const { error } = await supabase
           .from('family_contacts')
-          .update(formData)
+          .update(row)
           .eq('id', selectedContact.id);
         if (error) throw error;
         toast.success('Contact updated successfully');
@@ -79,7 +81,7 @@ export const FamilyContactManager: React.FC = () => {
         // Add
         const { error } = await supabase
           .from('family_contacts')
-          .insert([{ ...formData }]);
+          .insert([row]);
         if (error) throw error;
         toast.success('Contact added successfully');
       }

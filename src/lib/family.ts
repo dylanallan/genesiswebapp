@@ -57,7 +57,7 @@ export const toRow = (m: TreeMember) => {
   const first = parts.shift() ?? m.name;
   return {
     first_name: first,
-    last_name: parts.length ? parts.pop() : null,
+    last_name: parts.length ? parts.pop()! : '',
     middle_name: parts.length ? parts.join(' ') : null,
     relationship: m.relationship || null,
     birth_date: m.birthDate || null,
