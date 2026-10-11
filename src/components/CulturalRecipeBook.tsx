@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChefHat, Clock, Users, Star, Search, Plus, Heart, Globe } from 'lucide-react';
+import { ChefHat, Clock, Users, Star, Search, Plus, Globe, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 
@@ -25,13 +25,91 @@ interface Recipe {
   image?: string;
 }
 
+interface RecipeDraft {
+  name: string;
+  origin: string;
+  culturalSignificance: string;
+  story: string;
+  ingredients: string;
+  instructions: string;
+  prepTime: string;
+  cookTime: string;
+  servings: string;
+  difficulty: Recipe['difficulty'];
+  tags: string;
+  rating: string;
+}
+
+const emptyDraft: RecipeDraft = {
+  name: '', origin: '', culturalSignificance: '', story: '', ingredients: '', instructions: '',
+  prepTime: '', cookTime: '', servings: '', difficulty: 'Easy', tags: '', rating: '0',
+};
+
+// Rows saved by older versions of the app can be missing any of these fields.
+const normalize = (r: Partial<Recipe> & { id: string }): Recipe => ({
+  ...r,
+  name: r.name ?? 'Untitled recipe',
+  origin: r.origin ?? '',
+  culturalSignificance: r.culturalSignificance ?? '',
+  story: r.story ?? '',
+  ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+  instructions: Array.isArray(r.instructions) ? r.instructions : [],
+  prepTime: r.prepTime ?? 0,
+  cookTime: r.cookTime ?? 0,
+  servings: r.servings ?? 0,
+  difficulty: r.difficulty ?? 'Easy',
+  tags: r.tags ?? [],
+  rating: Number(r.rating ?? 0),
+});
+
+const toDraft = (r: Recipe): RecipeDraft => ({
+  name: r.name,
+  origin: r.origin,
+  culturalSignificance: r.culturalSignificance,
+  story: r.story,
+  ingredients: r.ingredients.map(i => (i.amount ? `${i.amount} | ${i.name}` : i.name)).join('\n'),
+  instructions: r.instructions.join('\n'),
+  prepTime: r.prepTime ? String(r.prepTime) : '',
+  cookTime: r.cookTime ? String(r.cookTime) : '',
+  servings: r.servings ? String(r.servings) : '',
+  difficulty: r.difficulty,
+  tags: r.tags.join(', '),
+  rating: String(r.rating),
+});
+
+const lines = (text: string) => text.split('\n').map(l => l.trim()).filter(Boolean);
+const toInt = (text: string) => (text.trim() ? Math.max(0, parseInt(text, 10) || 0) : null);
+
+const toRow = (d: RecipeDraft) => ({
+  name: d.name.trim(),
+  origin: d.origin.trim(),
+  culturalSignificance: d.culturalSignificance.trim() || null,
+  story: d.story.trim() || null,
+  ingredients: lines(d.ingredients).map(l => {
+    const [amount, ...rest] = l.split('|');
+    return rest.length ? { amount: amount.trim(), name: rest.join('|').trim() } : { amount: '', name: l };
+  }),
+  instructions: lines(d.instructions),
+  prepTime: toInt(d.prepTime),
+  cookTime: toInt(d.cookTime),
+  servings: toInt(d.servings),
+  difficulty: d.difficulty,
+  tags: d.tags.split(',').map(t => t.trim()).filter(Boolean),
+  rating: Math.min(5, Math.max(0, Number(d.rating) || 0)),
+  updated_at: new Date().toISOString(),
+});
+
+const inputClass =
+  'mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500';
+
 export const CulturalRecipeBook: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState<Partial<Recipe>>({});
+  const [formData, setFormData] = useState<RecipeDraft>(emptyDraft);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRecipes();
@@ -45,7 +123,7 @@ export const CulturalRecipeBook: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setRecipes(data || []);
+      setRecipes((data || []).map(normalize));
     } catch (error) {
       toast.error('Failed to load recipes');
     } finally {
@@ -54,14 +132,21 @@ export const CulturalRecipeBook: React.FC = () => {
   };
 
   const handleAddRecipe = () => {
+    setEditingId(null);
+    setFormData(emptyDraft);
     setShowAddForm(true);
-    setFormData({});
+  };
+
+  const closeForm = () => {
+    setShowAddForm(false);
+    setEditingId(null);
+    setFormData(emptyDraft);
   };
 
   const handleEditRecipe = (recipe: Recipe) => {
+    setEditingId(recipe.id);
+    setFormData(toDraft(recipe));
     setShowAddForm(true);
-    setSelectedRecipe(recipe);
-    setFormData(recipe);
   };
 
   const handleDeleteRecipe = async (id: string) => {
@@ -82,31 +167,28 @@ export const CulturalRecipeBook: React.FC = () => {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.origin) {
+    if (!formData.name.trim() || !formData.origin.trim()) {
       toast.error('Name and origin are required');
       return;
     }
     setIsLoading(true);
     try {
-      if (selectedRecipe) {
-        // Update
+      if (editingId) {
         const { error } = await supabase
           .from('recipes')
-          .update(formData)
-          .eq('id', selectedRecipe.id);
+          .update(toRow(formData))
+          .eq('id', editingId);
         if (error) throw error;
         toast.success('Recipe updated successfully');
       } else {
-        // Add
         const { error } = await supabase
           .from('recipes')
-          .insert([{ ...formData }]);
+          .insert([toRow(formData)]);
         if (error) throw error;
         toast.success('Recipe added successfully');
       }
-      setShowAddForm(false);
+      closeForm();
       setSelectedRecipe(null);
-      setFormData({});
       fetchRecipes();
     } catch (error) {
       toast.error('Failed to save recipe');
@@ -114,6 +196,9 @@ export const CulturalRecipeBook: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  const setField = <K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) =>
+    setFormData(prev => ({ ...prev, [key]: value }));
 
   const filteredRecipes = recipes.filter(recipe =>
     recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -147,7 +232,7 @@ export const CulturalRecipeBook: React.FC = () => {
           <h2 className="text-xl font-semibold">Cultural Recipe Collection</h2>
         </div>
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={handleAddRecipe}
           className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -166,6 +251,12 @@ export const CulturalRecipeBook: React.FC = () => {
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
         />
       </div>
+
+      {!selectedRecipe && !isLoading && filteredRecipes.length === 0 && (
+        <p className="text-center text-gray-500 py-12">
+          {recipes.length === 0 ? 'No recipes yet. Click "Add Recipe" to save your first family recipe.' : 'No recipes match your search.'}
+        </p>
+      )}
 
       {!selectedRecipe ? (
         /* Recipe Grid */
@@ -237,10 +328,22 @@ export const CulturalRecipeBook: React.FC = () => {
             >
               ← Back to recipes
             </button>
-            <button className="flex items-center space-x-1 text-red-500 hover:text-red-600">
-              <Heart className="w-5 h-5" />
-              <span>Save to favorites</span>
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => handleEditRecipe(selectedRecipe)}
+                className="flex items-center space-x-1 text-orange-600 hover:text-orange-700"
+              >
+                <Pencil className="w-5 h-5" />
+                <span>Edit</span>
+              </button>
+              <button
+                onClick={() => handleDeleteRecipe(selectedRecipe.id)}
+                className="flex items-center space-x-1 text-red-500 hover:text-red-600"
+              >
+                <Trash2 className="w-5 h-5" />
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -339,6 +442,87 @@ export const CulturalRecipeBook: React.FC = () => {
             </div>
           </div>
         </motion.div>
+      )}
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+          <form
+            onSubmit={handleFormSubmit}
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-xl p-6 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">{editingId ? 'Edit recipe' : 'Add a recipe'}</h3>
+              <button type="button" onClick={closeForm} aria-label="Close" className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="block text-sm">
+                <span className="font-medium">Recipe name *</span>
+                <input required value={formData.name} onChange={e => setField('name', e.target.value)} className={inputClass} />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Origin (place or culture) *</span>
+                <input required value={formData.origin} onChange={e => setField('origin', e.target.value)} className={inputClass} />
+              </label>
+            </div>
+            <label className="block text-sm">
+              <span className="font-medium">Cultural significance</span>
+              <textarea rows={2} value={formData.culturalSignificance} onChange={e => setField('culturalSignificance', e.target.value)} className={inputClass} />
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium">Family story</span>
+              <textarea rows={3} value={formData.story} onChange={e => setField('story', e.target.value)} className={inputClass} />
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium">Ingredients (one per line, e.g. "2 cups | flour")</span>
+              <textarea rows={4} value={formData.ingredients} onChange={e => setField('ingredients', e.target.value)} className={inputClass} />
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium">Instructions (one step per line)</span>
+              <textarea rows={4} value={formData.instructions} onChange={e => setField('instructions', e.target.value)} className={inputClass} />
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <label className="block text-sm">
+                <span className="font-medium">Prep (min)</span>
+                <input type="number" min={0} value={formData.prepTime} onChange={e => setField('prepTime', e.target.value)} className={inputClass} />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Cook (min)</span>
+                <input type="number" min={0} value={formData.cookTime} onChange={e => setField('cookTime', e.target.value)} className={inputClass} />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Servings</span>
+                <input type="number" min={0} value={formData.servings} onChange={e => setField('servings', e.target.value)} className={inputClass} />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Rating (0-5)</span>
+                <input type="number" min={0} max={5} value={formData.rating} onChange={e => setField('rating', e.target.value)} className={inputClass} />
+              </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="block text-sm">
+                <span className="font-medium">Difficulty</span>
+                <select value={formData.difficulty} onChange={e => setField('difficulty', e.target.value as Recipe['difficulty'])} className={inputClass}>
+                  <option>Easy</option>
+                  <option>Medium</option>
+                  <option>Hard</option>
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Tags (comma separated)</span>
+                <input value={formData.tags} onChange={e => setField('tags', e.target.value)} className={inputClass} />
+              </label>
+            </div>
+            <div className="flex justify-end space-x-3 pt-2">
+              <button type="button" onClick={closeForm} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="submit" disabled={isLoading} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
+                {isLoading ? 'Saving...' : 'Save recipe'}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

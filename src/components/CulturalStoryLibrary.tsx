@@ -62,13 +62,14 @@ export const CulturalStoryLibrary: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    // An empty date field must be saved as "no date", not as an empty string (the database rejects '').
+    const row = { ...formData, date_recorded: formData.date_recorded || null };
     try {
       if (isEditing && selectedStory) {
         // Update existing story
         const { error } = await supabase
           .from('cultural_stories')
-          .update(formData)
+          .update(row)
           .eq('id', selectedStory.id);
 
         if (error) throw error;
@@ -77,7 +78,7 @@ export const CulturalStoryLibrary: React.FC = () => {
         // Create new story
         const { error } = await supabase
           .from('cultural_stories')
-          .insert([formData]);
+          .insert([row]);
 
         if (error) throw error;
         toast.success('Story added successfully');

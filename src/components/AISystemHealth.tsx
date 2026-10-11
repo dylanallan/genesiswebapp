@@ -45,13 +45,11 @@ export const AISystemHealth: React.FC = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from('admin_roles')
-        .select('*')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .maybeSingle();
+      // is_admin() checks admin_roles on the server (reading admin_roles directly is not allowed for everyone).
+      const { data, error } = await supabase.rpc('is_admin');
+      if (error) throw error;
       
-      setIsAdmin(!!data);
+      setIsAdmin(data === true);
     } catch (error) {
       console.error('Error checking admin status:', error);
     }

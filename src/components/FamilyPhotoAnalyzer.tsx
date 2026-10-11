@@ -128,13 +128,16 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
     setAnalysis(updatedAnalysis);
 
     try {
-      await supabase
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
         .from('face_names')
         .upsert({
+          user_id: auth?.user?.id,
           face_id: `${selectedImage}-${faceIndex}`,
           name,
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'user_id,face_id' });
+      if (error) throw error;
 
       toast.success(`Name updated to ${name}`);
     } catch (error) {

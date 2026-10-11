@@ -85,7 +85,7 @@ export function MetricsFeature() {
       };
       const started = performance.now();
       const [family, saved, artifacts, workflows] = await Promise.all([
-        count('family_members'), count('saved_records'), count('cultural_artifacts'), count('workflows'),
+        count('family_members'), count('saved_records'), count('cultural_artifacts'), count('automation_workflows'),
       ]);
       const responseTime = Math.round(performance.now() - started);
       const today = new Date().toISOString().slice(0, 10);
