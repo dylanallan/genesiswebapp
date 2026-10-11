@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { HelmetProvider } from 'react-helmet-async';
+import { Toaster } from 'sonner';
 import './index.css';
 
 console.log('🚀 Starting React app...');
@@ -28,6 +29,8 @@ try {
   reactRoot.render(
     <React.StrictMode>
       <HelmetProvider>
+        {/* Shows every toast() message in the app (errors, confirmations). */}
+        <Toaster position="top-center" richColors closeButton />
         <App />
       </HelmetProvider>
     </React.StrictMode>
