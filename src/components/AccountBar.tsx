@@ -1,12 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSession } from '../lib/session-context';
 import { signOut } from '../lib/supabase';
+import { SetNewPassword } from './SetNewPassword';
 import { syncPayPalSubscription } from '../lib/billing';
 
 // Slim top bar on every screen: navigation, plan badge, upgrade / sign out.
 export default function AccountBar() {
+  const [changingPassword, setChangingPassword] = useState(false);
   const { user, subscription, refreshSubscription } = useSession();
   const [params, setParams] = useSearchParams();
 
@@ -40,6 +42,10 @@ export default function AccountBar() {
     }
   };
 
+  if (changingPassword) {
+    return <SetNewPassword title="Change your password" onDone={() => setChangingPassword(false)} onCancel={() => setChangingPassword(false)} />;
+  }
+
   return (
     <nav className="flex items-center justify-between gap-3 border-b bg-white px-4 py-2 text-sm" aria-label="Account">
       <div className="flex items-center gap-4">
@@ -53,6 +59,7 @@ export default function AccountBar() {
         </span>
         {!subscription.active && <Link to="/pricing" className="rounded bg-blue-600 px-3 py-1 text-white">Upgrade</Link>}
         <span className="hidden text-gray-500 sm:inline">{user?.email}</span>
+        <button onClick={() => setChangingPassword(true)} className="text-gray-600 hover:text-blue-700">Change password</button>
         <button onClick={handleSignOut} className="text-gray-600 hover:text-red-600">Sign out</button>
       </div>
     </nav>

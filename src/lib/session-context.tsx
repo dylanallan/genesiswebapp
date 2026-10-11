@@ -17,6 +17,9 @@ interface SessionContextType {
   subscription: SubscriptionInfo;
   subscriptionLoading: boolean;
   refreshSubscription: () => Promise<void>;
+  /** True after opening a password-reset link: the user must choose a new password. */
+  passwordRecovery: boolean;
+  finishPasswordRecovery: () => void;
 }
 
 const NO_SUBSCRIPTION: SubscriptionInfo = { status: 'none', active: false, provider: null, currentPeriodEnd: null, cancelAtPeriodEnd: false };
@@ -34,6 +37,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionInfo>(NO_SUBSCRIPTION);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   // Track sign-in state. onAuthStateChange fires INITIAL_SESSION on mount, then every sign-in,
   // sign-out, token refresh and OAuth redirect (so Google sign-in lands correctly).
@@ -46,7 +50,8 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       }
     }).catch(() => !cancelled && setLoading(false));
 
-    const { data } = supabase.auth.onAuthStateChange((_event: string, next: Session | null) => {
+    const { data } = supabase.auth.onAuthStateChange((event: string, next: Session | null) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
       setSession(next);
       setLoading(false);
     });
@@ -94,9 +99,14 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     void refreshSubscription();
   }, [refreshSubscription]);
 
+  const finishPasswordRecovery = useCallback(() => setPasswordRecovery(false), []);
+
   const value = useMemo(
-    () => ({ session, user: session?.user ?? null, loading, subscription, subscriptionLoading, refreshSubscription }),
-    [session, loading, subscription, subscriptionLoading, refreshSubscription],
+    () => ({
+      session, user: session?.user ?? null, loading, subscription, subscriptionLoading, refreshSubscription,
+      passwordRecovery, finishPasswordRecovery,
+    }),
+    [session, loading, subscription, subscriptionLoading, refreshSubscription, passwordRecovery, finishPasswordRecovery],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

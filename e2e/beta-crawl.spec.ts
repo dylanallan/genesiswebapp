@@ -25,6 +25,21 @@ test('signed-out visitors see the sign-in form', async ({ browser }) => {
   await expect(page.getByRole('button', { name: 'Sign In', exact: true })).toBeVisible();
 });
 
+test('forgot password sends a reset email', async ({ browser }) => {
+  const page = await (await browser.newContext()).newPage();
+  await installMockBackend(page, state);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Forgot password?' }).click();
+  await expect(page.getByLabel('Password')).toHaveCount(0);
+  await page.getByLabel('Email').fill('someone@example.com');
+  const [req] = await Promise.all([
+    page.waitForRequest((r) => r.url().includes('/auth/v1/recover')),
+    page.getByRole('button', { name: 'Email me a reset link' }).click(),
+  ]);
+  expect(JSON.parse(req.postData() ?? '{}').email).toBe('someone@example.com');
+  await expect(page.getByText(/reset link is on its way/i)).toBeVisible();
+});
+
 test('signed-in user lands on home and sees their plan', async ({ page }) => {
   current = 'home';
   await page.goto('/');

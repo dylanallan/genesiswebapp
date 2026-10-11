@@ -13,6 +13,7 @@ import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
 import { GlobalDataProvider } from '../lib/GlobalDataContext';
 import PricingPage from './PricingPage';
 import AccountBar from './AccountBar';
+import { SetNewPassword } from './SetNewPassword';
 
 // A shared demo login is only offered when a demo account is explicitly configured at build time.
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
@@ -22,7 +23,7 @@ const SimpleAuth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +39,13 @@ const SimpleAuth: React.FC = () => {
       toast.success('Successfully signed in!');
     } catch (error: any) {
       console.error('Sign in error:', error);
-      toast.error(error.message || 'Failed to sign in');
+      if (/invalid login credentials/i.test(error.message ?? '')) {
+        toast.error('That email and password do not match. If you forgot your password, use "Forgot password?" below.');
+      } else if (/email not confirmed/i.test(error.message ?? '')) {
+        toast.error('Please confirm your email first: open the link we emailed you.');
+      } else {
+        toast.error(error.message || 'Failed to sign in');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +80,23 @@ const SimpleAuth: React.FC = () => {
       } else {
         toast.error(error.message || 'Failed to create account');
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Emails a link that opens this site signed in, where SetNewPassword asks for the new password.
+  const handleResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      if (error) throw error;
+      toast.success('If that email has an account, a reset link is on its way. Check your inbox (and spam).');
+      setAuthMode('signin');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      toast.error(error.message || 'Could not send the reset email. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +145,7 @@ const SimpleAuth: React.FC = () => {
           <Brain className="w-16 h-16 text-blue-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900">Welcome to Genesis Heritage</h2>
           <p className="text-gray-600">
-            {authMode === 'signin' ? 'Sign in to your account' : 'Create your account'}
+            {authMode === 'signin' ? 'Sign in to your account' : authMode === 'signup' ? 'Create your account' : 'Reset your password'}
           </p>
         </div>
 
@@ -149,7 +173,7 @@ const SimpleAuth: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={authMode === 'signin' ? handleSignIn : handleSignUp} className="space-y-4">
+        <form onSubmit={authMode === 'signin' ? handleSignIn : authMode === 'signup' ? handleSignUp : handleResetRequest} className="space-y-4">
           <div>
             <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -167,7 +191,7 @@ const SimpleAuth: React.FC = () => {
             />
           </div>
 
-          <div>
+          {authMode !== 'reset' && <div>
             <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
@@ -183,15 +207,21 @@ const SimpleAuth: React.FC = () => {
               required
               minLength={8}
             />
-          </div>
+            {authMode === 'signin' && (
+              <button type="button" onClick={() => setAuthMode('reset')} className="mt-1 text-sm text-blue-600 hover:text-blue-700">
+                Forgot password?
+              </button>
+            )}
+          </div>}
 
           <button
             type="submit"
             disabled={isLoading}
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {isLoading ? (authMode === 'signin' ? 'Signing in...' : 'Creating account...') : 
-             (authMode === 'signin' ? 'Sign In' : 'Create Account')}
+            {isLoading
+              ? (authMode === 'signin' ? 'Signing in...' : authMode === 'signup' ? 'Creating account...' : 'Sending...')
+              : (authMode === 'signin' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Email me a reset link')}
           </button>
         </form>
 
@@ -212,9 +242,9 @@ const SimpleAuth: React.FC = () => {
             onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
             className="text-gray-600 hover:text-gray-700 text-sm"
           >
-            {authMode === 'signin' 
-              ? "Don't have an account? Sign up" 
-              : "Already have an account? Sign in"}
+            {authMode === 'signin'
+              ? "Don't have an account? Sign up"
+              : authMode === 'signup' ? 'Already have an account? Sign in' : 'Back to sign in'}
           </button>
         </div>
       </div>
@@ -235,10 +265,11 @@ const LoadingScreen = () => (
 );
 
 export const MainApp: React.FC = () => {
-  const { session, loading } = useSession();
+  const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();
 
   if (loading) return <LoadingScreen />;
   if (!session) return <SimpleAuth />;
+  if (passwordRecovery) return <SetNewPassword onDone={finishPasswordRecovery} />;
 
   return (
     <GlobalDataProvider>
