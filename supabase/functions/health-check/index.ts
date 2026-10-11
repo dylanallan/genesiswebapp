@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Public liveness check (deployed with verify_jwt = false). Reports only up/down per component,
 // never user counts or other internal figures; detailed metrics live in the admin-only
@@ -19,13 +20,13 @@ Deno.serve(async (req) => {
   const cors = corsFor(req)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
-  const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+  const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
   const [database, storage, auth] = await Promise.all([
     timed(async () => !(await db.from('health_check').select('id').limit(1)).error),
     timed(async () => !(await db.storage.listBuckets()).error),
     timed(async () => !(await db.auth.admin.listUsers({ page: 1, perPage: 1 })).error),
   ])
-  const aiConfigured = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY'].some((k) => !!Deno.env.get(k))
+  const aiConfigured = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY'].some((k) => !!cfg(k))
   const healthy = database.status === 'ok' && storage.status === 'ok' && auth.status === 'ok'
 
   return new Response(

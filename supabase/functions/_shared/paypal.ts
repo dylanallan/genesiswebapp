@@ -2,8 +2,9 @@
 // Env: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV ("live" or "sandbox", default sandbox),
 //      PAYPAL_WEBHOOK_ID (from the webhook you register in the PayPal developer dashboard).
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { cfg } from './runtime-config.ts'
 
-const BASE = (Deno.env.get('PAYPAL_ENV') ?? 'sandbox') === 'live'
+const BASE = (cfg('PAYPAL_ENV') ?? 'sandbox') === 'live'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com'
 
@@ -11,8 +12,8 @@ let cachedToken: { value: string; expiresAt: number } | null = null
 
 async function accessToken(): Promise<string> {
   if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) return cachedToken.value
-  const id = Deno.env.get('PAYPAL_CLIENT_ID')
-  const secret = Deno.env.get('PAYPAL_CLIENT_SECRET')
+  const id = cfg('PAYPAL_CLIENT_ID')
+  const secret = cfg('PAYPAL_CLIENT_SECRET')
   if (!id || !secret) throw new Error('PayPal is not configured')
   const res = await fetch(`${BASE}/v1/oauth2/token`, {
     method: 'POST',
@@ -45,7 +46,7 @@ export async function paypal<T = Record<string, unknown>>(path: string, init: Re
 
 // Asks PayPal to confirm a webhook really came from PayPal for our webhook id.
 export async function verifyWebhook(req: Request, rawBody: string): Promise<boolean> {
-  const webhookId = Deno.env.get('PAYPAL_WEBHOOK_ID')
+  const webhookId = cfg('PAYPAL_WEBHOOK_ID')
   if (!webhookId) return false
   const h = (name: string) => req.headers.get(name) ?? ''
   let event: unknown
@@ -66,10 +67,10 @@ export async function verifyWebhook(req: Request, rawBody: string): Promise<bool
 }
 
 export const adminDb = () =>
-  createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+  createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
 export function siteUrl(path: string): string {
-  const site = (Deno.env.get('SITE_URL') ?? '').replace(/\/$/, '')
+  const site = (cfg('SITE_URL') ?? '').replace(/\/$/, '')
   if (!site) throw new Error('SITE_URL is not configured')
   return `${site}${path}`
 }

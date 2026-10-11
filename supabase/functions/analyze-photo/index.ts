@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Analyses one of the caller's own photos (bucket "family-photos", folder = their user id) with the
 // Google Cloud Vision REST API: faces (positions only), labels, landmarks, objects and printed text.
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
 
   try {
     const user = await requireUser(req)
-    const apiKey = Deno.env.get('GOOGLE_VISION_API_KEY')
+    const apiKey = cfg('GOOGLE_VISION_API_KEY')
     if (!apiKey) return json({ error: 'Photo analysis is not configured' }, 503, cors)
 
     const { photoPath } = await req.json()
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
       return json({ error: 'You can only analyse your own photos' }, 403, cors)
     }
 
-    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
     const { data: file, error: dlError } = await db.storage.from('family-photos').download(photoPath)
     if (dlError || !file) return json({ error: 'Photo not found' }, 404, cors)
     const bytes = new Uint8Array(await file.arrayBuffer())

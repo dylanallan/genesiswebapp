@@ -1,6 +1,7 @@
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 import { paypal, adminDb, siteUrl, syncSubscription } from '../_shared/paypal.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Customer-facing PayPal subscription actions:
 //   create { plan: 'monthly' | 'yearly' } -> { url } of PayPal's approval page
@@ -8,8 +9,8 @@ import { paypal, adminDb, siteUrl, syncSubscription } from '../_shared/paypal.ts
 //   cancel { reason? }                     -> stops renewal; Pro stays until the paid period ends
 //   config {}                              -> { subscriptions } whether automatic subscriptions are set up
 const PLANS: Record<string, string | undefined> = {
-  monthly: Deno.env.get('PAYPAL_PLAN_MONTHLY'),
-  yearly: Deno.env.get('PAYPAL_PLAN_YEARLY'),
+  monthly: cfg('PAYPAL_PLAN_MONTHLY'),
+  yearly: cfg('PAYPAL_PLAN_YEARLY'),
 }
 
 Deno.serve(async (req) => {
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     const { action = 'create', plan = 'monthly', reason } = await req.json().catch(() => ({}))
     if (action === 'config') {
-      const configured = Boolean(Deno.env.get('PAYPAL_CLIENT_ID') && Deno.env.get('PAYPAL_CLIENT_SECRET') && PLANS.monthly && PLANS.yearly)
+      const configured = Boolean(cfg('PAYPAL_CLIENT_ID') && cfg('PAYPAL_CLIENT_SECRET') && PLANS.monthly && PLANS.yearly)
       return json({ subscriptions: configured }, 200, cors)
     }
     const user = await requireUser(req)

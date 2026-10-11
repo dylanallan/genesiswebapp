@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Updates the caller's profile fields and records each change in their profile history.
 const VALID_FIELDS = new Set([
@@ -29,7 +30,7 @@ Deno.serve(async (req) => {
       clean[field] = value.trim()
     }
 
-    const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
     const { data: profile, error } = await db.rpc('update_user_profile_batch', {
       p_updates: clean,
       p_reason: typeof reason === 'string' && reason.trim() ? reason.trim().slice(0, 200) : 'User-initiated update',

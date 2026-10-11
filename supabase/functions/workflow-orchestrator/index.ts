@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
 import { assertPublicHttpsUrl } from '../_shared/net.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 interface WorkflowRequest {
   workflowId: string
@@ -34,8 +35,8 @@ Deno.serve(async (req) => {
     workflowRequest.userId = userId
     
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = cfg('SUPABASE_URL')!
+    const supabaseServiceKey = cfg('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get workflow definition
@@ -201,10 +202,10 @@ async function executeAIStep(step: WorkflowStep, data: any, supabase: any): Prom
   const { prompt, useCase, provider } = step.config
   
   // Call the advanced AI processor
-  const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/advanced-ai-processor`, {
+  const response = await fetch(`${cfg('SUPABASE_URL')}/functions/v1/advanced-ai-processor`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      'Authorization': `Bearer ${cfg('SUPABASE_SERVICE_ROLE_KEY')}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({

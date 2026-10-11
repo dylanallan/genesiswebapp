@@ -1,6 +1,7 @@
 import OpenAI from 'npm:openai@4.28.0'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Returns an embedding vector for a piece of text (signed-in users only).
 // The model is fixed so callers cannot switch to a more expensive one.
@@ -13,7 +14,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method Not Allowed' }, 405, cors)
   try {
     await requireUser(req)
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    const apiKey = cfg('OPENAI_API_KEY')
     if (!apiKey) return json({ error: 'Embeddings need an OpenAI API key to be configured' }, 503, cors)
     const { text } = await req.json()
     if (typeof text !== 'string' || !text.trim() || text.length > MAX_CHARS) {

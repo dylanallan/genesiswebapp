@@ -1,5 +1,6 @@
 import { createLogger } from './logger.ts';
 import { OPENAI_COMPATIBLE, compatibleKey, compatibleModel, providerOrder } from './ai-providers.ts';
+import { cfg } from './runtime-config.ts';
 
 const logger = createLogger('ai-utils');
 
@@ -37,7 +38,7 @@ export const getAIProvider = (providerName: string): AIProvider | null => {
       const key = compatibleKey(providerName.toLowerCase());
       return key ? { name: providerName.toLowerCase(), apiKey: key, baseUrl: compatible.baseUrl() } : null;
     }
-    const apiKey = Deno.env.get(`${providerName.toUpperCase()}_API_KEY`);
+    const apiKey = cfg(`${providerName.toUpperCase()}_API_KEY`);
     if (!apiKey) {
       logger.warn(`No API key found for provider: ${providerName}`);
       return null;
@@ -46,7 +47,7 @@ export const getAIProvider = (providerName: string): AIProvider | null => {
     return {
       name: providerName,
       apiKey,
-      baseUrl: Deno.env.get(`${providerName.toUpperCase()}_BASE_URL`)
+      baseUrl: cfg(`${providerName.toUpperCase()}_BASE_URL`)
     };
   } catch (error) {
     logger.error(`Error getting AI provider ${providerName}:`, error);
@@ -84,9 +85,9 @@ export interface CallOptions {
 
 // Default models are overridable with env vars so a retired model never needs a code change.
 const DEFAULT_MODELS = {
-  openai: () => Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
-  anthropic: () => Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
-  gemini: () => Deno.env.get('GEMINI_MODEL') ?? 'gemini-flash-latest',
+  openai: () => cfg('OPENAI_MODEL') ?? 'gpt-4o-mini',
+  anthropic: () => cfg('ANTHROPIC_MODEL') ?? 'claude-sonnet-5-5',
+  gemini: () => cfg('GEMINI_MODEL') ?? 'gemini-flash-latest',
 };
 
 const splitSystem = (messages: AIMessage[]) => ({

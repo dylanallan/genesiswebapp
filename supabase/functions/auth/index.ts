@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { json } from '../_shared/auth.ts'
+import { cfg } from '../_shared/runtime-config.ts'
 
 // Email/password sign-in and sign-up through an Edge Function.
 // Uses the public ANON key (never the service-role key) so Supabase Auth's own rate limits,
@@ -18,7 +19,7 @@ Deno.serve(async (req) => {
       return json({ error: 'A valid email and a password of 8-128 characters are required' }, 400, cors)
     }
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+    const supabase = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_ANON_KEY') ?? '', {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     const { data, error } = isSignUp

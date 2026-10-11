@@ -24,9 +24,11 @@ export interface AppConfig {
 
 // Default configuration
 const defaultConfig: AppConfig = {
+  // The live project. The anon key is public by design (row-level security protects the data);
+  // VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY still override these for other environments.
   supabase: {
-    url: '',
-    anonKey: ''
+    url: 'https://yomgwdeqsvbapvqpuspq.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbWd3ZGVxc3ZiYXB2cXB1c3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2MDIzNjUsImV4cCI6MjA2NDE3ODM2NX0.HBjnzvpUBuPdTkFkJDwu673d0BqsJanaoMFkhTwEdvk'
   },
   ai: {
     providers: ['openai', 'anthropic', 'gemini', 'ollama'],
