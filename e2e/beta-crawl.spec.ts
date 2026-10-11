@@ -49,34 +49,101 @@ test('signed-in user lands on home and sees their plan', async ({ page }) => {
 });
 
 test('every dashboard feature opens without crashing', async ({ page }) => {
-  test.setTimeout(10 * 60_000);
+  test.setTimeout(15 * 60_000);
   current = 'dashboard';
+  state.admin = true; // admins see every tool, so the crawl covers everything
   await page.goto('/dashboard');
+  const categoryBand = page.locator('div.overflow-x-auto').nth(0);
   const band = page.locator('div.overflow-x-auto').nth(1);
-  await expect(band.locator('button').first()).toBeVisible();
-  const names = (await band.locator('button').allInnerTexts()).map((t) => t.trim());
-  console.log(`Found ${names.length} features`);
+  await expect(categoryBand.getByRole('button', { name: 'All tools (admin)' })).toBeVisible();
+  // Customer menus, then one pass over every tool (the other admin groups are subsets of it).
+  const categories = (await categoryBand.locator('button').allInnerTexts()).map((t) => t.trim())
+    .filter((c) => !/^(Accounts & payments|Business tools|Monitoring|System|Demos)$/.test(c));
 
   const report: string[] = [];
+  const seen = new Set<string>();
   fs.mkdirSync('test-results', { recursive: true });
   fs.writeFileSync('test-results/crawl-progress.txt', '');
-  for (let i = 0; i < names.length; i++) {
-    current = `feature: ${names[i]}`;
-    fs.appendFileSync('test-results/crawl-progress.txt', `${i} ${names[i]}\n`);
-    await band.locator('button').nth(i).click({ timeout: 10_000 });
-    await page.waitForTimeout(400);
-    const body = await page.locator('main').first().innerText({ timeout: 10_000 });
-    const crashed = /Component Error|Something went wrong|Application Error|not a valid React component/i.test(body);
-    const empty = body.replace(/\s+/g, ' ').trim().length < 40;
-    report.push(`${crashed ? 'CRASH' : empty ? 'EMPTY' : 'ok   '}  ${names[i]}`);
-    await page.keyboard.press('Escape'); // closes pop-up features, like a user would
-    await page.waitForTimeout(150);
-    if (process.env.SHOTS) await page.screenshot({ path: `test-results/shots/${String(i).padStart(2, '0')}-${names[i].replace(/\W+/g, '_')}.png` });
+  for (const category of categories) {
+    await categoryBand.getByRole('button', { name: category, exact: true }).click();
+    await expect(band.locator('button').first()).toBeVisible();
+    const names = (await band.locator('button').allInnerTexts()).map((t) => t.trim());
+    for (let i = 0; i < names.length; i++) {
+      const key = `${category} > ${names[i]}`;
+      if (seen.has(names[i]) && category.startsWith('All tools')) continue;
+      seen.add(names[i]);
+      current = `feature: ${key}`;
+      fs.appendFileSync('test-results/crawl-progress.txt', `${key}\n`);
+      await band.locator('button').nth(i).click({ timeout: 10_000 });
+      await page.waitForTimeout(400);
+      const body = await page.locator('main').first().innerText({ timeout: 10_000 });
+      const crashed = /Component Error|Something went wrong|Application Error|not a valid React component/i.test(body);
+      const empty = body.replace(/\s+/g, ' ').trim().length < 40;
+      report.push(`${crashed ? 'CRASH' : empty ? 'EMPTY' : 'ok   '}  ${key}`);
+      await page.keyboard.press('Escape'); // closes pop-up features, like a user would
+      await page.waitForTimeout(150);
+    }
   }
-  fs.mkdirSync('test-results', { recursive: true });
+  state.admin = false;
   fs.writeFileSync('test-results/feature-report.txt', report.join('\n'));
   console.log(report.join('\n'));
   expect(report.filter((r) => !r.startsWith('ok'))).toEqual([]);
+});
+
+test('customers only see family-history menus', async ({ page }) => {
+  current = 'customer-menu';
+  await page.goto('/dashboard');
+  const categoryBand = page.locator('div.overflow-x-auto').nth(0);
+  await expect(categoryBand.getByRole('button', { name: 'Memories', exact: true })).toBeVisible();
+  await expect(categoryBand.getByRole('button', { name: /admin|Business/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Welcome to Genesis Heritage' })).toBeVisible();
+});
+
+test('new user builds a quick tree from the welcome screen', async ({ page }) => {
+  current = 'quick-tree';
+  state.posted = {};
+  await page.goto('/dashboard');
+  await page.getByLabel('You', { exact: true }).fill('Dylan Batchelor');
+  await page.getByLabel('Your mother', { exact: true }).fill('Ana López');
+  await page.getByRole('button', { name: 'Save and find my first records' }).click();
+  await expect(page.getByText(/2 people added/)).toBeVisible();
+  const rows = state.posted.family_members as Array<{ first_name: string; parent_ids: string[]; id: string }>;
+  expect(rows.map((r) => r.first_name)).toEqual(['Dylan', 'Ana']);
+  expect(rows[0].parent_ids).toEqual([rows[1].id]);
+});
+
+test('importing an Ancestry GEDCOM file adds everyone to the tree', async ({ page }) => {
+  current = 'gedcom-import';
+  state.posted = {};
+  await page.goto('/dashboard?feature=tree-import');
+  const ged = ['0 HEAD', '1 SOUR Ancestry.com Family Trees', '0 @I1@ INDI', '1 NAME Rosa /Vega/', '1 FAMS @F1@', '0 @I2@ INDI', '1 NAME Luis /Vega/', '1 FAMC @F1@', '0 @F1@ FAM', '1 WIFE @I1@', '1 CHIL @I2@', '0 TRLR'].join('\n');
+  await page.getByLabel('GEDCOM file').setInputFiles({ name: 'tree.ged', mimeType: 'text/plain', buffer: Buffer.from(ged) });
+  await expect(page.getByText(/Found/)).toContainText('2 people');
+  await page.getByRole('button', { name: /Add 2 people to my tree/ }).click();
+  await expect(page.getByText(/2 people are now in your family tree/)).toBeVisible();
+  const rows = state.posted.family_members as Array<{ first_name: string; parent_ids: string[]; id: string }>;
+  expect(rows.find((r) => r.first_name === 'Luis')!.parent_ids).toEqual([rows.find((r) => r.first_name === 'Rosa')!.id]);
+});
+
+test('family invite link: signed-out relative is asked to join, signed-in relative joins', async ({ page, browser }) => {
+  current = 'invite';
+  const visitor = await (await browser.newContext()).newPage();
+  await installMockBackend(visitor, state);
+  await visitor.goto('/join/tok123');
+  await expect(visitor.getByText(/invited to join your family/)).toBeVisible();
+  await expect(visitor.getByRole('button', { name: 'Create Account' })).toBeVisible();
+  await page.goto('/join/tok123');
+  await expect(page.getByText(/joined Rosa's family/)).toBeVisible();
+});
+
+test('privacy policy and terms are public', async ({ browser }) => {
+  const page = await (await browser.newContext()).newPage();
+  await installMockBackend(page, state);
+  await page.goto('/privacy');
+  await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible();
+  await expect(page.getByText(/never sell it/)).toBeVisible();
+  await page.goto('/terms');
+  await expect(page.getByRole('heading', { name: 'Terms of Service' })).toBeVisible();
 });
 
 test('pricing page: free user can start PayPal checkout', async ({ page }) => {

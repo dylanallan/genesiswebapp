@@ -188,6 +188,13 @@ import SettingsPanel from './Settings';
 import FamilySummary from './FamilySummary';
 import RecordsSearch from './RecordsSearch';
 import AdminPayments from './AdminPayments';
+import TreeImport from './TreeImport';
+import FamilySharing from './FamilySharing';
+import FamilyStorybook from './FamilyStorybook';
+import FamilyInterview from './FamilyInterview';
+import PrivacyCenter from './PrivacyCenter';
+import GetStarted from './GetStarted';
+import { useSearchParams } from 'react-router-dom';
 import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
 interface DashboardProps {
@@ -195,6 +202,54 @@ interface DashboardProps {
 }
 
 const features = [
+  {
+    id: 'welcome',
+    name: 'Get started',
+    icon: Home,
+    component: GetStarted,
+    description: 'Your first steps',
+    category: 'heritage',
+  },
+  {
+    id: 'tree-import',
+    name: 'Import or export tree',
+    icon: Upload,
+    component: TreeImport,
+    description: 'Bring your tree from Ancestry, MyHeritage or FamilySearch',
+    category: 'heritage',
+  },
+  {
+    id: 'family-sharing',
+    name: 'Share with family',
+    icon: Share,
+    component: FamilySharing,
+    description: 'Invite relatives to view and add memories',
+    category: 'heritage',
+  },
+  {
+    id: 'family-interview',
+    name: 'Interview a relative',
+    icon: Mic,
+    component: FamilyInterview,
+    description: 'Guided voice interviews, recorded and written down',
+    category: 'heritage',
+  },
+  {
+    id: 'family-storybook',
+    name: 'Family storybook',
+    icon: BookOpen,
+    component: FamilyStorybook,
+    description: 'Turn your family history into a printable book',
+    category: 'heritage',
+  },
+  {
+    id: 'privacy-center',
+    name: 'Your data & privacy',
+    icon: Shield,
+    component: PrivacyCenter,
+    description: 'Download or delete everything',
+    category: 'user',
+  },
   {
     id: 'records-search',
     name: 'Historical Records',
@@ -794,44 +849,83 @@ const features = [
   }
 ];
 
+// What customers see: family-history tools grouped by what they want to do, with plain names.
+// Everything else (business, enterprise, hackathon, monitoring tools) is only listed for admins.
+const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType<{ className?: string }>; items: Array<[string, string]> }> = [
+  { id: 'start', name: 'Start here', icon: Home, items: [['welcome', 'Get started'], ['tree-import', 'Import or export tree']] },
+  { id: 'family', name: 'My family', icon: Trees, items: [
+    ['family-tree-viz', 'Family tree'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
+    ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
+  ] },
+  { id: 'memories', name: 'Memories', icon: Heart, items: [
+    ['family-interview', 'Interview a relative'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
+    ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
+    ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
+  ] },
+  { id: 'research', name: 'Research', icon: Search, items: [['records-search', 'Historical records'], ['data-table', 'My saved records'], ['search', 'Search everything']] },
+  { id: 'ai', name: 'AI helper', icon: Brain, items: [
+    ['ai-assistant', 'Ask the AI'], ['family-tree-voice', 'Talk about my tree'], ['conversation-summarizer', 'Past conversations'], ['ai-custom-instructions', 'AI preferences'],
+  ] },
+  { id: 'account', name: 'Account', icon: User, items: [['privacy-center', 'Your data & privacy'], ['user-settings', 'Profile'], ['app-settings', 'Settings']] },
+];
+
 export const Dashboard: React.FC<DashboardProps> = () => {
   const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [preferences] = useAtom(userPreferencesAtom);
-  const [activeFeature, setActiveFeature] = useState('records-search');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  
+  const [searchParams] = useSearchParams();
+  const [activeFeature, setActiveFeature] = useState(searchParams.get('feature') ?? 'welcome');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    () => CUSTOMER_MENU.find((g) => g.items.some(([id]) => id === (searchParams.get('feature') ?? 'welcome')))?.id ?? 'start',
+  );
+
   const { colorScheme } = preferences;
 
-  const filteredFeatures = selectedCategory === 'all' 
-    ? features 
-    : features.filter(f => f.category === selectedCategory);
+  useEffect(() => {
+    supabase.rpc('is_admin').then(({ data }: { data: boolean | null }) => setIsAdmin(data === true));
+  }, []);
+
+  const open = (id: string) => {
+    setActiveFeature(id);
+    const group = CUSTOMER_MENU.find((g) => g.items.some(([item]) => item === id));
+    if (group) setSelectedCategory(group.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const customerGroup = CUSTOMER_MENU.find((g) => g.id === selectedCategory);
+  const adminCategory = selectedCategory.startsWith('admin:') ? selectedCategory.slice(6) : null;
+  const filteredFeatures = customerGroup
+    ? customerGroup.items.map(([id, label]) => ({ ...(features.find((f) => f.id === id) ?? { id, icon: Home }), name: label }))
+    : adminCategory === 'all'
+      ? features
+      : features.filter(f => f.category === adminCategory);
 
   const activeEntry = (features.find(f => f.id === activeFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
   const ActiveComponent = activeEntry.component as React.ComponentType;
-  const closeFeature = () => setActiveFeature('records-search');
+  const closeFeature = () => setActiveFeature('welcome');
 
   // Pop-up features close with the Escape key, as people expect.
   useEffect(() => {
     if (!activeEntry.render) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('records-search'); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('welcome'); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [activeEntry]);
 
+  // Admins also get the full original tool list, including business and monitoring tools.
+  const adminCategories = [
+    { id: 'admin:all', name: 'All tools (admin)', icon: Plus },
+    { id: 'admin:user', name: 'Accounts & payments', icon: CreditCard },
+    { id: 'admin:business', name: 'Business tools', icon: Zap },
+    { id: 'admin:analytics', name: 'Monitoring', icon: BarChart3 },
+    { id: 'admin:core', name: 'System', icon: Settings },
+    { id: 'admin:hackathon', name: 'Demos', icon: Rocket },
+  ];
   const categories = [
-    { id: 'all', name: 'All Features', icon: Plus },
-    { id: 'core', name: 'Core System', icon: Home },
-    { id: 'heritage', name: 'Heritage Tools', icon: Globe },
-    { id: 'business', name: 'Business Tools', icon: Zap },
-    { id: 'media', name: 'Media & Content', icon: Camera },
-    { id: 'analytics', name: 'Analytics & Monitoring', icon: BarChart3 },
-    { id: 'user', name: 'User Management', icon: Users },
-    { id: 'ai', name: 'AI & Context', icon: Brain },
-    { id: 'timeline', name: 'Timeline & Organization', icon: Clock },
-    { id: 'hackathon', name: 'Hackathon Features', icon: Rocket },
-    { id: 'tools', name: 'Additional Tools', icon: Settings }
+    ...CUSTOMER_MENU.map(({ id, name, icon }) => ({ id, name, icon })),
+    ...(isAdmin ? adminCategories : []),
   ];
 
   return (
@@ -850,7 +944,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                 </h1>
               </div>
               <p className="text-sm hidden sm:block text-gray-600">
-                Automate your business and unlock your roots
+                Your family's story, kept safe and shared
               </p>
             </div>
 
@@ -938,7 +1032,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             <FamilySummary />
             {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
             <ErrorBoundary key={activeFeature}>
-              {activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
+              {activeEntry.id === 'welcome' ? <GetStarted open={open} /> : activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
                   <h2 className="text-xl font-bold mb-2">Component Error</h2>
                   <p>Feature component is not available or is not a valid React component.</p>

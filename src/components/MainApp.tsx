@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from '../lib/session-context';
 import { Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../lib/error-boundary';
 import GenesisHome from './GenesisHome';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import EliteHackathonApp from './EliteHackathonApp';
 import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
@@ -14,6 +14,30 @@ import { GlobalDataProvider } from '../lib/GlobalDataContext';
 import PricingPage from './PricingPage';
 import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
+import { PrivacyPolicy, TermsOfService } from './LegalPages';
+import JoinFamily, { PENDING_INVITE_KEY } from './JoinFamily';
+
+const inviteFromPath = () => /^\/join\/([\w-]+)/.exec(window.location.pathname)?.[1] ?? null;
+
+// After signing in somewhere else (e.g. from the email confirmation link), finish joining the family.
+const PendingInvite: React.FC = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    let token: string | null = null;
+    try { token = localStorage.getItem(PENDING_INVITE_KEY); } catch { /* storage blocked */ }
+    if (token && !window.location.pathname.startsWith('/join/')) navigate(`/join/${token}`, { replace: true });
+  }, [navigate]);
+  return null;
+};
+
+const SELLING_POINTS = [
+  ['Bring your Ancestry tree', 'Import your GEDCOM file in two minutes. Download it again any time.'],
+  ['Stories, not just dates', 'Record interviews with grandparents and keep recipes, photos and traditions together.'],
+  ['An AI family storybook', 'Turn your tree and stories into a book to print or share.'],
+  ['Free records, no paywall', 'Search open archives and official records from Canada, the US, Europe and beyond.'],
+  ['Private by design', 'We never sell your data. Delete everything in one click.'],
+  ['Fair price', 'Free to start. Pro is $19 CAD a month, a fraction of the big sites.'],
+];
 
 // A shared demo login is only offered when a demo account is explicitly configured at build time.
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
@@ -23,7 +47,11 @@ const SimpleAuth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const invite = inviteFromPath();
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>(invite ? 'signup' : 'signin');
+  useEffect(() => {
+    if (invite) try { localStorage.setItem(PENDING_INVITE_KEY, invite); } catch { /* storage blocked */ }
+  }, [invite]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +87,7 @@ const SimpleAuth: React.FC = () => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: { emailRedirectTo: window.location.href },
       });
 
       if (error) {
@@ -139,8 +168,23 @@ const SimpleAuth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col lg:flex-row items-center justify-center gap-10 p-4">
+      <section className="max-w-md w-full order-2 lg:order-1">
+        <h1 className="text-3xl font-bold text-gray-900">Keep your family's story alive</h1>
+        <p className="mt-2 text-gray-600">Family tree, voices, stories and records in one private place, shared with the people who matter.</p>
+        <ul className="mt-6 space-y-3">
+          {SELLING_POINTS.map(([title, text]) => (
+            <li key={title} className="flex gap-3"><span className="text-green-600 font-bold">✓</span><span><strong>{title}.</strong> {text}</span></li>
+          ))}
+        </ul>
+        <p className="mt-6 text-sm text-gray-500"><a href="/privacy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a></p>
+      </section>
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 order-1 lg:order-2">
+        {invite && (
+          <p className="mb-6 rounded-lg bg-green-50 border border-green-200 p-3 text-green-800">
+            You've been invited to join your family's history. Create a free account (or sign in) to see it.
+          </p>
+        )}
         <div className="text-center mb-8">
           <Brain className="w-16 h-16 text-blue-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900">Welcome to Genesis Heritage</h2>
@@ -267,6 +311,10 @@ const LoadingScreen = () => (
 export const MainApp: React.FC = () => {
   const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();
 
+  const path = window.location.pathname;
+  if (path === '/privacy' || path === '/terms') {
+    return <Router><Routes><Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} /></Routes></Router>;
+  }
   if (loading) return <LoadingScreen />;
   if (!session) return <SimpleAuth />;
   if (passwordRecovery) return <SetNewPassword onDone={finishPasswordRecovery} />;
@@ -276,7 +324,9 @@ export const MainApp: React.FC = () => {
       <ErrorBoundary>
         <Router>
           <AccountBar />
+          <PendingInvite />
           <Routes>
+            <Route path="/join/:token" element={<JoinFamily />} />
             <Route path="/" element={<GenesisHome />} />
             <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
             <Route path="/hackathon" element={<EliteHackathonApp />} />

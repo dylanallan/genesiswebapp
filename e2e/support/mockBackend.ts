@@ -26,6 +26,8 @@ export interface MockState {
   chatQuotaExceeded: boolean;
   manualPayments?: boolean; // e-Transfer email and PayPal payment links are configured
   autoPayPal?: boolean;     // automatic PayPal subscriptions are configured (default true)
+  admin?: boolean;          // the signed-in user is an admin
+  posted?: Record<string, unknown[]>; // bodies of POSTs, by table
 }
 
 export async function signIn(context: BrowserContext) {
@@ -73,6 +75,8 @@ export async function installMockBackend(page: Page, state: MockState) {
     }
 
     if (path === '/rest/v1/rpc/has_pro_access') return json(route, state.subscribed);
+    if (path === '/rest/v1/rpc/is_admin') return json(route, state.admin === true);
+    if (path === '/rest/v1/rpc/accept_family_invite') return json(route, { owner_id: USER.id, owner_name: 'Rosa', role: 'contributor' });
     if (path === '/rest/v1/rpc/create_manual_payment_request') {
       const { p_plan, p_method } = JSON.parse(req.postData() ?? '{}');
       return json(route, {
@@ -97,7 +101,11 @@ export async function installMockBackend(page: Page, state: MockState) {
           { key: 'paypal_link_yearly_url', value: 'https://www.paypal.com/ncp/payment/TESTYEAR' },
         ];
       }
-      if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111' }];
+      if (req.method() === 'POST') {
+        const body = JSON.parse(req.postData() ?? 'null');
+        (state.posted ??= {})[table] = [...(state.posted[table] ?? []), ...(Array.isArray(body) ? body : [body])];
+      }
+      if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111', token: 'tok123' }];
       if (wantsObject) return rows.length ? json(route, rows[0]) : json(route, { code: 'PGRST116', message: 'no rows' }, 406);
       return json(route, rows, 200, { 'content-range': `0-${Math.max(rows.length - 1, 0)}/${rows.length}` });
     }

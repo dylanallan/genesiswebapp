@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Search, Plus, Edit, Trash, Globe, Calendar, User, Check, X, Tag, Info, Clock, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { signedUrl } from '../lib/storage';
 
 interface CulturalStory {
   id: string;
@@ -17,7 +18,17 @@ interface CulturalStory {
   verification_status: string;
   created_at: string;
   updated_at: string;
+  audio_path?: string | null;
 }
+
+// Interview recordings are private files, so they are played through a short-lived link.
+const RecordingPlayer: React.FC<{ path: string }> = ({ path }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    signedUrl('voice-recordings', path).then(setUrl).catch(() => setUrl(null));
+  }, [path]);
+  return url ? <audio controls src={url} className="w-full mb-4" aria-label="Interview recording" /> : null;
+};
 
 export const CulturalStoryLibrary: React.FC = () => {
   const [stories, setStories] = useState<CulturalStory[]>([]);
@@ -323,11 +334,12 @@ export const CulturalStoryLibrary: React.FC = () => {
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-4 pt-4 border-t border-gray-200"
                 >
+                  {story.audio_path && <RecordingPlayer path={story.audio_path} />}
                   <div className="prose prose-sm max-w-none">
-                    <p>{story.content}</p>
+                    <p className="whitespace-pre-line">{story.content}</p>
                   </div>
                   
-                  {story.language && story.language !== 'english' && (
+                  {story.language && !/^en/i.test(story.language) && (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Original Language: {story.language}</h4>
                       {story.translation && (

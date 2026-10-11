@@ -11,8 +11,14 @@ const FREE_DAILY = Number(import.meta.env.VITE_FREE_DAILY_MESSAGES ?? 10);
 const MONTHLY_PRICE = import.meta.env.VITE_PRICE_MONTHLY_LABEL ?? '$19 / month';
 const YEARLY_PRICE = import.meta.env.VITE_PRICE_YEARLY_LABEL ?? '$190 / year';
 
-const FREE_FEATURES = [`${FREE_DAILY} AI messages per day`, 'Family tree & traditions library', 'Historical records search'];
-const PRO_FEATURES = ['Generous daily AI chat limits', 'Voice narration of family stories', 'Voice-story generation', 'Workflow & automation tools', 'Priority support'];
+const FREE_FEATURES = [
+  'Unlimited family tree, with Ancestry / GEDCOM import and export', 'Free historical records search, no paywall',
+  'Interview recordings, stories, recipes and photos', 'Share with family members for free', `${FREE_DAILY} AI messages per day`,
+];
+const PRO_FEATURES = [
+  'Everything in Free', 'Generous daily AI limits: write storybooks as often as you like', 'Voice narration of family stories',
+  'Voice-story generation', 'Priority support',
+];
 
 export default function PricingPage() {
   const { subscription, subscriptionLoading, refreshSubscription } = useSession();
