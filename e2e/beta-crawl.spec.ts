@@ -151,6 +151,30 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
   }
 });
 
+test('family map pins birthplaces and draws the move between generations', async ({ page }) => {
+  current = 'family-map';
+  const row = (id: string, first: string, birth: string, place: string, parents: string[]) => ({
+    id, first_name: first, middle_name: null, last_name: 'Vega', birth_date: birth, death_date: null, birth_location: place, death_location: null, parent_ids: parents,
+  });
+  state.familyRows = [
+    row('22222222-0000-4000-8000-000000000001', 'Rosa', '1902-01-01', 'Oaxaca, México', []),
+    row('22222222-0000-4000-8000-000000000002', 'Luis', '1950-01-01', 'Toronto, Canada', ['22222222-0000-4000-8000-000000000001']),
+    row('22222222-0000-4000-8000-000000000003', 'Ana', '1960-01-01', 'Atlantis', ['22222222-0000-4000-8000-000000000001']),
+  ];
+  try {
+    await page.goto('/dashboard?feature=family-map');
+    await expect(page.getByText(/2\s*places/)).toBeVisible();
+    await expect(page.getByText(/1\s*move between generations/)).toBeVisible();
+    await expect(page.locator('path.leaflet-interactive')).toHaveCount(3); // two pins and one migration line
+    await expect(page.getByText('1 place could not be found on the map')).toBeVisible();
+    if (process.env.SHOTS) await page.screenshot({ path: 'test-results/family-map.png', fullPage: true });
+    await page.getByRole('button', { name: /Play our family's journey/ }).click();
+    await expect(page.getByText(/showing up to/)).toBeVisible();
+  } finally {
+    state.familyRows = undefined;
+  }
+});
+
 test('family invite link: signed-out relative is asked to join, signed-in relative joins', async ({ page, browser }) => {
   current = 'invite';
   const visitor = await (await browser.newContext()).newPage();

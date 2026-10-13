@@ -65,6 +65,12 @@ export async function installMockBackend(page: Page, state: MockState) {
         if (state.chatQuotaExceeded) return json(route, { error: 'Free daily limit reached. Upgrade to keep chatting.', code: 'UPGRADE_REQUIRED' }, 429);
         return json(route, { response: 'Hello from the mock AI.', provider: 'mock', model: 'mock-1', remaining: 9 });
       }
+      if (fn === 'geocode-places') {
+        const known: Record<string, { lat: number; lon: number }> = { 'oaxaca, méxico': { lat: 17.07, lon: -96.72 }, 'toronto, canada': { lat: 43.65, lon: -79.38 } };
+        const places: string[] = JSON.parse(req.postData() ?? '{}').places ?? [];
+        const results = Object.fromEntries(places.map((p) => [p.trim().toLowerCase(), known[p.trim().toLowerCase()] ?? { lat: null, lon: null }]));
+        return json(route, { results, pending: 0 });
+      }
       if (fn === 'voice-synthesis') {
         return route.fulfill({ status: 200, contentType: 'audio/mpeg', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from([0xff, 0xfb, 0x90, 0x00]) });
       }
