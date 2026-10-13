@@ -198,6 +198,7 @@ import TreeCheckup from './TreeCheckup';
 import ResearchAssistant from './ResearchAssistant';
 import PedigreeChart from './PedigreeChart';
 import FamilyMap from './FamilyMap';
+import PhotoRestore from './PhotoRestore';
 import { useSearchParams } from 'react-router-dom';
 import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
@@ -252,6 +253,14 @@ const features = [
     icon: Trees,
     component: PedigreeChart,
     description: 'Visual family tree chart',
+    category: 'heritage',
+  },
+  {
+    id: 'photo-restore',
+    name: 'Restore old photos',
+    icon: Image,
+    component: PhotoRestore,
+    description: 'Repair and colourise old photos',
     category: 'heritage',
   },
   {
@@ -895,7 +904,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
     ['family-interview', 'Interview a relative'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
-    ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
+    ['photo-restore', 'Restore old photos'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
   { id: 'research', name: 'Research', icon: Search, items: [['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records'], ['search', 'Search everything']] },

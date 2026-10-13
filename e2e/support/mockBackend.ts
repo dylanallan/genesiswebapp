@@ -65,6 +65,7 @@ export async function installMockBackend(page: Page, state: MockState) {
         if (state.chatQuotaExceeded) return json(route, { error: 'Free daily limit reached. Upgrade to keep chatting.', code: 'UPGRADE_REQUIRED' }, 429);
         return json(route, { response: 'Hello from the mock AI.', provider: 'mock', model: 'mock-1', remaining: 9 });
       }
+      if (fn === 'restore-photo') return json(route, { bucket: 'family-photos', path: `${USER.id}/restored-1.png` });
       if (fn === 'geocode-places') {
         const known: Record<string, { lat: number; lon: number }> = { 'oaxaca, méxico': { lat: 17.07, lon: -96.72 }, 'toronto, canada': { lat: 43.65, lon: -79.38 } };
         const places: string[] = JSON.parse(req.postData() ?? '{}').places ?? [];
@@ -118,6 +119,8 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (wantsObject) return rows.length ? json(route, rows[0]) : json(route, { code: 'PGRST116', message: 'no rows' }, 406);
       return json(route, rows, 200, { 'content-range': `0-${Math.max(rows.length - 1, 0)}/${rows.length}` });
     }
+    if (path.startsWith('/storage/v1/object/sign/')) return json(route, { signedURL: '/icons/icon-512x512.png' });
+    if (path.startsWith('/storage/v1/object/') && req.method() === 'POST') return json(route, { Key: path.replace('/storage/v1/object/', ''), Id: 'mock-file' });
     if (path.startsWith('/storage/v1/')) return json(route, []);
     return json(route, {});
   });

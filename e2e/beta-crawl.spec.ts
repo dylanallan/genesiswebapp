@@ -175,6 +175,20 @@ test('family map pins birthplaces and draws the move between generations', async
   }
 });
 
+test('old photo restoration shows a before and after', async ({ page }) => {
+  current = 'photo-restore';
+  await page.goto('/dashboard?feature=photo-restore');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await page.getByLabel('Photo to restore').setInputFiles({ name: 'grandma.png', mimeType: 'image/png', buffer: png });
+  const [req] = await Promise.all([
+    page.waitForRequest((r) => r.url().includes('/functions/v1/restore-photo')),
+    page.getByRole('button', { name: 'Restore photo' }).click(),
+  ]);
+  expect(JSON.parse(req.postData() ?? '{}').colourise).toBe(true);
+  await expect(page.getByLabel('Slide to compare before and after')).toBeVisible();
+  await expect(page.getByText(/Restored with AI/)).toBeVisible();
+});
+
 test('family invite link: signed-out relative is asked to join, signed-in relative joins', async ({ page, browser }) => {
   current = 'invite';
   const visitor = await (await browser.newContext()).newPage();

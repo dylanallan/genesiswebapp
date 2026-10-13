@@ -17,7 +17,7 @@ const FREE_FEATURES = [
   'Interview recordings, stories, recipes and photos', 'Share with family members for free', `${FREE_DAILY} AI messages per day`,
 ];
 const PRO_FEATURES = [
-  'Everything in Free', 'Generous daily AI limits: write storybooks as often as you like', 'Voice narration of family stories',
+  'Everything in Free', 'Generous daily AI limits: write storybooks as often as you like', 'Restore and colourise old photos (10 a day)', 'Voice narration of family stories',
   'Voice-story generation', 'Priority support',
 ];
 
