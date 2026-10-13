@@ -231,7 +231,7 @@ export function SavedRecordsTableFeature() {
 // ---------- Search & sharing preview for the public site ----------
 export function SEOFeature() {
   const site = typeof window !== 'undefined' ? window.location.origin : '';
-  const title = 'Genesis Heritage - Automate your business and unlock your roots';
+  const title = 'Genesis Heritage – Family tree, stories and voices, kept private';
   const description = 'Genesis Heritage helps businesses automate their operations and discover their roots through advanced AI technology.';
   return (
     <div className="space-y-4 rounded-xl border bg-white p-6">

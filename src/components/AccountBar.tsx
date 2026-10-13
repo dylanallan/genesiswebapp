@@ -47,20 +47,20 @@ export default function AccountBar() {
   }
 
   return (
-    <nav className="flex items-center justify-between gap-3 border-b bg-white px-4 py-2 text-sm" aria-label="Account">
+    <nav className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b bg-white px-4 py-2 text-sm" aria-label="Account">
       <div className="flex items-center gap-4">
-        <Link to="/" className="font-semibold text-blue-700">Genesis Heritage Pro</Link>
+        <Link to="/" className="font-semibold text-blue-700 whitespace-nowrap">Genesis Heritage</Link>
         <Link to="/dashboard" className="text-gray-700 hover:text-blue-700">Dashboard</Link>
         <Link to="/pricing" className="text-gray-700 hover:text-blue-700">Plans</Link>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className={`rounded-full px-2 py-0.5 text-xs ${subscription.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
           {subscription.active ? 'Pro' : 'Free'}
         </span>
         {!subscription.active && <Link to="/pricing" className="rounded bg-blue-600 px-3 py-1 text-white">Upgrade</Link>}
         <span className="hidden text-gray-500 sm:inline">{user?.email}</span>
-        <button onClick={() => setChangingPassword(true)} className="text-gray-600 hover:text-blue-700">Change password</button>
-        <button onClick={handleSignOut} className="text-gray-600 hover:text-red-600">Sign out</button>
+        <button onClick={() => setChangingPassword(true)} className="whitespace-nowrap text-gray-600 hover:text-blue-700">Change password</button>
+        <button onClick={handleSignOut} className="whitespace-nowrap text-gray-600 hover:text-red-600">Sign out</button>
       </div>
     </nav>
   );

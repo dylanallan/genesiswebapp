@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Genesis Heritage',
         short_name: 'Genesis',
-        description: 'Automate your business and unlock your roots',
+        description: 'Your family tree, voices, stories and records in one private place.',
         theme_color: '#0c8ee8',
         background_color: '#ffffff',
         display: 'standalone',

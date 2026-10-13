@@ -28,5 +28,13 @@ for (const ad of ads) {
     await page.screenshot({ path: join(here, 'ads', `${ad.id}-${f.name}.png`) });
   }
 }
+// Link-preview image (Facebook, WhatsApp, iMessage...) from the first ad.
+const og = ads[0];
+await page.setViewportSize({ width: 1200, height: 630 });
+await page.setContent(template
+  .replace('FORMAT', 'og').replace('EYEBROW', og.eyebrow).replace('HEADLINE', og.headline).replace('BODY', og.body)
+  .replace('VISUAL', visuals[og.visual]).replace('LOGO', logo).replace('CTA', og.cta).replace('LEGAL', legalFor(og.headline + og.body))
+  .replace(':root {', ':root { --w:1200px; --h:630px;'), { waitUntil: 'load' });
+await page.screenshot({ path: join(here, '..', 'public', 'og-image.png') });
 await browser.close();
 console.log(`Rendered ${ads.length * formats.length} images to marketing/ads/`);

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from '../lib/session-context';
-import { Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -15,6 +14,7 @@ import PricingPage from './PricingPage';
 import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
 import { TAGLINE } from '../lib/brand';
+import Logo from './Logo';
 import { PrivacyPolicy, TermsOfService } from './LegalPages';
 import JoinFamily, { pendingInvite, rememberInvite } from './JoinFamily';
 
@@ -186,7 +186,7 @@ const SimpleAuth: React.FC = () => {
           </p>
         )}
         <div className="text-center mb-8">
-          <Brain className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+          <Logo size={64} className="mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900">Welcome to Genesis Heritage</h2>
           <p className="text-gray-600">
             {authMode === 'signin' ? 'Sign in to your account' : authMode === 'signup' ? 'Create your account' : 'Reset your password'}
@@ -301,7 +301,7 @@ const LoadingScreen = () => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center" role="status" aria-live="polite">
     <div className="text-center">
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
-        <Brain className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+        <Logo size={48} className="mx-auto mb-4" />
       </motion.div>
       <p className="text-gray-600 font-medium">Loading Genesis Heritage Pro...</p>
     </div>
