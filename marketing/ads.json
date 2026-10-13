@@ -1,0 +1,66 @@
+[
+  {
+    "id": "01-journey",
+    "eyebrow": "Genesis Heritage",
+    "headline": "Ancestry gives you the foundation.<br><em>Genesis takes you on the journey.</em>",
+    "body": "Your tree, your family's voices, their stories and recipes, in one private place.",
+    "visual": "tree",
+    "cta": "Start free"
+  },
+  {
+    "id": "02-voice",
+    "eyebrow": "Interview a relative",
+    "headline": "Save Grandma's voice <em>before it's only a memory.</em>",
+    "body": "The app asks the questions out loud, records her answers and writes them into your family story. In English, Español, Français and more.",
+    "visual": "wave",
+    "cta": "Record your first interview"
+  },
+  {
+    "id": "03-import",
+    "eyebrow": "Bring your tree",
+    "headline": "Already on Ancestry? <em>Bring your tree in two minutes.</em>",
+    "body": "Upload your GEDCOM file and everyone comes across, parents, children and spouses linked. Download it again any time.",
+    "visual": "import",
+    "cta": "Import your tree free"
+  },
+  {
+    "id": "04-storybook",
+    "eyebrow": "Family storybook",
+    "headline": "Your family history, <em>written as a book.</em>",
+    "body": "Turn your tree, stories and recipes into a beautiful storybook to print, share or give as a gift.",
+    "visual": "book",
+    "cta": "Make your storybook"
+  },
+  {
+    "id": "05-evidence",
+    "eyebrow": "Research assistant",
+    "headline": "Don't just get a hint. <em>See the evidence.</em>",
+    "body": "Every record match comes with the reasons for and against, plus an AI genealogist who explains what to check next.",
+    "visual": "evidence",
+    "cta": "Research an ancestor"
+  },
+  {
+    "id": "06-privacy",
+    "eyebrow": "Private by design",
+    "headline": "We never sell <em>your family's data.</em>",
+    "body": "Not to advertisers, not to insurers, not to anyone. Download everything or delete it all in one click.",
+    "visual": "shield",
+    "cta": "Start free, stay private"
+  },
+  {
+    "id": "07-records",
+    "eyebrow": "Free records",
+    "headline": "Search the archives. <em>No paywall.</em>",
+    "body": "World family trees, historic newspapers, national archives in Canada, the US, Europe and beyond, free to search.",
+    "visual": "records",
+    "cta": "Find your ancestors"
+  },
+  {
+    "id": "08-founding",
+    "eyebrow": "Now opening",
+    "headline": "Become one of our <em>founding families.</em>",
+    "body": "Free to start. Pro is $19 CAD a month. Help shape the family history app built for stories, not just names.",
+    "visual": "tree",
+    "cta": "Join free today"
+  }
+]
