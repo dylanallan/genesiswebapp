@@ -63,14 +63,14 @@ export const EnhancedAIAssistant: React.FC = () => {
     const initialMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: `👋 Hello! I'm your AI assistant. I can help with:
+      content: `👋 Hello! I'm your family history helper. I can help you:
 
-- Business automation strategies
-- Cultural heritage exploration
-- Technical questions and problem-solving
-- Creative projects and ideas
+- Work out where to look for an ancestor's records
+- Read old documents, handwriting and place names
+- Understand what life was like for your family in their time and place
+- Think of questions to ask your relatives
 
-How can I assist you today?`,
+What would you like to find out?`,
       timestamp: new Date()
     };
     
@@ -399,7 +399,7 @@ How can I assist you today?`,
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything about business automation, cultural heritage, or genealogy..."
+                placeholder="Ask about an ancestor, a record, or your family's history..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                 disabled={isLoading}
                 onKeyPress={(e) => {
@@ -439,10 +439,10 @@ How can I assist you today?`,
             </button>
             <button
               type="button"
-              onClick={() => setInput("How can I automate my business processes?")}
+              onClick={() => setInput("What records could tell me when my great-grandparents arrived in this country?")}
               className="px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors"
             >
-              Business Automation
+              Immigration records
             </button>
             <button
               type="button"

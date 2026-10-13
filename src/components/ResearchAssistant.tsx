@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Microscope, Search, Sparkles, BookmarkPlus, ExternalLink, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -27,9 +28,20 @@ export const ResearchAssistant: React.FC = () => {
   const [explanation, setExplanation] = useState('');
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
+  const [searchParams] = useSearchParams();
+  const linkedPerson = useRef(searchParams.get('person'));
+
   useEffect(() => {
     loadAllFamilyRows<Row>('id,first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location')
-      .then(setPeople).catch(() => toast.error('Could not load your family tree.'));
+      .then((rows) => {
+        setPeople(rows);
+        // Opened from "Research this person" in the tree: start straight away.
+        const linked = rows.find((r) => r.id === linkedPerson.current);
+        linkedPerson.current = null;
+        if (linked) research(linked);
+      })
+      .catch(() => toast.error('Could not load your family tree.'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const shown = useMemo(() => {

@@ -125,6 +125,32 @@ test('importing an Ancestry GEDCOM file adds everyone to the tree', async ({ pag
   expect(rows.find((r) => r.first_name === 'Luis')!.parent_ids).toEqual([rows.find((r) => r.first_name === 'Rosa')!.id]);
 });
 
+test('family tree chart shows generations and adds a missing parent', async ({ page }) => {
+  current = 'tree-chart';
+  const row = (id: string, first: string, last: string, gender: string, parents: string[], extra = {}) => ({
+    id, first_name: first, middle_name: null, last_name: last, gender, birth_date: null, death_date: null, birth_location: null,
+    relationship: null, parent_ids: parents, children_ids: [], spouse_ids: [], ...extra,
+  });
+  state.familyRows = [
+    row('11111111-0000-4000-8000-000000000001', 'Dylan', 'Batchelor', 'male', ['11111111-0000-4000-8000-000000000002'], { relationship: 'self', birth_date: '1992-05-01' }),
+    row('11111111-0000-4000-8000-000000000002', 'Ana', 'López', 'female', [], { birth_date: '1965-02-02', birth_location: 'Oaxaca, México' }),
+  ];
+  state.posted = {};
+  try {
+    await page.goto('/dashboard?feature=family-tree-chart');
+    await expect(page.getByRole('button', { name: /Ana López/ })).toBeVisible();
+    if (process.env.SHOTS) await page.screenshot({ path: 'test-results/tree-chart.png', fullPage: true });
+    await page.getByRole('button', { name: 'Add father' }).first().click();
+    await page.getByLabel('Full name').fill('Robert Batchelor');
+    await page.getByRole('button', { name: 'Add to tree' }).click();
+    await expect(page.getByText(/added as Dylan Batchelor's father/)).toBeVisible();
+    const added = (state.posted.family_members as Array<{ first_name: string; gender: string; children_ids: string[]; spouse_ids: string[] }>)[0];
+    expect(added).toMatchObject({ first_name: 'Robert', gender: 'male', children_ids: ['11111111-0000-4000-8000-000000000001'], spouse_ids: ['11111111-0000-4000-8000-000000000002'] });
+  } finally {
+    state.familyRows = undefined;
+  }
+});
+
 test('family invite link: signed-out relative is asked to join, signed-in relative joins', async ({ page, browser }) => {
   current = 'invite';
   const visitor = await (await browser.newContext()).newPage();

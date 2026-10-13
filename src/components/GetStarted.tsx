@@ -100,7 +100,7 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
   };
 
   const steps = [
-    { done: counts.people > 0, label: 'Start your family tree', icon: Users, action: counts.people ? () => open('family-tree-viz') : undefined, cta: 'See my tree' },
+    { done: counts.people > 0, label: 'Start your family tree', icon: Users, action: counts.people ? () => open('family-tree-chart') : undefined, cta: 'See my tree' },
     { done: counts.stories > 0, label: 'Interview a parent or grandparent', icon: Mic, action: () => open('family-interview'), cta: 'Start an interview' },
     { done: counts.shares > 0, label: 'Invite a relative to add their memories', icon: Users, action: () => open('family-sharing'), cta: 'Invite family' },
     { done: counts.books > 0, label: 'Make your family storybook', icon: BookOpen, action: () => open('family-storybook'), cta: 'Make a storybook' },

@@ -27,6 +27,7 @@ export interface MockState {
   manualPayments?: boolean; // e-Transfer email and PayPal payment links are configured
   autoPayPal?: boolean;     // automatic PayPal subscriptions are configured (default true)
   admin?: boolean;          // the signed-in user is an admin
+  familyRows?: unknown[];   // rows returned for family_members
   posted?: Record<string, unknown[]>; // bodies of POSTs, by table
 }
 
@@ -93,6 +94,7 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (table === 'subscriptions' && state.subscribed) {
         rows = [{ user_id: USER.id, status: 'active', provider: 'paypal', current_period_end: '2030-01-01T00:00:00Z', cancel_at_period_end: false }];
       }
+      if (table === 'family_members' && req.method() === 'GET' && state.familyRows) rows = state.familyRows;
       if (table === 'app_settings' && state.manualPayments) {
         rows = [
           { key: 'etransfer_email', value: 'pay@example.com' },

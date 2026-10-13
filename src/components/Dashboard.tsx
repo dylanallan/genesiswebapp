@@ -196,6 +196,7 @@ import PrivacyCenter from './PrivacyCenter';
 import GetStarted from './GetStarted';
 import TreeCheckup from './TreeCheckup';
 import ResearchAssistant from './ResearchAssistant';
+import PedigreeChart from './PedigreeChart';
 import { useSearchParams } from 'react-router-dom';
 import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
@@ -242,6 +243,14 @@ const features = [
     icon: BookOpen,
     component: FamilyStorybook,
     description: 'Turn your family history into a printable book',
+    category: 'heritage',
+  },
+  {
+    id: 'family-tree-chart',
+    name: 'Family tree',
+    icon: Trees,
+    component: PedigreeChart,
+    description: 'Visual family tree chart',
     category: 'heritage',
   },
   {
@@ -872,7 +881,7 @@ const features = [
 const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType<{ className?: string }>; items: Array<[string, string]> }> = [
   { id: 'start', name: 'Start here', icon: Home, items: [['welcome', 'Get started'], ['tree-import', 'Import or export tree']] },
   { id: 'family', name: 'My family', icon: Trees, items: [
-    ['family-tree-viz', 'Family tree'], ['tree-checkup', 'Tree checkup'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
+    ['family-tree-chart', 'Family tree'], ['family-tree-viz', 'People list'], ['tree-checkup', 'Tree checkup'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
     ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
@@ -900,6 +909,15 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   );
 
   const { colorScheme } = preferences;
+
+  // Links inside the app (e.g. "Research this person") change ?feature= to switch screens.
+  const linkedFeature = searchParams.get('feature');
+  useEffect(() => {
+    if (!linkedFeature) return;
+    setActiveFeature(linkedFeature);
+    const group = CUSTOMER_MENU.find((g) => g.items.some(([item]) => item === linkedFeature));
+    if (group) setSelectedCategory(group.id);
+  }, [linkedFeature, searchParams]);
 
   useEffect(() => {
     supabase.rpc('is_admin').then(({ data }: { data: boolean | null }) => setIsAdmin(data === true));
