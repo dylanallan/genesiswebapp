@@ -16,7 +16,7 @@ import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
 import { TAGLINE } from '../lib/brand';
 import { PrivacyPolicy, TermsOfService } from './LegalPages';
-import JoinFamily, { PENDING_INVITE_KEY } from './JoinFamily';
+import JoinFamily, { pendingInvite, rememberInvite } from './JoinFamily';
 
 const inviteFromPath = () => /^\/join\/([\w-]+)/.exec(window.location.pathname)?.[1] ?? null;
 
@@ -24,8 +24,7 @@ const inviteFromPath = () => /^\/join\/([\w-]+)/.exec(window.location.pathname)?
 const PendingInvite: React.FC = () => {
   const navigate = useNavigate();
   useEffect(() => {
-    let token: string | null = null;
-    try { token = localStorage.getItem(PENDING_INVITE_KEY); } catch { /* storage blocked */ }
+    const token = pendingInvite();
     if (token && !window.location.pathname.startsWith('/join/')) navigate(`/join/${token}`, { replace: true });
   }, [navigate]);
   return null;
@@ -51,7 +50,7 @@ const SimpleAuth: React.FC = () => {
   const invite = inviteFromPath();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>(invite ? 'signup' : 'signin');
   useEffect(() => {
-    if (invite) try { localStorage.setItem(PENDING_INVITE_KEY, invite); } catch { /* storage blocked */ }
+    if (invite) rememberInvite(invite);
   }, [invite]);
 
   const handleSignIn = async (e: React.FormEvent) => {

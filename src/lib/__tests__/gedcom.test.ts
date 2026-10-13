@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exactDate, parseGedcom, toFamilyRows, toGedcom } from '../gedcom';
+import { decodeGedcom, exactDate, parseGedcom, toFamilyRows, toGedcom } from '../gedcom';
 
 const SAMPLE = `0 HEAD
 1 SOUR Ancestry.com Family Trees
@@ -71,5 +71,35 @@ describe('gedcom', () => {
     const jose = again.find((p) => p.firstName === 'José')!;
     expect(jose.isLiving).toBe(false);
     expect(jose.notes.join('\n')).toContain('worked the railways');
+  });
+});
+
+describe('gedcom character sets', () => {
+  const bytes = (...parts: Array<string | number[]>) => new Uint8Array(parts.flatMap((p) => (typeof p === 'string' ? [...p].map((c) => c.charCodeAt(0)) : p))).buffer;
+
+  it('decodes ANSEL accents (mark before the letter)', () => {
+    const { text, charset } = decodeGedcom(bytes('0 HEAD\n1 CHAR ANSEL\n0 @I1@ INDI\n1 NAME Jos', [0xe2], 'e /Gagn', [0xe2], 'e/\n'));
+    expect(charset).toBe('ANSEL');
+    expect(parseGedcom(text).people[0]).toMatchObject({ firstName: 'José', lastName: 'Gagné' });
+  });
+
+  it('decodes ANSI (Windows-1252) files', () => {
+    const { text } = decodeGedcom(bytes('0 HEAD\n1 CHAR ANSI\n0 @I1@ INDI\n1 NAME Mar', [0xed], 'a /Pe', [0xf1], 'a/\n'));
+    expect(parseGedcom(text).people[0]).toMatchObject({ firstName: 'María', lastName: 'Peña' });
+  });
+
+  it('keeps UTF-8 as is', () => {
+    const utf8 = new TextEncoder().encode('0 HEAD\n1 CHAR UTF-8\n0 @I1@ INDI\n1 NAME Zoë /Łukasz/\n');
+    expect(parseGedcom(decodeGedcom(utf8.buffer as ArrayBuffer).text).people[0]).toMatchObject({ firstName: 'Zoë', lastName: 'Łukasz' });
+  });
+});
+
+describe('gedcom export safety', () => {
+  it('keeps the file valid when names, places and notes contain awkward text', () => {
+    const long = 'x'.repeat(450);
+    const ged = toGedcom([{ id: 'a', first_name: 'Ana/Maria', middle_name: null, last_name: 'Vega\nRuiz', birth_date: null, birth_location: 'Lima\nPeru', death_date: null, death_location: null, notes: `line1\n${long}`, parent_ids: [], spouse_ids: [] }]);
+    expect(ged.split('\n').every((l) => l.length < 255)).toBe(true);
+    const p = parseGedcom(ged).people[0];
+    expect(p).toMatchObject({ firstName: 'AnaMaria', lastName: 'Vega Ruiz' });
   });
 });

@@ -48,7 +48,7 @@ const richness = (p: StoryPerson) => (p.relationship ? 4 : 0) + (p.notes ? 2 : 0
 const pick = (group: StoryPerson[]) => [...group].sort((a, b) => richness(b) - richness(a)).slice(0, 60);
 const others = (group: StoryPerson[]) => (group.length > 60 ? `\n...and ${group.length - 60} other relatives from this time.` : '');
 
-/** One chapter per era with people in it (at most six AI calls), plus a chapter of stories, recipes and events. */
+/** One chapter per era with people in it, one for people without a birth year, and one of stories, recipes and events (at most seven AI calls). */
 export function planChapters(people: StoryPerson[], extras: StoryExtras): ChapterPlan[] {
   const plans: ChapterPlan[] = [];
   const dated = people.filter((p) => p.birthYear);
@@ -64,7 +64,7 @@ export function planChapters(people: StoryPerson[], extras: StoryExtras): Chapte
       facts: `People born ${chosen[0].birthYear}–${chosen[chosen.length - 1].birthYear}:\n${chosen.map(personLine).join('\n')}${others(group)}`,
     });
   }
-  if (undated.length && plans.length < 5) {
+  if (undated.length) {
     plans.push({ heading: 'Others in our family', facts: `People whose birth year is not recorded:\n${pick(undated).map(personLine).join('\n')}${others(undated)}` });
   }
   const memory = [

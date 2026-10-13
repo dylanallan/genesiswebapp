@@ -21,8 +21,17 @@ do $$ begin
   raise notice 'CHECK stranger cannot read family: FAIL';
 exception when others then raise notice 'CHECK stranger cannot read family: PASS'; end $$;
 select 'stranger cannot list invites' as check, count(*) = 0 as pass from family_shares;
+do $$ begin
+  perform add_shared_story('eeeeeeee-0000-4000-8000-000000000005', 'Spam', 'Not my family');
+  raise notice 'CHECK stranger cannot add stories: FAIL';
+exception when others then raise notice 'CHECK stranger cannot add stories: PASS'; end $$;
+do $$ begin
+  perform preview_family_invite('no-such-token');
+  raise notice 'CHECK unknown invite preview refused: FAIL';
+exception when others then raise notice 'CHECK unknown invite preview refused: PASS'; end $$;
 
 set request.jwt.claim.sub = 'ffffffff-0000-4000-8000-000000000006';
+select 'cousin previews invite' as check, (preview_family_invite('tok-viewer')->>'role') = 'viewer' as pass;
 select 'cousin accepts invite' as check, (accept_family_invite('tok-viewer')->>'role') = 'viewer' as pass;
 select 'cousin sees the family' as check, jsonb_array_length(shared_family_snapshot('eeeeeeee-0000-4000-8000-000000000005')->'members') = 1 as pass;
 select 'shared family listed' as check, count(*) = 1 as pass from my_shared_families();
@@ -39,6 +48,12 @@ do $$ begin
 exception when others then raise notice 'CHECK used invite cannot be reused: PASS'; end $$;
 
 set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
+insert into family_shares (member_id, status, token) values ('abababab-0000-4000-8000-000000000007', 'active', 'tok-forced');
+select 'owner cannot attach a member directly' as check, member_id is null and status = 'pending' as pass from family_shares where token = 'tok-forced';
+do $$ begin
+  update family_shares set member_id = 'abababab-0000-4000-8000-000000000007', status = 'active' where token = 'tok-forced';
+  raise notice 'CHECK owner cannot activate an invite: FAIL';
+exception when others then raise notice 'CHECK owner cannot activate an invite: PASS'; end $$;
 update family_shares set role = 'contributor' where token = 'tok-viewer';
 set request.jwt.claim.sub = 'ffffffff-0000-4000-8000-000000000006';
 select 'contributor adds a story' as check, add_shared_story('eeeeeeee-0000-4000-8000-000000000005', 'Summer 1965', 'We picked peaches.') is not null as pass;

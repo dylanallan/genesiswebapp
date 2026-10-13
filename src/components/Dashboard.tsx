@@ -194,6 +194,7 @@ import FamilyStorybook from './FamilyStorybook';
 import FamilyInterview from './FamilyInterview';
 import PrivacyCenter from './PrivacyCenter';
 import GetStarted from './GetStarted';
+import TreeCheckup from './TreeCheckup';
 import { useSearchParams } from 'react-router-dom';
 import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
@@ -240,6 +241,14 @@ const features = [
     icon: BookOpen,
     component: FamilyStorybook,
     description: 'Turn your family history into a printable book',
+    category: 'heritage',
+  },
+  {
+    id: 'tree-checkup',
+    name: 'Tree checkup',
+    icon: Shield,
+    component: TreeCheckup,
+    description: 'Find likely mistakes in your tree',
     category: 'heritage',
   },
   {
@@ -854,7 +863,7 @@ const features = [
 const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType<{ className?: string }>; items: Array<[string, string]> }> = [
   { id: 'start', name: 'Start here', icon: Home, items: [['welcome', 'Get started'], ['tree-import', 'Import or export tree']] },
   { id: 'family', name: 'My family', icon: Trees, items: [
-    ['family-tree-viz', 'Family tree'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
+    ['family-tree-viz', 'Family tree'], ['tree-checkup', 'Tree checkup'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
     ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
@@ -902,7 +911,10 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       ? features
       : features.filter(f => f.category === adminCategory);
 
-  const activeEntry = (features.find(f => f.id === activeFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
+  // Tools outside the customer menu are for admins only, even when opened by a link.
+  const customerIds = new Set(CUSTOMER_MENU.flatMap((g) => g.items.map(([id]) => id)));
+  const visibleFeature = isAdmin || customerIds.has(activeFeature) ? activeFeature : 'welcome';
+  const activeEntry = (features.find(f => f.id === visibleFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
   const ActiveComponent = activeEntry.component as React.ComponentType;
   const closeFeature = () => setActiveFeature('welcome');
 

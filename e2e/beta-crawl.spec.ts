@@ -133,6 +133,9 @@ test('family invite link: signed-out relative is asked to join, signed-in relati
   await expect(visitor.getByText(/invited to join your family/)).toBeVisible();
   await expect(visitor.getByRole('button', { name: 'Create Account' })).toBeVisible();
   await page.goto('/join/tok123');
+  await expect(page.getByRole('heading', { name: "Join Rosa's family?" })).toBeVisible();
+  expect(state.calls.filter((c) => c.includes('accept_family_invite'))).toEqual([]);
+  await page.getByRole('button', { name: 'Yes, join' }).click();
   await expect(page.getByText(/joined Rosa's family/)).toBeVisible();
 });
 

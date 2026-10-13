@@ -76,6 +76,7 @@ export async function installMockBackend(page: Page, state: MockState) {
 
     if (path === '/rest/v1/rpc/has_pro_access') return json(route, state.subscribed);
     if (path === '/rest/v1/rpc/is_admin') return json(route, state.admin === true);
+    if (path === '/rest/v1/rpc/preview_family_invite') return json(route, { owner_name: 'Rosa', role: 'contributor', own: false, joined: false });
     if (path === '/rest/v1/rpc/accept_family_invite') return json(route, { owner_id: USER.id, owner_name: 'Rosa', role: 'contributor' });
     if (path === '/rest/v1/rpc/create_manual_payment_request') {
       const { p_plan, p_method } = JSON.parse(req.postData() ?? '{}');

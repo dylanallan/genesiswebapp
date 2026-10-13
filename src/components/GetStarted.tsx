@@ -83,6 +83,11 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
     e.preventDefault();
     const rows = quickTreeRows(entries);
     if (!rows.length) { toast.error('Add at least your own name to start.'); return; }
+    // Grandparents are linked through a parent, so that parent needs at least a name (even "Unknown").
+    const has = (k: string) => !!entries[k].name.trim();
+    if ((has('mgm') || has('mgf')) && !has('mother')) { toast.error('Please add your mother\'s name too (or type "Unknown"), so her parents connect to you.'); return; }
+    if ((has('pgm') || has('pgf')) && !has('father')) { toast.error('Please add your father\'s name too (or type "Unknown"), so his parents connect to you.'); return; }
+    if ((has('mother') || has('father')) && !has('me')) { toast.error('Please add your own name too, so your parents connect to you.'); return; }
     setSaving(true);
     const { error } = await supabase.from('family_members').insert(rows);
     setSaving(false);

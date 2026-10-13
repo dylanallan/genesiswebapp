@@ -3,7 +3,7 @@ import { Upload, Download, CheckCircle2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
-import { parseGedcom, toFamilyRows, toGedcom, GedcomParseResult, ExportPerson } from '../lib/gedcom';
+import { decodeGedcom, parseGedcom, toFamilyRows, toGedcom, GedcomParseResult, ExportPerson } from '../lib/gedcom';
 
 const BATCH = 400;
 
@@ -27,6 +27,7 @@ export const TreeImport: React.FC = () => {
   const [parsed, setParsed] = useState<GedcomParseResult | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [done, setDone] = useState<number | null>(null);
+  const [existing, setExisting] = useState(0);
 
   const onFile = async (file: File | undefined) => {
     setDone(null);
@@ -34,11 +35,14 @@ export const TreeImport: React.FC = () => {
     if (!file) return;
     setFileName(file.name);
     try {
-      const result = parseGedcom(await file.text());
+      const result = parseGedcom(decodeGedcom(await file.arrayBuffer()).text);
       if (!result.people.length) {
         toast.error('No people were found in that file. Please choose a GEDCOM (.ged) family tree file.');
         return;
       }
+      const { data: auth } = await supabase.auth.getUser();
+      const { count } = await supabase.from('family_members').select('id', { count: 'exact', head: true }).eq('user_id', auth.user?.id ?? '');
+      setExisting(count ?? 0);
       setParsed(result);
     } catch {
       toast.error('That file could not be read. Please choose a GEDCOM (.ged) family tree file.');
@@ -49,17 +53,22 @@ export const TreeImport: React.FC = () => {
     if (!parsed) return;
     const rows = toFamilyRows(parsed.people);
     setProgress(0);
+    let inserted = 0;
     try {
       for (let i = 0; i < rows.length; i += BATCH) {
         const { error } = await supabase.from('family_members').insert(rows.slice(i, i + BATCH));
         if (error) throw error;
-        setProgress(Math.min(rows.length, i + BATCH));
+        inserted = Math.min(rows.length, i + BATCH);
+        setProgress(inserted);
       }
       setDone(rows.length);
       setParsed(null);
       toast.success(`${rows.length} people added to your family tree`);
     } catch (e) {
-      toast.error(`Import stopped: ${(e as Error).message}. People already added were kept.`);
+      // Undo the part that was added, so the tree is never left half-imported with broken links.
+      const added = rows.slice(0, inserted).map((r) => r.id);
+      for (let i = 0; i < added.length; i += BATCH) await supabase.from('family_members').delete().in('id', added.slice(i, i + BATCH));
+      toast.error(`The import did not finish (${(e as Error).message}), so nothing was added. Please try again.`);
     } finally {
       setProgress(null);
     }
@@ -103,6 +112,11 @@ export const TreeImport: React.FC = () => {
             Found <strong>{parsed.people.length.toLocaleString()} people</strong> in <strong>{parsed.familyCount.toLocaleString()} families</strong>
             {parsed.source ? <> (from {parsed.source})</> : null}.
           </p>
+          {existing > 0 && (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
+              Your tree already has {existing.toLocaleString()} people. Importing adds everyone in this file as well, so anyone already in your tree will appear twice.
+            </p>
+          )}
           <p className="text-sm text-gray-600">
             They will be added to your tree. Dates that are only approximate (like "about 1890") are kept in each person's notes.
           </p>

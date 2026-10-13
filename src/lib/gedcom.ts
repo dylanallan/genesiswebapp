@@ -193,10 +193,21 @@ export interface ExportPerson {
   spouse_ids: string[] | null;
 }
 
+// GEDCOM lines must stay under 255 characters: new lines become CONT, long lines are split with CONC.
 const gedLines = (level: number, tag: string, value: string) => {
-  const [first, ...rest] = value.split('\n');
-  return [`${level} ${tag} ${first}`.trimEnd(), ...rest.map((l) => `${level + 1} CONT ${l}`.trimEnd())];
+  const out: string[] = [];
+  value.replace(/\r\n?/g, '\n').split('\n').forEach((line, i) => {
+    const chunks = line.match(/.{1,200}/g) ?? [''];
+    chunks.forEach((chunk, j) => {
+      const t = i === 0 && j === 0 ? tag : j === 0 ? 'CONT' : 'CONC';
+      out.push(`${i === 0 && j === 0 ? level : level + 1} ${t} ${chunk}`.trimEnd());
+    });
+  });
+  return out;
 };
+// Single-line values (names, places) may not contain line breaks; names may not contain the "/" surname marker.
+const oneLine = (s: string | null | undefined) => (s ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, 200);
+const namePart = (s: string | null | undefined) => oneLine(s).replace(/\//g, '');
 
 /** Writes a GEDCOM 5.5.1 file that Ancestry, MyHeritage, FamilySearch and Gramps can all import. */
 export function toGedcom(rows: ExportPerson[]): string {
@@ -207,7 +218,7 @@ export function toGedcom(rows: ExportPerson[]): string {
   const families = new Map<string, { partners: string[]; children: string[] }>();
   const famKey = (ids: string[]) => [...ids].sort().join('+');
   for (const r of rows) {
-    const parents = (r.parent_ids ?? []).filter((id) => xref.has(id));
+    const parents = (r.parent_ids ?? []).filter((id) => xref.has(id)).slice(0, 2); // a GEDCOM family has at most two parents
     if (parents.length) {
       const key = famKey(parents);
       const fam = families.get(key) ?? { partners: parents, children: [] };
@@ -224,18 +235,18 @@ export function toGedcom(rows: ExportPerson[]): string {
 
   for (const r of rows) {
     out.push(`0 ${xref.get(r.id)} INDI`);
-    const given = [r.first_name, r.middle_name].filter(Boolean).join(' ');
-    out.push(`1 NAME ${given} /${r.last_name ?? ''}/`.replace(/\s+/g, ' '));
+    const given = [namePart(r.first_name), namePart(r.middle_name)].filter(Boolean).join(' ');
+    out.push(`1 NAME ${given} /${namePart(r.last_name)}/`.replace(/\s+/g, ' '));
     if (r.gender === 'male' || r.gender === 'female') out.push(`1 SEX ${r.gender === 'male' ? 'M' : 'F'}`);
     if (r.birth_date || r.birth_location) {
       out.push('1 BIRT');
       if (r.birth_date) out.push(`2 DATE ${gedcomDate(r.birth_date)}`);
-      if (r.birth_location) out.push(`2 PLAC ${r.birth_location}`);
+      if (r.birth_location) out.push(`2 PLAC ${oneLine(r.birth_location)}`);
     }
     if (r.death_date || r.death_location || r.is_living === false) {
       out.push(r.death_date || r.death_location ? '1 DEAT' : '1 DEAT Y');
       if (r.death_date) out.push(`2 DATE ${gedcomDate(r.death_date)}`);
-      if (r.death_location) out.push(`2 PLAC ${r.death_location}`);
+      if (r.death_location) out.push(`2 PLAC ${oneLine(r.death_location)}`);
     }
     if (r.notes) out.push(...gedLines(1, 'NOTE', r.notes));
     for (const [key, f] of families) {
@@ -256,4 +267,54 @@ export function toGedcom(rows: ExportPerson[]): string {
   }
   out.push('0 TRLR');
   return out.join('\n') + '\n';
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Older programs (Family Tree Maker, PAF, Legacy) write GEDCOM in ANSEL or ANSI rather than UTF-8. Reading those
+// as UTF-8 garbles accented names, so pick the decoder from the byte-order mark or the file's own "1 CHAR" line.
+
+const ANSEL_SPACING: Record<number, string> = {
+  0xa1: 'Ł', 0xa2: 'Ø', 0xa3: 'Đ', 0xa4: 'Þ', 0xa5: 'Æ', 0xa6: 'Œ', 0xa7: 'ʹ', 0xa8: '·', 0xa9: '♭', 0xaa: '®',
+  0xab: '±', 0xac: 'Ơ', 0xad: 'Ư', 0xae: 'ʼ', 0xb0: 'ʻ', 0xb1: 'ł', 0xb2: 'ø', 0xb3: 'đ', 0xb4: 'þ', 0xb5: 'æ',
+  0xb6: 'œ', 0xb7: 'ʺ', 0xb8: 'ı', 0xb9: '£', 0xba: 'ð', 0xbc: 'ơ', 0xbd: 'ư', 0xc0: '°', 0xc1: 'ℓ', 0xc2: '℗',
+  0xc3: '©', 0xc4: '♯', 0xc5: '¿', 0xc6: '¡', 0xcf: 'ß',
+};
+// Combining marks: in ANSEL they come BEFORE the letter, in Unicode AFTER it.
+const ANSEL_COMBINING: Record<number, string> = {
+  0xe0: '̉', 0xe1: '̀', 0xe2: '́', 0xe3: '̂', 0xe4: '̃', 0xe5: '̄', 0xe6: '̆',
+  0xe7: '̇', 0xe8: '̈', 0xe9: '̌', 0xea: '̊', 0xeb: '︠', 0xec: '︡', 0xed: '̕',
+  0xee: '̋', 0xef: '̐', 0xf0: '̧', 0xf1: '̨', 0xf2: '̣', 0xf3: '̤', 0xf4: '̥',
+  0xf5: '̳', 0xf6: '̲', 0xf7: '̦', 0xf8: '̜', 0xf9: '̮', 0xfa: '︢', 0xfb: '︣',
+  0xfe: '̓',
+};
+
+export function decodeAnsel(bytes: Uint8Array): string {
+  let out = '';
+  let marks = '';
+  for (const b of bytes) {
+    if (ANSEL_COMBINING[b]) { marks += ANSEL_COMBINING[b]; continue; }
+    const ch = b < 0x80 ? String.fromCharCode(b) : ANSEL_SPACING[b] ?? '�';
+    out += ch + marks;
+    marks = '';
+  }
+  return (out + marks).normalize('NFC');
+}
+
+export function decodeGedcom(buffer: ArrayBuffer): { text: string; charset: string } {
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return { text: new TextDecoder('utf-8').decode(bytes.subarray(3)), charset: 'UTF-8' };
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return { text: new TextDecoder('utf-16le').decode(bytes.subarray(2)), charset: 'UTF-16' };
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return { text: new TextDecoder('utf-16be').decode(bytes.subarray(2)), charset: 'UTF-16' };
+  const head = new TextDecoder('latin1').decode(bytes.subarray(0, 4096));
+  const charset = (/^\s*1\s+CHAR\s+(\S+)/im.exec(head)?.[1] ?? 'UTF-8').toUpperCase();
+  if (charset === 'ANSEL') return { text: decodeAnsel(bytes), charset };
+  if (charset === 'ANSI' || charset === 'IBMPC' || charset === 'ASCII' || charset === 'WINDOWS-1252' || charset === 'CP1252') {
+    return { text: new TextDecoder('windows-1252').decode(bytes), charset };
+  }
+  // UTF-8 (and anything unrecognised): if it isn't valid UTF-8, fall back to Windows-1252 rather than losing letters.
+  try {
+    return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), charset };
+  } catch {
+    return { text: new TextDecoder('windows-1252').decode(bytes), charset: 'WINDOWS-1252' };
+  }
 }

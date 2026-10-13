@@ -108,6 +108,9 @@ export const FamilyInterview: React.FC = () => {
 
   const begin = async () => {
     if (!personName.trim()) { toast.error('Who are you interviewing? Choose or type their name.'); return; }
+    // Start clean, so a new interview can never pick up the previous interview's recording.
+    chunks.current = [];
+    recorder.current = null;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const rec = new MediaRecorder(stream);
@@ -174,6 +177,8 @@ export const FamilyInterview: React.FC = () => {
       toast.success(`Saved! You'll find it in the Story Library${audioPath ? ', with the recording' : ''}.`);
       setStarted(false);
       setAnswers({});
+      chunks.current = [];
+      recorder.current = null;
     } catch (e) {
       toast.error(`Could not save the interview: ${(e as Error).message}`);
     } finally {
