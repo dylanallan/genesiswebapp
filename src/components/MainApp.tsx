@@ -177,7 +177,7 @@ const SimpleAuth: React.FC = () => {
             <li key={title} className="flex gap-3"><span className="text-green-600 font-bold">✓</span><span><strong>{title}.</strong> {text}</span></li>
           ))}
         </ul>
-        <p className="mt-6 text-sm text-gray-500"><a href="/privacy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a></p>
+        <p className="mt-6 text-sm text-gray-500"><a href="/privacy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a> · © {new Date().getFullYear()} Genesis Heritage. All rights reserved.</p>
       </section>
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 order-1 lg:order-2">
         {invite && (

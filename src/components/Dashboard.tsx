@@ -195,6 +195,7 @@ import FamilyInterview from './FamilyInterview';
 import PrivacyCenter from './PrivacyCenter';
 import GetStarted from './GetStarted';
 import TreeCheckup from './TreeCheckup';
+import ResearchAssistant from './ResearchAssistant';
 import { useSearchParams } from 'react-router-dom';
 import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
@@ -241,6 +242,14 @@ const features = [
     icon: BookOpen,
     component: FamilyStorybook,
     description: 'Turn your family history into a printable book',
+    category: 'heritage',
+  },
+  {
+    id: 'research-assistant',
+    name: 'Research assistant',
+    icon: Search,
+    component: ResearchAssistant,
+    description: 'Find and verify records for a person',
     category: 'heritage',
   },
   {
@@ -871,7 +880,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
     ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
-  { id: 'research', name: 'Research', icon: Search, items: [['records-search', 'Historical records'], ['data-table', 'My saved records'], ['search', 'Search everything']] },
+  { id: 'research', name: 'Research', icon: Search, items: [['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records'], ['search', 'Search everything']] },
   { id: 'ai', name: 'AI helper', icon: Brain, items: [
     ['ai-assistant', 'Ask the AI'], ['family-tree-voice', 'Talk about my tree'], ['conversation-summarizer', 'Past conversations'], ['ai-custom-instructions', 'AI preferences'],
   ] },

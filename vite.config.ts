@@ -62,7 +62,7 @@ export default defineConfig({
         }
       }
     },
-    sourcemap: true,
+    sourcemap: false, // no source maps in production: they would hand out readable source code
     minify: 'terser',
     terserOptions: {
       compress: {

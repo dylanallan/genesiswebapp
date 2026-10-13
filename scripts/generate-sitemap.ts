@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const site = (process.env.SITE_URL || process.env.URL || 'https://example.com').replace(/\/$/, ''); // Netlify sets URL
-const pages = ['/', '/pricing'];
+const pages = ['/', '/privacy', '/terms'];
 const today = new Date().toISOString().slice(0, 10);
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>

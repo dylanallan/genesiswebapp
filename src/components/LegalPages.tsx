@@ -78,10 +78,14 @@ export const TermsOfService: React.FC = () => (
 
     <h2>Acceptable use</h2>
     <ul>
+      <li>No scraping, crawling, bulk downloading or automated access to the service, and no copying, reverse engineering or reproducing of the app, its design, features or content, except your own data through the download tools we provide.</li>
       <li>No unlawful, hateful or harassing content, and no content that invades someone's privacy.</li>
       <li>No attempts to access other people's accounts or data, or to disrupt the service.</li>
       <li>Voice features may only be used with the clear permission of the person whose voice it is.</li>
     </ul>
+
+    <h2>Our intellectual property</h2>
+    <p>The Genesis Heritage name, logo, software, design, text and AI features are owned by Genesis Heritage and protected by copyright and other laws. These terms give you a personal right to use the service, not ownership of it.</p>
 
     <h2>Plans and payments</h2>
     <ul>
