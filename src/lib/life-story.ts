@@ -23,7 +23,7 @@ export const WORLD_EVENTS: WorldEvent[] = [
   { from: 1845, to: 1852, text: 'The Great Famine in Ireland drives about a million people to emigrate', regions: ['ireland', 'irish'] },
   { from: 1861, to: 1865, text: 'The American Civil War', regions: ['united states', 'usa', 'america'] },
   { from: 1867, text: 'Canada becomes a country (Confederation)', regions: ['canada', 'ontario', 'quebec', 'nova scotia', 'new brunswick'] },
-  { from: 1892, to: 1954, text: 'Ellis Island receives millions of immigrants to the United States' },
+  { from: 1892, to: 1954, text: 'Ellis Island receives millions of immigrants to the United States', regions: ['new york', 'new jersey', 'pennsylvania', 'massachusetts', 'ellis island'] },
   { from: 1910, to: 1920, text: 'The Mexican Revolution', regions: ['mexico', 'méxico'] },
   { from: 1914, to: 1918, text: 'The First World War' },
   { from: 1918, to: 1920, text: 'The influenza pandemic ("Spanish flu") spreads around the world' },

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trees, Plus, Microscope, X, Users, BookHeart } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ export const PedigreeChart: React.FC = () => {
   const [adding, setAdding] = useState<AddTarget | null>(null);
   const [form, setForm] = useState({ name: '', birthDate: '', birthPlace: '' });
   const [saving, setSaving] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -81,6 +82,13 @@ export const PedigreeChart: React.FC = () => {
   };
 
   const focus = focusId ? byId.get(focusId) ?? null : null;
+
+  // Keep the chosen person in view: big trees are taller than the chart window.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !focusId) return;
+    el.scrollTo({ top: Math.max(0, height / 2 - el.clientHeight / 2), left: 0 });
+  }, [focusId, height]);
   const research = (id: string) => navigate(`/dashboard?feature=research-assistant&person=${id}`);
 
   if (people === null) return <p className="p-6 text-gray-600">Loading your family tree…</p>;
@@ -106,7 +114,7 @@ export const PedigreeChart: React.FC = () => {
       </div>
       <p className="text-sm text-gray-500">Click anyone to move the tree to them. Use the dashed boxes to add a missing parent.</p>
 
-      <div className="overflow-auto border rounded-lg bg-[#faf7f0]" style={{ maxHeight: 640 }}>
+      <div ref={scroller} className="overflow-auto border rounded-lg bg-[#faf7f0]" style={{ maxHeight: 640 }}>
         <div className="relative" style={{ width: gens * (BOX_W + GAP_X), height: height + 16, margin: 8 }}>
           <svg className="absolute inset-0 pointer-events-none" width={gens * (BOX_W + GAP_X)} height={height + 16} aria-hidden="true">
             {shown.filter((s) => s.gen > 0 && (s.person || s.childId)).map((s) => {

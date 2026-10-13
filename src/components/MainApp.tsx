@@ -15,6 +15,7 @@ import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
 import { TAGLINE } from '../lib/brand';
 import Logo from './Logo';
+import LandingPage from './LandingPage';
 import { PrivacyPolicy, TermsOfService } from './LegalPages';
 import JoinFamily, { pendingInvite, rememberInvite } from './JoinFamily';
 
@@ -43,12 +44,12 @@ const SELLING_POINTS = [
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
 const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
 
-const SimpleAuth: React.FC = () => {
+const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => void }> = ({ startMode, onBack }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const invite = inviteFromPath();
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>(invite ? 'signup' : 'signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>(invite ? 'signup' : startMode ?? 'signin');
   useEffect(() => {
     if (invite) rememberInvite(invite);
   }, [invite]);
@@ -180,6 +181,7 @@ const SimpleAuth: React.FC = () => {
         <p className="mt-6 text-sm text-gray-500"><a href="/privacy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a> · © {new Date().getFullYear()} Genesis Heritage. All rights reserved.</p>
       </section>
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 order-1 lg:order-2">
+        {onBack && <button type="button" onClick={onBack} className="mb-4 text-sm text-blue-700 hover:underline">← Back to the home page</button>}
         {invite && (
           <p className="mb-6 rounded-lg bg-green-50 border border-green-200 p-3 text-green-800">
             You've been invited to join your family's history. Create a free account (or sign in) to see it.
@@ -310,13 +312,18 @@ const LoadingScreen = () => (
 
 export const MainApp: React.FC = () => {
   const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();
+  const [authView, setAuthView] = useState<'signin' | 'signup' | null>(null);
 
   const path = window.location.pathname;
   if (path === '/privacy' || path === '/terms') {
     return <Router><Routes><Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} /></Routes></Router>;
   }
   if (loading) return <LoadingScreen />;
-  if (!session) return <SimpleAuth />;
+  if (!session) {
+    // Visitors see the home page; invite links and "Sign in"/"Start free" go straight to the account form.
+    if (authView || path.startsWith('/join/')) return <SimpleAuth startMode={authView ?? undefined} onBack={path.startsWith('/join/') ? undefined : () => setAuthView(null)} />;
+    return <LandingPage onStart={() => setAuthView('signup')} onSignIn={() => setAuthView('signin')} />;
+  }
   if (passwordRecovery) return <SetNewPassword onDone={finishPasswordRecovery} />;
 
   return (

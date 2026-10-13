@@ -6,7 +6,7 @@ const state: MockState = { subscribed: false, calls: [], chatQuotaExceeded: fals
 test.use({ viewport: { width: 390, height: 844 } });
 
 for (const [name, path, signedIn] of [
-  ['sign-in page', '/', false],
+  ['home page', '/', false],
   ['welcome screen', '/dashboard', true],
   ['pricing', '/pricing', true],
   ['privacy policy', '/privacy', false],

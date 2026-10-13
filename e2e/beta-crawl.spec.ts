@@ -16,10 +16,13 @@ test.beforeEach(async ({ page, context }) => {
   collectProblems(page, problems, () => current);
 });
 
-test('signed-out visitors see the sign-in form', async ({ browser }) => {
+test('signed-out visitors see the home page and can open the sign-in form', async ({ browser }) => {
   const page = await (await browser.newContext()).newPage();
   await installMockBackend(page, state);
   await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Genesis takes you on the journey');
+  await expect(page.getByText('Questions families ask')).toBeVisible();
+  await page.getByRole('button', { name: 'Sign in' }).first().click();
   await expect(page.getByRole('heading', { name: /welcome to genesis heritage/i })).toBeVisible();
   await expect(page.getByLabel('Email')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign In', exact: true })).toBeVisible();
@@ -29,6 +32,7 @@ test('forgot password sends a reset email', async ({ browser }) => {
   const page = await (await browser.newContext()).newPage();
   await installMockBackend(page, state);
   await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in' }).first().click();
   await page.getByRole('button', { name: 'Forgot password?' }).click();
   await expect(page.getByLabel('Password')).toHaveCount(0);
   await page.getByLabel('Email').fill('someone@example.com');
@@ -38,6 +42,16 @@ test('forgot password sends a reset email', async ({ browser }) => {
   ]);
   expect(JSON.parse(req.postData() ?? '{}').email).toBe('someone@example.com');
   await expect(page.getByText(/reset link is on its way/i)).toBeVisible();
+});
+
+test('"Start free" on the home page opens account creation', async ({ browser }) => {
+  const page = await (await browser.newContext()).newPage();
+  await installMockBackend(page, state);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Start your family's story, free/ }).first().click();
+  await expect(page.getByRole('button', { name: 'Create Account' })).toBeVisible();
+  await page.getByRole('button', { name: /Back to the home page/ }).click();
+  await expect(page.getByText('Questions families ask')).toBeVisible();
 });
 
 test('signed-in user lands on home and sees their plan', async ({ page }) => {

@@ -28,6 +28,8 @@ export interface MockState {
   autoPayPal?: boolean;     // automatic PayPal subscriptions are configured (default true)
   admin?: boolean;          // the signed-in user is an admin
   familyRows?: unknown[];   // rows returned for family_members
+  recordHits?: unknown[];   // hits returned by records-search
+  storyRows?: unknown[];    // rows returned for cultural_stories
   posted?: Record<string, unknown[]>; // bodies of POSTs, by table
 }
 
@@ -65,6 +67,7 @@ export async function installMockBackend(page: Page, state: MockState) {
         if (state.chatQuotaExceeded) return json(route, { error: 'Free daily limit reached. Upgrade to keep chatting.', code: 'UPGRADE_REQUIRED' }, 429);
         return json(route, { response: 'Hello from the mock AI.', provider: 'mock', model: 'mock-1', remaining: 9 });
       }
+      if (fn === 'records-search' && state.recordHits) return json(route, { hits: state.recordHits, sources: [] });
       if (fn === 'restore-photo') return json(route, { bucket: 'family-photos', path: `${USER.id}/restored-1.png` });
       if (fn === 'geocode-places') {
         const known: Record<string, { lat: number; lon: number }> = { 'oaxaca, méxico': { lat: 17.07, lon: -96.72 }, 'toronto, canada': { lat: 43.65, lon: -79.38 } };
@@ -102,6 +105,7 @@ export async function installMockBackend(page: Page, state: MockState) {
         rows = [{ user_id: USER.id, status: 'active', provider: 'paypal', current_period_end: '2030-01-01T00:00:00Z', cancel_at_period_end: false }];
       }
       if (table === 'family_members' && req.method() === 'GET' && state.familyRows) rows = state.familyRows;
+      if (table === 'cultural_stories' && req.method() === 'GET' && state.storyRows) rows = state.storyRows;
       if (table === 'app_settings' && state.manualPayments) {
         rows = [
           { key: 'etransfer_email', value: 'pay@example.com' },

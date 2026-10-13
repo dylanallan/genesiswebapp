@@ -68,16 +68,19 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
   const parts = normalizeName(person.name).split(' ').filter(Boolean);
   const surname = parts.length > 1 ? parts[parts.length - 1] : parts[0] ?? '';
   const given = parts.length > 1 ? parts[0] : '';
+  const shown = person.name.trim().split(/\s+/); // original spelling, for the evidence wording
+  const surnameShown = shown.length > 1 ? shown[shown.length - 1] : shown[0] ?? surname;
+  const givenShown = shown.length > 1 ? shown[0] : given;
   const recordWords = norm.split(' ');
-  if (surname && recordWords.includes(surname)) { score += 30; evidence.push({ kind: 'support', text: `Surname "${surname}" matches exactly.` }); }
+  if (surname && recordWords.includes(surname)) { score += 30; evidence.push({ kind: 'support', text: `Surname "${surnameShown}" matches exactly.` }); }
   // Sound-alike matching only against capitalised, name-like words, so "Moore" doesn't match the word "more".
   else if (surname && soundex(surname) && nameWords(text).some((w) => w.length >= 3 && soundex(w) === soundex(surname))) {
-    score += 18; evidence.push({ kind: 'support', text: `Surname sounds the same (a spelling variant of "${surname}").` });
-  } else if (surname) { score -= 25; evidence.push({ kind: 'conflict', text: `Surname "${surname}" does not appear.` }); }
+    score += 18; evidence.push({ kind: 'support', text: `Surname sounds the same (a spelling variant of "${surnameShown}").` });
+  } else if (surname) { score -= 25; evidence.push({ kind: 'conflict', text: `Surname "${surnameShown}" does not appear.` }); }
   if (given) {
-    if (recordWords.includes(given)) { score += 20; evidence.push({ kind: 'support', text: `First name "${given}" matches.` }); }
-    else if (recordWords.some((w) => sameGiven(w, given))) { score += 12; evidence.push({ kind: 'support', text: `First name is a known variant or nickname of "${given}".` }); }
-    else { score -= 10; evidence.push({ kind: 'conflict', text: `First name "${given}" does not appear.` }); }
+    if (recordWords.includes(given)) { score += 20; evidence.push({ kind: 'support', text: `First name "${givenShown}" matches.` }); }
+    else if (recordWords.some((w) => sameGiven(w, given))) { score += 12; evidence.push({ kind: 'support', text: `First name is a known variant or nickname of "${givenShown}".` }); }
+    else { score -= 10; evidence.push({ kind: 'conflict', text: `First name "${givenShown}" does not appear.` }); }
   }
 
   // Dates: structured facts first, otherwise years mentioned in the text.
@@ -109,7 +112,10 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
     if (!mine) return;
     const a = words(mine);
     const shared = [...words(theirs ?? text)].filter((w) => a.has(w));
-    if (shared.length) { score += theirs ? 15 : 8; evidence.push({ kind: 'support', text: `${label} place matches: ${shared.slice(0, 3).join(', ')}.` }); }
+    if (shared.length) {
+      score += theirs ? 15 : 8;
+      evidence.push({ kind: 'support', text: theirs ? `${label} place "${theirs}" matches "${mine}".` : `Mentions ${mine}.` });
+    }
     else if (theirs) { score -= 8; evidence.push({ kind: 'conflict', text: `${label} place "${theirs}" differs from "${mine}".` }); }
   };
   comparePlace('Birth', person.birthPlace, facts.birthPlace);
