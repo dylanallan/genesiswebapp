@@ -75,10 +75,23 @@ export const toRow = (m: TreeMember) => {
 };
 
 
+// The API returns at most 1,000 rows per request, and imported trees can be far bigger, so read in pages.
+export async function loadAllFamilyRows<T = FamilyRow>(columns = '*', pageSize = 1000): Promise<T[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  const rows: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase.from('family_members').select(columns)
+      .eq('user_id', auth.user?.id ?? '')
+      .order('birth_date', { ascending: true, nullsFirst: false }).order('id')
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...((data ?? []) as T[]));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
 export async function loadFamilyMembers(): Promise<TreeMember[]> {
-  const { data, error } = await supabase.from('family_members').select('*').order('birth_date', { ascending: true, nullsFirst: false });
-  if (error) throw error;
-  return (data ?? []).map(fromRow);
+  return (await loadAllFamilyRows()).map(fromRow);
 }
 
 export async function saveFamilyMember(m: TreeMember): Promise<TreeMember> {

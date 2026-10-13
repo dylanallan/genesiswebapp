@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -153,6 +153,10 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
     setExpandedMemberId(expandedMemberId === memberId ? null : memberId);
   };
 
+  // Imported trees can hold thousands of people; draw them in batches so the page stays fast.
+  const [visibleCount, setVisibleCount] = useState(100);
+  useEffect(() => setVisibleCount(100), [searchTerm, filterRelationship]);
+
   const filteredMembers = familyMembers.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (member.notes && member.notes.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -291,7 +295,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
             )}
           </div>
         ) : (
-          filteredMembers.map(member => (
+          filteredMembers.slice(0, visibleCount).map(member => (
             <motion.div
               key={member.id}
               initial={{ opacity: 0, y: 20 }}
@@ -384,6 +388,14 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
           ))
         )}
       </div>
+      {filteredMembers.length > visibleCount && (
+        <div className="text-center mb-6">
+          <p className="text-sm text-gray-500 mb-2">Showing {visibleCount} of {filteredMembers.length} people. Use search to find someone quickly.</p>
+          <button onClick={() => setVisibleCount((n) => n + 200)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Show more
+          </button>
+        </div>
+      )}
 
       {/* Pending Members Section */}
       {pendingMembers.length > 0 && (

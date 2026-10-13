@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { FamilyTreeVisualizer } from '../FamilyTreeVisualizer';
-import { fromRow, toRow, type TreeMember } from '../../lib/family';
+import { loadFamilyMembers, toRow, type TreeMember } from '../../lib/family';
 import { EnterpriseROICalculator } from '../EnterpriseROICalculator';
 import EnterpriseMetricsPanel from '../EnterpriseMetricsPanel';
 import { VideoPlayer } from '../VideoPlayer';
@@ -20,9 +20,11 @@ export function FamilyTreeFeature() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from('family_members').select('*').order('birth_date', { ascending: true, nullsFirst: false });
-    if (error) toast.error('Could not load your family tree.');
-    setMembers((data ?? []).map(fromRow));
+    try {
+      setMembers(await loadFamilyMembers());
+    } catch {
+      toast.error('Could not load your family tree.');
+    }
     setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);

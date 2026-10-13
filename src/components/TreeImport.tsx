@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Download, CheckCircle2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { loadAllFamilyRows } from '../lib/family';
 import { parseGedcom, toFamilyRows, toGedcom, GedcomParseResult, ExportPerson } from '../lib/gedcom';
 
 const BATCH = 400;
@@ -16,14 +17,9 @@ export function downloadFile(name: string, text: string, type = 'text/plain') {
 }
 
 export async function exportTreeAsGedcom() {
-  const { data: auth } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from('family_members')
-    .select('id,first_name,middle_name,last_name,gender,birth_date,birth_location,death_date,death_location,is_living,notes,parent_ids,spouse_ids')
-    .eq('user_id', auth.user?.id ?? '');
-  if (error) throw error;
-  downloadFile('my-family-tree.ged', toGedcom((data ?? []) as ExportPerson[]), 'text/vnd.familysearch.gedcom');
-  return data?.length ?? 0;
+  const rows = await loadAllFamilyRows<ExportPerson>('id,first_name,middle_name,last_name,gender,birth_date,birth_location,death_date,death_location,is_living,notes,parent_ids,spouse_ids');
+  downloadFile('my-family-tree.ged', toGedcom(rows), 'text/vnd.familysearch.gedcom');
+  return rows.length;
 }
 
 export const TreeImport: React.FC = () => {

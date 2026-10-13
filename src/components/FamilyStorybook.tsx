@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { chatApi } from '../api/chat';
 import { Chapter, StoryPerson, chapterPrompt, planChapters, storybookHtml } from '../lib/storybook';
 import { downloadFile } from './TreeImport';
+import { loadAllFamilyRows } from '../lib/family';
 
 interface SavedBook { id: string; title: string; chapters: Chapter[]; created_at: string }
 
@@ -16,14 +17,13 @@ interface EventRow { date: string | null; event_date: string | null; title: stri
 async function gatherFamily() {
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth.user?.id ?? '';
-  const [members, stories, recipes, events] = await Promise.all([
-    supabase.from('family_members').select('first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location,relationship,occupation,notes').eq('user_id', uid).limit(5000),
+  const [memberRows, stories, recipes, events] = await Promise.all([
+    loadAllFamilyRows<MemberRow>('first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location,relationship,occupation,notes'),
     supabase.from('cultural_stories').select('title,content,storyteller').eq('user_id', uid).limit(50),
     supabase.from('recipes').select('name,origin,story').eq('user_id', uid).limit(50),
     supabase.from('timeline_events').select('date,event_date,title,description').eq('user_id', uid).limit(100),
   ]);
-  if (members.error) throw members.error;
-  const people: StoryPerson[] = ((members.data ?? []) as MemberRow[]).map((m) => ({
+  const people: StoryPerson[] = memberRows.map((m) => ({
     name: [m.first_name, m.middle_name, m.last_name].filter(Boolean).join(' ') || 'Unknown',
     birthYear: year(m.birth_date),
     deathYear: year(m.death_date),

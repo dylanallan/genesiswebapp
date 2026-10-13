@@ -1,3 +1,4 @@
+import { TAGLINE } from '../lib/brand';
 import { useEffect, useState } from 'react';
 import { Check, Loader2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -61,6 +62,7 @@ export default function PricingPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold text-center mb-2">Choose your plan</h1>
+      <p className="text-center text-genesis-700 italic mb-2">{TAGLINE}</p>
       <p className="text-center text-gray-600 mb-8">Pay with PayPal (cards accepted) or by Interac e-Transfer.</p>
 
       {subscription.active && (

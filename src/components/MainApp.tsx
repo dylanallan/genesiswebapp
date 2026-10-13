@@ -14,6 +14,7 @@ import { GlobalDataProvider } from '../lib/GlobalDataContext';
 import PricingPage from './PricingPage';
 import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
+import { TAGLINE } from '../lib/brand';
 import { PrivacyPolicy, TermsOfService } from './LegalPages';
 import JoinFamily, { PENDING_INVITE_KEY } from './JoinFamily';
 
@@ -170,8 +171,8 @@ const SimpleAuth: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col lg:flex-row items-center justify-center gap-10 p-4">
       <section className="max-w-md w-full order-2 lg:order-1">
-        <h1 className="text-3xl font-bold text-gray-900">Keep your family's story alive</h1>
-        <p className="mt-2 text-gray-600">Family tree, voices, stories and records in one private place, shared with the people who matter.</p>
+        <h1 className="text-3xl font-bold text-gray-900">{TAGLINE}</h1>
+        <p className="mt-2 text-gray-600">Keep your family's story alive: tree, voices, stories and records in one private place, shared with the people who matter.</p>
         <ul className="mt-6 space-y-3">
           {SELLING_POINTS.map(([title, text]) => (
             <li key={title} className="flex gap-3"><span className="text-green-600 font-bold">✓</span><span><strong>{title}.</strong> {text}</span></li>
