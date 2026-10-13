@@ -3,14 +3,14 @@ User-agent: *
 Allow: /$
 Allow: /privacy
 Allow: /terms
+Allow: /pricing
 Disallow: /dashboard
 Disallow: /join/
-Disallow: /pricing
 
 # AI training crawlers and bulk scrapers may not copy this site.
+# (Assistants that fetch a page when someone asks, like ChatGPT-User and PerplexityBot, may read the public pages,
+#  so Genesis can be recommended in AI search answers.)
 User-agent: GPTBot
-Disallow: /
-User-agent: ChatGPT-User
 Disallow: /
 User-agent: CCBot
 Disallow: /
@@ -19,8 +19,6 @@ Disallow: /
 User-agent: anthropic-ai
 Disallow: /
 User-agent: ClaudeBot
-Disallow: /
-User-agent: PerplexityBot
 Disallow: /
 User-agent: Bytespider
 Disallow: /

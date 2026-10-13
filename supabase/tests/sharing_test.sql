@@ -71,3 +71,24 @@ select 'export has my tree' as check, jsonb_array_length(export_my_data()->'fami
 select 'export excludes others' as check, not (export_my_data() ? 'family_shares') or
   (select bool_and((x->>'owner_id') = 'eeeeeeee-0000-4000-8000-000000000005') from jsonb_array_elements(export_my_data()->'family_shares') x) as pass;
 reset role;
+
+-- Adding parents from the tree chart is one safe step, even when done twice quickly.
+set role authenticated;
+set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
+insert into family_members (id, first_name, last_name, birth_date) values ('aaaa0000-0000-4000-8000-000000000001', 'Kid', 'Vega', '1990-01-01');
+insert into family_members (id, first_name, last_name, parent_ids) values ('aaaa0000-0000-4000-8000-000000000002', 'Sibling', 'Vega', '{}');
+select add_parent('aaaa0000-0000-4000-8000-000000000001', 'father', 'Juan', null, 'Vega', '1950-01-01');
+select add_parent('aaaa0000-0000-4000-8000-000000000001', 'mother', 'Ana', null, 'López', null);
+select 'child keeps both parents' as check, array_length(parent_ids, 1) = 2 as pass from family_members where id = 'aaaa0000-0000-4000-8000-000000000001';
+select 'parents linked as spouses' as check, count(*) = 2 as pass from family_members where first_name in ('Juan', 'Ana') and array_length(spouse_ids, 1) = 1;
+select 'recent parent stays living' as check, is_living as pass from family_members where first_name = 'Juan';
+do $$ begin
+  perform add_parent('aaaa0000-0000-4000-8000-000000000001', 'father', 'Third', null, 'Parent');
+  raise notice 'CHECK no third parent: FAIL';
+exception when others then raise notice 'CHECK no third parent: PASS'; end $$;
+set request.jwt.claim.sub = 'abababab-0000-4000-8000-000000000007';
+do $$ begin
+  perform add_parent('aaaa0000-0000-4000-8000-000000000001', 'mother', 'Sneaky', null, 'Stranger');
+  raise notice 'CHECK cannot add parents to someone else''s tree: FAIL';
+exception when others then raise notice 'CHECK cannot add parents to someone else''s tree: PASS'; end $$;
+reset role;

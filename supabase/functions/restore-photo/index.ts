@@ -43,9 +43,13 @@ Deno.serve(async (req) => {
       return json({ error: pro ? `You've restored ${limit} photos today. You can restore more tomorrow.` : `Free accounts can restore ${limit} photos a day. Upgrade to Pro to restore more.`, code: pro ? 'LIMIT_REACHED' : 'UPGRADE_REQUIRED' }, 429, cors)
     }
 
+    // From here on, any failure gives the day's use back, so people are never charged for an error.
+    const refund = () => db.rpc('refund_daily_quota', { p_user: user.id, p_kind: 'photo-restore' })
+    const fail = async (status: number, error: string, code?: string) => { await refund(); return json({ error, ...(code ? { code } : {}) }, status, cors) }
+
     const { data: file, error: dlError } = await db.storage.from(bucket).download(path)
-    if (dlError || !file) return json({ error: 'That photo could not be found.' }, 404, cors)
-    if (file.size > MAX_BYTES) return json({ error: 'Please use a photo smaller than 8 MB.' }, 413, cors)
+    if (dlError || !file) return await fail(404, 'That photo could not be found.')
+    if (file.size > MAX_BYTES) return await fail(413, 'Please use a photo smaller than 8 MB.')
     const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg'
     const data = encodeBase64(new Uint8Array(await file.arrayBuffer()))
 
@@ -59,20 +63,20 @@ Deno.serve(async (req) => {
     })
     if (r.status === 429 || r.status === 403) {
       console.error('restore-photo: Gemini refused', r.status, (await r.text()).slice(0, 300))
-      return json({ error: 'Photo restoration is being switched on and will be ready soon. Please check back shortly.', code: 'PROVIDER_LIMIT' }, 503, cors)
+      return await fail(503, 'Photo restoration is being switched on and will be ready soon. Please check back shortly.', 'PROVIDER_LIMIT')
     }
     if (!r.ok) {
       console.error('restore-photo: Gemini error', r.status, (await r.text()).slice(0, 300))
-      return json({ error: 'The photo could not be restored. Please try a different photo.' }, 502, cors)
+      return await fail(502, 'The photo could not be restored. Please try a different photo.')
     }
     const parts = (await r.json())?.candidates?.[0]?.content?.parts ?? []
     const image = parts.map((p: Record<string, any>) => p.inlineData ?? p.inline_data).find((d: Record<string, string> | undefined) => d?.data)
-    if (!image) return json({ error: 'The photo could not be restored. Please try a clearer photo.' }, 502, cors)
+    if (!image) return await fail(502, 'The photo could not be restored. Please try a clearer photo.')
 
     const outType = image.mimeType ?? image.mime_type ?? 'image/png'
     const outPath = `${user.id}/restored-${Date.now()}.${outType.includes('jpeg') ? 'jpg' : 'png'}`
     const { error: upError } = await db.storage.from(bucket).upload(outPath, decodeBase64(image.data), { contentType: outType, upsert: false })
-    if (upError) throw upError
+    if (upError) { await refund(); throw upError }
     return json({ bucket, path: outPath }, 200, cors)
   } catch (e) {
     return errorResponse(e, cors)

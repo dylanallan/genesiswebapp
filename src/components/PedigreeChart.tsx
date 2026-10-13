@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trees, Plus, Microscope, X, Users } from 'lucide-react';
+import { Trees, Plus, Microscope, X, Users, BookHeart } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
@@ -64,28 +64,20 @@ export const PedigreeChart: React.FC = () => {
     const child = byId.get(adding.childId);
     if (!child) return;
     setSaving(true);
-    const otherParent = child.parentIds.map((id) => byId.get(id)).find(Boolean) ?? null;
     const parts = form.name.trim().split(/\s+/);
-    const id = crypto.randomUUID();
-    const { error } = await supabase.from('family_members').insert({
-      id, first_name: parts[0], middle_name: parts.length > 2 ? parts.slice(1, -1).join(' ') : null, last_name: parts.length > 1 ? parts[parts.length - 1] : '',
-      gender: adding.role === 'father' ? 'male' : 'female', birth_date: form.birthDate || null, birth_location: form.birthPlace.trim() || null,
-      children_ids: [child.id], spouse_ids: otherParent ? [otherParent.id] : [], parent_ids: [], source: 'user', confidence: 100, is_living: true,
+    // One database step adds the parent and links them to the child, siblings and the other parent,
+    // so adding a father and then a mother quickly can never lose a link.
+    const { error } = await supabase.rpc('add_parent', {
+      p_child: child.id, p_role: adding.role, p_first: parts[0],
+      p_middle: parts.length > 2 ? parts.slice(1, -1).join(' ') : null, p_last: parts.length > 1 ? parts[parts.length - 1] : '',
+      p_birth_date: form.birthDate || null, p_birth_place: form.birthPlace.trim() || null,
     });
-    if (!error) {
-      const updates = [supabase.from('family_members').update({ parent_ids: [...child.parentIds, id] }).eq('id', child.id)];
-      if (otherParent) updates.push(supabase.from('family_members').update({ spouse_ids: [...otherParent.spouseIds, id] }).eq('id', otherParent.id));
-      const results = await Promise.all(updates);
-      const failed = results.find((r) => r.error);
-      if (failed?.error) toast.error(`Added, but could not link: ${failed.error.message}`);
-      else toast.success(`${form.name.trim()} added as ${child.name}'s ${adding.role}`);
-    } else {
-      toast.error(`Could not add: ${error.message}`);
-    }
+    if (error) toast.error(`Could not add: ${error.message}`);
+    else toast.success(`${form.name.trim()} added as ${child.name}'s ${adding.role}`);
+    await load();
     setSaving(false);
     setAdding(null);
     setForm({ name: '', birthDate: '', birthPlace: '' });
-    load();
   };
 
   const focus = focusId ? byId.get(focusId) ?? null : null;
@@ -162,9 +154,14 @@ export const PedigreeChart: React.FC = () => {
               </p>
             ))}
           </div>
-          <button onClick={() => research(focus.id)} className="flex items-center gap-2 px-3 py-2 bg-genesis-600 text-white rounded-lg">
-            <Microscope className="w-4 h-4" /> Research {focus.name.split(' ')[0]}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => navigate(`/dashboard?feature=life-story&person=${focus.id}`)} className="flex items-center gap-2 px-3 py-2 border rounded-lg">
+              <BookHeart className="w-4 h-4" /> Life story
+            </button>
+            <button onClick={() => research(focus.id)} className="flex items-center gap-2 px-3 py-2 bg-genesis-600 text-white rounded-lg">
+              <Microscope className="w-4 h-4" /> Research {focus.name.split(' ')[0]}
+            </button>
+          </div>
         </div>
       )}
 

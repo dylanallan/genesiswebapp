@@ -40,17 +40,17 @@ export const FamilyMap: React.FC = () => {
         const places = uniquePlaces(list);
         if (!places.length) { setStatus(null); return; }
         const found: Record<string, Coords | null> = {};
-        for (let round = 0; round < 20 && !cancelled; round++) {
+        for (let round = 0; round < 40 && !cancelled; round++) {
           const todo = places.filter((p) => !(placeKey(p) in found));
           if (!todo.length) break;
           setStatus(`Finding ${places.length} places on the map… ${places.length - todo.length} done`);
-          const { data, error } = await supabase.functions.invoke('geocode-places', { body: { places: todo } });
+          const { data, error } = await supabase.functions.invoke('geocode-places', { body: { places: todo.slice(0, 300) } });
           if (error) throw error;
           for (const [k, v] of Object.entries((data?.results ?? {}) as Record<string, { lat: number | null; lon: number | null }>)) {
             found[k] = v.lat !== null && v.lon !== null ? { lat: v.lat, lon: v.lon } : null;
           }
           setCoords({ ...found });
-          if (!data?.pending) break;
+          if (!data?.pending && todo.length <= 300) break;
         }
         setStatus(null);
       } catch {

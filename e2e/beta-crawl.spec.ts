@@ -141,11 +141,15 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
     await expect(page.getByRole('button', { name: /Ana López/ })).toBeVisible();
     if (process.env.SHOTS) await page.screenshot({ path: 'test-results/tree-chart.png', fullPage: true });
     await page.getByRole('button', { name: 'Add father' }).first().click();
-    await page.getByLabel('Full name').fill('Robert Batchelor');
-    await page.getByRole('button', { name: 'Add to tree' }).click();
+    await page.getByLabel('Full name').fill('Robert James Batchelor');
+    const [req] = await Promise.all([
+      page.waitForRequest((r) => r.url().includes('/rest/v1/rpc/add_parent')),
+      page.getByRole('button', { name: 'Add to tree' }).click(),
+    ]);
+    expect(JSON.parse(req.postData() ?? '{}')).toMatchObject({
+      p_child: '11111111-0000-4000-8000-000000000001', p_role: 'father', p_first: 'Robert', p_middle: 'James', p_last: 'Batchelor',
+    });
     await expect(page.getByText(/added as Dylan Batchelor's father/)).toBeVisible();
-    const added = (state.posted.family_members as Array<{ first_name: string; gender: string; children_ids: string[]; spouse_ids: string[] }>)[0];
-    expect(added).toMatchObject({ first_name: 'Robert', gender: 'male', children_ids: ['11111111-0000-4000-8000-000000000001'], spouse_ids: ['11111111-0000-4000-8000-000000000002'] });
   } finally {
     state.familyRows = undefined;
   }
@@ -187,6 +191,29 @@ test('old photo restoration shows a before and after', async ({ page }) => {
   expect(JSON.parse(req.postData() ?? '{}').colourise).toBe(true);
   await expect(page.getByLabel('Slide to compare before and after')).toBeVisible();
   await expect(page.getByText(/Restored with AI/)).toBeVisible();
+});
+
+test('life story shows a timeline with ages and world events', async ({ page }) => {
+  current = 'life-story';
+  const row = (id: string, first: string, birth: string, extra = {}) => ({
+    id, first_name: first, middle_name: null, last_name: 'Vega', gender: 'female', birth_date: birth, death_date: null,
+    birth_location: null, death_location: null, parent_ids: [], spouse_ids: [], children_ids: [], ...extra,
+  });
+  state.familyRows = [
+    row('33333333-0000-4000-8000-000000000001', 'Rosa', '1902-03-01', { birth_location: 'Oaxaca, México', death_date: '1980-01-01', children_ids: ['33333333-0000-4000-8000-000000000002'] }),
+    row('33333333-0000-4000-8000-000000000002', 'Luis', '1930-05-05', { gender: 'male', parent_ids: ['33333333-0000-4000-8000-000000000001'] }),
+  ];
+  try {
+    await page.goto('/dashboard?feature=life-story&person=33333333-0000-4000-8000-000000000001');
+    await expect(page.getByRole('heading', { name: 'Rosa Vega' })).toBeVisible();
+    await expect(page.getByText('Son Luis Vega is born')).toBeVisible();
+    await expect(page.getByText('1930 · age 28')).toBeVisible();
+    await expect(page.getByText('The Mexican Revolution (1910–1920)')).toBeVisible();
+    await page.getByRole('button', { name: "Write Rosa's life story" }).click();
+    await expect(page.getByText('Hello from the mock AI.')).toBeVisible();
+  } finally {
+    state.familyRows = undefined;
+  }
 });
 
 test('family invite link: signed-out relative is asked to join, signed-in relative joins', async ({ page, browser }) => {

@@ -28,8 +28,16 @@ export const ResearchAssistant: React.FC = () => {
   const [explanation, setExplanation] = useState('');
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const linkedPerson = useRef(searchParams.get('person'));
+  const runId = useRef(0);
+
+  // A link like ?feature=research-assistant&person=… is used once, then cleared, so coming back later
+  // doesn't re-run (and re-count) the same searches, and clicking "Research" again always works.
+  useEffect(() => {
+    if (searchParams.get('person') || searchParams.get('feature')) setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     loadAllFamilyRows<Row>('id,first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location')
@@ -52,10 +60,12 @@ export const ResearchAssistant: React.FC = () => {
   const person = (r: Row): MatchPerson => ({ name: fullName(r), birthYear: year(r.birth_date), deathYear: year(r.death_date), birthPlace: r.birth_location, deathPlace: r.death_location });
 
   const research = async (r: Row) => {
+    const me = person(r);
+    if (!r.first_name && !r.last_name) { toast.error('Add a name for this person first, then research them.'); return; }
+    const run = ++runId.current; // results from an earlier, slower search are ignored
     setSelected(r);
     setFindings(null);
     setExplanation('');
-    const me = person(r);
     const surname = r.last_name ?? '';
     // Several searches catch records that a single exact search misses (no place, surname + place only).
     const queries = [
@@ -68,6 +78,7 @@ export const ResearchAssistant: React.FC = () => {
       for (let i = 0; i < queries.length; i++) {
         setBusy(`Searching archives (${i + 1} of ${queries.length})...`);
         const { data, error } = await supabase.functions.invoke('records-search', { body: queries[i] });
+        if (run !== runId.current) return;
         if (error) {
           let message = 'Search failed. Please try again.';
           try { const body = await (error as { context?: Response }).context?.json(); if (body?.error) message = body.error; } catch { /* default */ }
@@ -79,9 +90,9 @@ export const ResearchAssistant: React.FC = () => {
       const scored = [...all.values()].map((hit) => ({ hit, result: scoreMatch(me, hit) })).sort((a, b) => b.result.score - a.result.score);
       setFindings(scored);
     } catch (e) {
-      toast.error((e as Error).message);
+      if (run === runId.current) toast.error((e as Error).message);
     } finally {
-      setBusy(null);
+      if (run === runId.current) setBusy(null);
     }
   };
 
@@ -136,7 +147,7 @@ export const ResearchAssistant: React.FC = () => {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-medium">Researching {fullName(selected)} {year(selected.birth_date) ? `(born ${year(selected.birth_date)})` : ''}</p>
-            <button onClick={() => { setSelected(null); setFindings(null); }} className="text-sm text-genesis-700 hover:underline">← Choose someone else</button>
+            <button onClick={() => { runId.current++; setBusy(null); setSelected(null); setFindings(null); }} className="text-sm text-genesis-700 hover:underline">← Choose someone else</button>
           </div>
           {busy && <p className="flex items-center gap-2 text-genesis-700" role="status"><Loader2 className="w-4 h-4 animate-spin" /> {busy}</p>}
 

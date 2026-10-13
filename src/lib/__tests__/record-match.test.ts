@@ -6,6 +6,8 @@ const rosa = { name: 'Rosa María Vega', birthYear: 1902, deathYear: 1980, birth
 describe('record matching', () => {
   it('normalizes names and matches spelling variants', () => {
     expect(normalizeName("José-María O'Néill")).toBe('josemaria oneill');
+    expect(normalizeName('Łukasz Østergård Strauß')).toBe('lukasz ostergard strauss');
+    expect(normalizeName('Иван Петров')).toBe('иван петров');
     expect(soundex('Smith')).toBe(soundex('Smyth'));
     expect(soundex('Meyer')).toBe(soundex('Maier'));
   });
@@ -28,6 +30,11 @@ describe('record matching', () => {
     const r = scoreMatch({ name: 'William Smith', birthYear: null, deathYear: null, birthPlace: null, deathPlace: null }, { title: 'Bill Smyth of Ontario' });
     expect(r.evidence.map((e) => e.text).join(' ')).toMatch(/variant or nickname/);
     expect(r.evidence.map((e) => e.text).join(' ')).toMatch(/sounds the same/);
+  });
+
+  it('does not treat ordinary words as sound-alike surnames', () => {
+    const r = scoreMatch({ name: 'Ann Moore', birthYear: null, deathYear: null, birthPlace: null, deathPlace: null }, { title: 'A story about more letters', snippet: 'many more years later' });
+    expect(r.evidence.map((e) => e.text).join(' ')).not.toMatch(/sounds the same/);
   });
 
   it('uses years in the text when there are no structured facts', () => {

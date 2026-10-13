@@ -19,9 +19,12 @@ export interface RecordFacts {
 export interface Evidence { kind: 'support' | 'conflict' | 'note'; text: string }
 export interface MatchResult { score: number; level: 'strong' | 'possible' | 'weak' | 'unlikely'; evidence: Evidence[] }
 
-/** Lower-case, accents removed, punctuation dropped: "José-María O'Néill" -> "jose maria oneill". */
+const SPECIAL: Record<string, string> = { 'ł': 'l', 'ø': 'o', 'ß': 'ss', 'æ': 'ae', 'œ': 'oe', 'đ': 'd', 'þ': 'th', 'ð': 'd', 'ı': 'i' };
+
+/** Lower-case, accents removed, punctuation dropped: "José-María O'Néill" -> "josemaria oneill". Other alphabets are kept. */
 export function normalizeName(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
+  return s.toLowerCase().replace(/[łøßæœđþðı]/g, (c) => SPECIAL[c] ?? c).normalize('NFD').replace(/\p{M}/gu, '')
+    .replace(/[^\p{L}\s]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
 /** American Soundex, so spelling variants like Smith/Smyth or Meyer/Maier still match. */
@@ -49,6 +52,9 @@ const NICKNAMES: Record<string, string[]> = {
 const sameGiven = (a: string, b: string) =>
   a === b || (NICKNAMES[a] ?? []).includes(b) || (NICKNAMES[b] ?? []).includes(a) || (a.length > 2 && b.length > 2 && (a.startsWith(b) || b.startsWith(a)));
 
+/** Words that start with a capital letter in the original text (names, places), normalised. */
+const nameWords = (raw: string) => (raw.match(/\p{Lu}[\p{L}'’-]*/gu) ?? []).map(normalizeName).filter(Boolean);
+
 const YEAR = /\b(1[5-9]\d\d|20[0-2]\d)\b/g;
 const words = (s: string | null | undefined) => new Set(normalizeName(s ?? '').split(' ').filter((w) => w.length > 2));
 
@@ -64,7 +70,8 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
   const given = parts.length > 1 ? parts[0] : '';
   const recordWords = norm.split(' ');
   if (surname && recordWords.includes(surname)) { score += 30; evidence.push({ kind: 'support', text: `Surname "${surname}" matches exactly.` }); }
-  else if (surname && recordWords.some((w) => w.length > 1 && soundex(w) === soundex(surname))) {
+  // Sound-alike matching only against capitalised, name-like words, so "Moore" doesn't match the word "more".
+  else if (surname && soundex(surname) && nameWords(text).some((w) => w.length >= 3 && soundex(w) === soundex(surname))) {
     score += 18; evidence.push({ kind: 'support', text: `Surname sounds the same (a spelling variant of "${surname}").` });
   } else if (surname) { score -= 25; evidence.push({ kind: 'conflict', text: `Surname "${surname}" does not appear.` }); }
   if (given) {
