@@ -170,7 +170,53 @@ export function findRelationship(meId: string, themId: string, people: KinPerson
     const label = named ? named(them.gender) : `your ${word(s.gender, 'husband', 'wife', 'spouse')}'s ${rel.label}`;
     return { label, path: [me.name, ...rel.path], sharedAncestors: [], dnaPercent: null, kind: 'in-law' };
   }
-  return null;
+  // Step-siblings: one of their parents is married to one of my parents.
+  for (const mp of me.parentIds) {
+    const parent = byId.get(mp);
+    for (const tp of them.parentIds) {
+      if (parent && parent.spouseIds.includes(tp) && !me.parentIds.includes(tp)) {
+        return { label: word(them.gender, 'stepbrother', 'stepsister', 'stepsibling'), path: [me.name, parent.name, byId.get(tp)!.name, them.name], sharedAncestors: [], dnaPercent: null, kind: 'in-law' };
+      }
+    }
+  }
+  // Married to my spouse's relative (my wife's brother's wife...).
+  for (const sid of me.spouseIds) {
+    const s = byId.get(sid);
+    if (!s) continue;
+    for (const tsid of them.spouseIds) {
+      const ts = byId.get(tsid);
+      const rel = ts && blood(s, ts, byId);
+      if (!ts || !rel) continue;
+      const sibling = /^(half-)?(brother|sister|sibling)$/.test(rel.label);
+      const label = sibling ? word(them.gender, 'brother-in-law', 'sister-in-law', 'sibling-in-law')
+        : `${word(them.gender, 'husband', 'wife', 'spouse')} of your ${word(s.gender, 'husband', 'wife', 'spouse')}'s ${rel.label}`;
+      return { label, path: [me.name, ...rel.path, them.name], sharedAncestors: [], dnaPercent: null, kind: 'in-law' };
+    }
+  }
+  // Anything further: find the shortest chain through parents, children and marriages.
+  const chain = marriageChain(me.id, them.id, byId);
+  return chain ? { label: 'relative by marriage', path: chain.map((id) => byId.get(id)!.name), sharedAncestors: [], dnaPercent: null, kind: 'in-law' } : null;
+}
+
+function marriageChain(from: string, to: string, byId: Map<string, KinPerson>): string[] | null {
+  const children = new Map<string, string[]>();
+  for (const p of byId.values()) for (const par of p.parentIds) children.set(par, [...(children.get(par) ?? []), p.id]);
+  const prev = new Map<string, string | null>([[from, null]]);
+  let frontier = [from];
+  for (let step = 0; step < 12 && frontier.length && !prev.has(to); step++) {
+    const next: string[] = [];
+    for (const x of frontier) {
+      const p = byId.get(x)!;
+      for (const n of [...p.parentIds, ...p.spouseIds, ...(children.get(x) ?? [])]) {
+        if (byId.has(n) && !prev.has(n)) { prev.set(n, x); next.push(n); }
+      }
+    }
+    frontier = next;
+  }
+  if (!prev.has(to)) return null;
+  const out: string[] = [];
+  for (let x: string | null = to; x; x = prev.get(x) ?? null) out.push(x);
+  return out.reverse();
 }
 
 /** "Rosa is your great-grandmother" style sentence. Pass `meName` when "me" isn't the user, to get "Rosa is Juan's mother". */

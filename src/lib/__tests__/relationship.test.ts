@@ -80,3 +80,20 @@ describe('DNA estimates', () => {
     expect(findRelationship('x', 'y', t)).toMatchObject({ label: 'first cousin', dnaPercent: 25 });
   });
 });
+
+describe('step and distant in-law relatives', () => {
+  const t = [
+    p('dad', 'male', [], ['mom', 'step']), p('mom', 'female', [], ['dad']), p('step', 'female', ['sg'], ['dad']), p('sg', 'male'),
+    p('me', 'male', ['dad', 'mom'], ['wife']), p('stepsis', 'female', ['step', 'other']), p('other', 'male'),
+    p('wife', 'female', ['wd'], ['me']), p('wd', 'male'), p('wbro', 'male', ['wd'], ['wbrowife']), p('wbrowife', 'female', [], ['wbro']),
+    p('stranger', 'male'),
+  ];
+  it('names step-siblings and a spouse\'s sibling\'s spouse', () => {
+    expect(findRelationship('me', 'stepsis', t)).toMatchObject({ label: 'stepsister', path: ['me Test', 'dad Test', 'step Test', 'stepsis Test'] });
+    expect(findRelationship('me', 'wbrowife', t)?.label).toBe('sister-in-law');
+  });
+  it('falls back to a chain of marriages for anything further', () => {
+    expect(findRelationship('me', 'sg', t)).toMatchObject({ label: 'relative by marriage', kind: 'in-law' });
+    expect(findRelationship('me', 'stranger', t)).toBeNull();
+  });
+});
