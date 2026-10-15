@@ -33,6 +33,16 @@ const US_STATES = ['alabama', 'alaska', 'arizona', 'arkansas', 'california', 'co
   'al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga', 'hi', 'id', 'il', 'in', 'ia', 'ks', 'ky', 'la', 'me', 'md', 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne',
   'nv', 'nh', 'nj', 'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc', 'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy', 'dc'];
 // Georgia the country and Georgia the US state share a name; with nothing else to go on we pick the state.
+// Likewise two-letter codes such as CA, DE or IN are read as US states and Canadian provinces first, because that is
+// how North American records are usually written. Other common country codes are recognised below.
+const COUNTRY_CODES: Record<string, string> = {
+  gb: 'United Kingdom', ie: 'Ireland', fr: 'France', es: 'Spain', it: 'Italy', pl: 'Poland', mx: 'Mexico', br: 'Brazil', nl: 'Netherlands',
+  au: 'Australia', nz: 'New Zealand', ph: 'Philippines', cn: 'China', jp: 'Japan', kr: 'South Korea', ru: 'Russia', ua: 'Ukraine', se: 'Sweden',
+  no: 'Norway', dk: 'Denmark', fi: 'Finland', pt: 'Portugal', ch: 'Switzerland', at: 'Austria', be: 'Belgium', cu: 'Cuba', jm: 'Jamaica',
+  ht: 'Haiti', vn: 'Vietnam', za: 'South Africa', ng: 'Nigeria', gh: 'Ghana', ke: 'Kenya', pk: 'Pakistan', bd: 'Bangladesh', lk: 'Sri Lanka',
+  cl: 'Chile', ve: 'Venezuela', ec: 'Ecuador', gt: 'Guatemala', hn: 'Honduras', sv: 'El Salvador', cz: 'Czechia', hu: 'Hungary', ro: 'Romania',
+  gr: 'Greece', tr: 'Turkey', lb: 'Lebanon', eg: 'Egypt', is: 'Iceland', lt: 'Lithuania', lv: 'Latvia', ee: 'Estonia', sk: 'Slovakia', hr: 'Croatia',
+};
 
 const titleCase = (s: string) => s.replace(/(^|[\s-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase());
 
@@ -45,6 +55,7 @@ export function countryOf(place: string | null): string | null {
   if (ALIASES[last]) return ALIASES[last];
   if (CANADA.includes(last)) return 'Canada';
   if (US_STATES.includes(last)) return 'United States';
+  if (last.length === 2 && COUNTRY_CODES[last]) return COUNTRY_CODES[last];
   if (/^\d+$/.test(last)) return null;
   return titleCase(parts[parts.length - 1]);
 }

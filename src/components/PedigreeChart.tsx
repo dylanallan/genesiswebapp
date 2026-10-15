@@ -86,6 +86,7 @@ export const PedigreeChart: React.FC = () => {
   };
 
   const focus = focusId ? byId.get(focusId) ?? null : null;
+  const meIsSelf = /^(self|me|myself)$/i.test((meId && byId.get(meId)?.relationship) || '');
   const kin = useMemo(() => (focus && meId && people ? findRelationship(meId, focus.id, people) : null), [focus, meId, people]);
 
   // Keep the chosen person in view: big trees are taller than the chart window.
@@ -189,10 +190,10 @@ export const PedigreeChart: React.FC = () => {
                     {people.slice(0, 2000).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </p>
-                <p className="font-semibold">{meId === focus.id ? 'Pick someone else in the tree to see how they are related.' : describeRelationship(focus.name, kin, /^(self|me|myself)$/i.test(byId.get(meId)?.relationship ?? '') ? undefined : byId.get(meId)?.name)}</p>
+                <p className="font-semibold">{meId === focus.id ? 'Pick someone else in the tree to see how they are related.' : describeRelationship(focus.name, kin, meIsSelf ? undefined : byId.get(meId)?.name)}</p>
                 {kin && kin.kind !== 'self' && kin.path.length > 2 && <p className="text-gray-600">Through: {kin.path.join(' → ')}</p>}
                 {kin?.dnaPercent != null && kin.kind === 'blood' && (
-                  <p className="text-gray-600">You would share about {kin.dnaPercent}% of your DNA (an average; real amounts vary).</p>
+                  <p className="text-gray-600">{meIsSelf ? 'You' : `${byId.get(meId)?.name.split(' ')[0]} and ${focus.name.split(' ')[0]}`} would share about {kin.dnaPercent}% of {meIsSelf ? 'your' : 'their'} DNA (an average; real amounts vary).</p>
                 )}
               </div>
             )}

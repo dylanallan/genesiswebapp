@@ -28,3 +28,10 @@ describe('on this day', () => {
     expect(e.map((x) => x.text)).toEqual(['Jan Kid turns 27 in 6 days', 'Leap Kid turns 27 in 62 days']);
   });
 });
+
+describe('on this day ordering', () => {
+  it('lists same-day birthdays alphabetically', () => {
+    const e = upcomingDays(['Zed', 'Amy', 'Max'].map((n) => p(n, n, '2000-10-20')), new Date(2026, 9, 15));
+    expect(e.map((x) => x.text.split(' ')[0])).toEqual(['Amy', 'Max', 'Zed']);
+  });
+});

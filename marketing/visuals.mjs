@@ -6,6 +6,15 @@ export const logo = `<svg width="64" height="64" viewBox="0 0 64 64"><circle cx=
 const person = (x, y, r, fill) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/><circle cx="${x}" cy="${y - r * 0.18}" r="${r * 0.34}" fill="${paper}" opacity=".9"/><path d="M${x - r * 0.55} ${y + r * 0.62} a${r * 0.55} ${r * 0.45} 0 0 1 ${r * 1.1} 0" fill="${paper}" opacity=".9"/>`;
 
 export const visuals = {
+  mix: `<svg viewBox="0 0 640 560"><rect x="20" y="40" width="600" height="480" rx="22" fill="#fff" stroke="${ink}" stroke-width="4"/>
+      <text x="60" y="110" font-family="Caladea, serif" font-size="36" font-weight="700" fill="${ink}">Where we come from</text>
+      <g transform="translate(60 140)"><rect width="520" height="44" rx="22" fill="${paper}"/>
+        <rect width="260" height="44" rx="22" fill="${forest}"/><rect x="240" width="140" height="44" fill="${gold}"/><rect x="380" width="100" height="44" fill="${clay}"/></g>
+      ${[['Mexico', '50%', forest], ['Ireland', '25%', gold], ['Scotland', '19%', clay], ['Not yet known', '6%', '#cfc8b8']].map(([c, v, col], i) =>
+        `<circle cx="78" cy="${248 + i * 66}" r="16" fill="${col}"/><text x="110" y="${260 + i * 66}" font-family="Inter, sans-serif" font-size="32" fill="${ink}">${c}</text><text x="580" y="${260 + i * 66}" font-family="Inter, sans-serif" font-size="32" font-weight="700" fill="${ink}" text-anchor="end">${v}</text>`).join('')}</svg>`,
+  related: `<svg viewBox="0 0 640 560">${person(140, 120, 60, gold)}${person(500, 120, 60, gold)}${person(140, 300, 52, forest)}${person(500, 300, 52, forest)}${person(140, 460, 46, clay)}${person(500, 460, 46, clay)}
+      <path d="M200 120h240M140 180v68M500 180v68M140 352v62M500 352v62" stroke="${ink}" stroke-width="5" fill="none" opacity=".6"/>
+      <rect x="215" y="420" width="210" height="80" rx="40" fill="#fff" stroke="${gold}" stroke-width="5"/><text x="320" y="455" font-family="Inter, sans-serif" font-size="24" font-weight="700" fill="${ink}" text-anchor="middle">second</text><text x="320" y="485" font-family="Inter, sans-serif" font-size="24" font-weight="700" fill="${ink}" text-anchor="middle">cousins</text></svg>`,
   tree: `<svg viewBox="0 0 600 600"><g stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".75">
       <path d="M300 560V330"/><path d="M300 420C240 380 170 360 120 300"/><path d="M300 400C360 360 430 350 480 290"/><path d="M300 340C280 280 230 230 200 170"/><path d="M300 340C320 280 370 230 400 170"/>
       <path d="M300 560c-30 10-70 12-110 6M300 560c30 10 70 12 110 6M300 560c-10 14-30 24-60 30M300 560c10 14 30 24 60 30" stroke="${gold}"/></g>

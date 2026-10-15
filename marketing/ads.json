@@ -62,5 +62,21 @@
     "body": "Free to start. Pro is $19 CAD a month. Help shape the family history app built for stories, not just names.",
     "visual": "tree",
     "cta": "Join free today"
+  },
+  {
+    "id": "09-heritage",
+    "eyebrow": "No DNA kit needed",
+    "headline": "Where does your family<br><em>really</em> come from?",
+    "body": "Genesis works out your heritage, country by country, from the tree you already have. Free.",
+    "visual": "mix",
+    "cta": "See my heritage"
+  },
+  {
+    "id": "10-related",
+    "eyebrow": "Family puzzles, solved",
+    "headline": "Second cousin<br><em>once removed?</em>",
+    "body": "Click anyone in your tree and Genesis tells you exactly how you're related, and the line that links you.",
+    "visual": "related",
+    "cta": "Try it free"
   }
 ]

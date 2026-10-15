@@ -11,6 +11,10 @@ describe('heritage mix', () => {
     expect(countryOf('Boston, Massachusetts, USA')).toBe('United States');
     expect(countryOf('Boston, Massachusetts')).toBe('United States');
     expect(countryOf('glasgow, scotland')).toBe('Scotland');
+    expect(countryOf('Lyon, FR')).toBe('France');
+    expect(countryOf("St. John's, NL")).toBe('Canada');
+    expect(countryOf('Guadalajara, Jalisco, MX')).toBe('Mexico');
+    expect(countryOf('Los Angeles, CA')).toBe('United States');
     expect(countryOf('')).toBeNull();
     expect(countryOf(null)).toBeNull();
   });

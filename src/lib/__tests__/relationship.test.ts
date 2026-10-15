@@ -67,3 +67,16 @@ describe('relationship sentences', () => {
     expect(describeRelationship('Joe Test', { label: 'wife of your second cousin', path: [], sharedAncestors: [], dnaPercent: null, kind: 'in-law' }, 'Ana B')).toBe("Joe is the wife of Ana's second cousin.");
   });
 });
+
+describe('DNA estimates', () => {
+  it('assumes a full relationship when the other parent is just missing', () => {
+    const t = [p('mom', 'female'), p('a', 'female', ['mom']), p('b', 'female', ['mom'])];
+    expect(findRelationship('a', 'b', t)).toMatchObject({ label: 'sister', dnaPercent: 50 });
+  });
+  it('counts double first cousins', () => {
+    const t = [p('g1', 'male'), p('g2', 'female'), p('g3', 'male'), p('g4', 'female'),
+      p('b1', 'male', ['g1', 'g2']), p('s1', 'female', ['g3', 'g4']), p('b2', 'male', ['g1', 'g2']), p('s2', 'female', ['g3', 'g4']),
+      p('x', 'male', ['b1', 's1']), p('y', 'female', ['b2', 's2'])];
+    expect(findRelationship('x', 'y', t)).toMatchObject({ label: 'first cousin', dnaPercent: 25 });
+  });
+});

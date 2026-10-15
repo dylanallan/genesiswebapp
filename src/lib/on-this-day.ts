@@ -48,7 +48,7 @@ export function upcomingDays(people: DayPerson[], today: Date, windowDays = 14):
     add(p.birthDate, 'born');
     add(p.deathDate, 'died');
   }
-  return out.sort((a, b) => a.daysAway - b.daysAway || (a.kind === 'birthday' ? -1 : 1) || a.text.localeCompare(b.text));
+  return out.sort((a, b) => a.daysAway - b.daysAway || Number(a.kind !== 'birthday') - Number(b.kind !== 'birthday') || a.text.localeCompare(b.text));
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

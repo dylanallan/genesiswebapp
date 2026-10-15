@@ -88,7 +88,7 @@ export const HeritageMix: React.FC = () => {
           </ul>
 
           <p className="text-sm text-gray-600">
-            Based on {mix.generations} generation{mix.generations === 1 ? '' : 's'} of {focus?.name.split(' ')[0]}'s tree. Each person is half from each parent,
+            Based on {mix.generations + 1} generation{mix.generations === 0 ? '' : 's'} of {focus?.name.split(' ')[0]}'s tree. Each person is half from each parent,
             so this shows where the earliest known ancestors on every line were born. The further back your tree goes, the more accurate it gets.
           </p>
           <div className="flex flex-wrap gap-2">

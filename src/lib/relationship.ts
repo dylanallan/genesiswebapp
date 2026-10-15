@@ -82,7 +82,9 @@ function blood(me: KinPerson, them: KinPerson, byId: Map<string, KinPerson>): Bl
   const shared = [...mine].filter(([id, d]) => d === best!.dm && theirs.get(id) === best!.dt).map(([id]) => id);
   // Through one shared ancestor instead of a couple: half relatives. Only say "half" when both lines are fully known.
   const half = best.dm > 0 && best.dt > 0 && shared.length === 1 && hasBothParents(me.id, shared[0], byId) && hasBothParents(them.id, shared[0], byId);
-  const pairs = best.dm > 0 && best.dt > 0 ? Math.min(shared.length, 2) : 1;
+  // Each shared ancestor passes on 0.5^(steps) of DNA. Assume a full couple unless we know it's a half relationship;
+  // double cousins share four grandparents.
+  const pairs = best.dm > 0 && best.dt > 0 ? (half ? 1 : Math.max(2, shared.length)) : 1;
   return {
     ...best,
     label: bloodLabel(best.dm, best.dt, them, half),
@@ -164,7 +166,7 @@ export function findRelationship(meId: string, themId: string, people: KinPerson
     const s = byId.get(sid);
     const rel = s && blood(s, them, byId);
     if (!s || !rel) continue;
-    const named = IN_LAW_THROUGH_SPOUSE[rel.label];
+    const named = IN_LAW_THROUGH_SPOUSE[rel.label.replace(/^half-/, '')];
     const label = named ? named(them.gender) : `your ${word(s.gender, 'husband', 'wife', 'spouse')}'s ${rel.label}`;
     return { label, path: [me.name, ...rel.path], sharedAncestors: [], dnaPercent: null, kind: 'in-law' };
   }
