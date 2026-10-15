@@ -186,7 +186,6 @@ import { MediaPlayer } from './MediaPlayer';
 import { MediaUploader } from './MediaUploader';
 import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
-import FamilySummary from './FamilySummary';
 import RecordsSearch from './RecordsSearch';
 import AdminPayments from './AdminPayments';
 import TreeImport from './TreeImport';
@@ -1114,7 +1113,6 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <FamilySummary />
             {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
             <ErrorBoundary key={activeFeature}>
               {activeEntry.id === 'welcome' ? <GetStarted open={open} /> : activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
