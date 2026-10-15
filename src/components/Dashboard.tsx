@@ -8,6 +8,7 @@ import {
   Calendar, 
   FileText, 
   Globe, 
+  Sparkles,
   Settings, 
   Plus,
   Search,
@@ -199,6 +200,7 @@ import ResearchAssistant from './ResearchAssistant';
 import PedigreeChart from './PedigreeChart';
 import FamilyMap from './FamilyMap';
 import HeritageMix from './HeritageMix';
+import FamilyFacts from './FamilyFacts';
 import PhotoRestore from './PhotoRestore';
 import LifeStory from './LifeStory';
 import { useSearchParams } from 'react-router-dom';
@@ -287,6 +289,14 @@ const features = [
     icon: Globe,
     component: HeritageMix,
     description: 'Your heritage breakdown from your tree',
+    category: 'heritage',
+  },
+  {
+    id: 'family-facts',
+    name: 'Family facts',
+    icon: Sparkles,
+    component: FamilyFacts,
+    description: 'Highlights from your family tree',
     category: 'heritage',
   },
   {
@@ -917,7 +927,7 @@ const features = [
 const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType<{ className?: string }>; items: Array<[string, string]> }> = [
   { id: 'start', name: 'Start here', icon: Home, items: [['welcome', 'Get started'], ['tree-import', 'Import or export tree']] },
   { id: 'family', name: 'My family', icon: Trees, items: [
-    ['family-tree-chart', 'Family tree'], ['family-map', 'Family map'], ['heritage-mix', 'Where we come from'], ['life-story', 'Life stories'], ['family-tree-viz', 'People list'], ['tree-checkup', 'Tree checkup'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
+    ['family-tree-chart', 'Family tree'], ['family-map', 'Family map'], ['heritage-mix', 'Where we come from'], ['family-facts', 'Family facts'], ['life-story', 'Life stories'], ['family-tree-viz', 'People list'], ['tree-checkup', 'Tree checkup'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
     ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [

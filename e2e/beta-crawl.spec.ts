@@ -202,6 +202,28 @@ test('welcome page shows family birthdays and remembrance days coming up', async
   }
 });
 
+test('family facts shows highlights from the tree', async ({ page }) => {
+  current = 'family-facts';
+  const row = (id: string, first: string, birth: string | null, death: string | null, parents: string[] = []) => ({
+    id, first_name: first, middle_name: null, last_name: 'Vega', birth_date: birth, death_date: death, birth_location: null, parent_ids: parents, children_ids: [],
+  });
+  state.familyRows = [
+    row('55555555-0000-4000-8000-000000000001', 'Rosa', '1902-06-10', '1998-03-01'),
+    row('55555555-0000-4000-8000-000000000002', 'Luis', '1930-05-05', null, ['55555555-0000-4000-8000-000000000001']),
+    row('55555555-0000-4000-8000-000000000003', 'Ana', '1932-05-05', null, ['55555555-0000-4000-8000-000000000001']),
+  ];
+  try {
+    await page.goto('/dashboard?feature=family-facts');
+    const facts = page.getByTestId('family-facts');
+    await expect(facts).toContainText('Longest life');
+    await expect(facts).toContainText('95 years');
+    await expect(facts).toContainText('2 children');
+    await expect(facts).toContainText('Vega');
+  } finally {
+    state.familyRows = undefined;
+  }
+});
+
 test('heritage breakdown splits the family by country of birth', async ({ page }) => {
   current = 'heritage-mix';
   const row = (id: string, first: string, place: string | null, parents: string[], extra = {}) => ({
