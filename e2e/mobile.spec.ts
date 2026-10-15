@@ -39,3 +39,12 @@ for (const [name, path, signedIn] of [
     expect(overflow).toBeLessThanOrEqual(1);
   });
 }
+
+test('the help button on a phone jumps to the family history helper', async ({ page, context }) => {
+  await signIn(context);
+  state.familyRows = FAMILY;
+  await installMockBackend(page, state);
+  await page.goto('/dashboard?feature=family-facts');
+  await page.getByRole('button', { name: 'Ask the family history helper' }).click();
+  await expect(page.getByPlaceholder(/Ask about an ancestor/)).toBeInViewport();
+});

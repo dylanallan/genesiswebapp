@@ -9,6 +9,7 @@ import {
   FileText, 
   Globe, 
   Sparkles,
+  MessageCircle,
   Settings, 
   Plus,
   Search,
@@ -1110,7 +1111,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
@@ -1124,7 +1125,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             </ErrorBoundary>
             
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 scroll-mt-4" id="ai-helper">
             <ErrorBoundary>
               <EnhancedAIAssistant />
             </ErrorBoundary>
@@ -1132,47 +1133,19 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         </div>
       </main>
 
-      {/* Enhanced Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative group">
-          <motion.button 
-            className="w-14 h-14 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Plus className="w-6 h-6" />
-          </motion.button>
-          
-          <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
-              <h3 className="font-semibold text-gray-900 mb-2">Enhanced AI Features</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Semantic Search</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Context Awareness</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Multi-model Routing</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Helper button: jumps to the AI family-history helper (it sits far below the page on phones). */}
+      <button
+        onClick={() => {
+          const helper = document.getElementById('ai-helper');
+          const box = helper?.querySelector<HTMLElement>('textarea, input[type="text"], input:not([type])');
+          (box ?? helper)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          box?.focus({ preventScroll: true });
+        }}
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 h-12 bg-genesis-600 text-white rounded-full shadow-lg hover:bg-genesis-700"
+        aria-label="Ask the family history helper"
+      >
+        <MessageCircle className="w-5 h-5" /> <span className="hidden sm:inline">Ask for help</span>
+      </button>
     </div>
   );
 };
