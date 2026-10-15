@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Upload, Users, Mic, BookOpen, Search, Sparkles, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import OnThisDay from './OnThisDay';
 
 interface Props { open: (featureId: string) => void }
 interface Slot { key: string; label: string; relationship: string }
@@ -115,6 +116,8 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
         <h2 className="text-2xl font-semibold">Welcome to Genesis Heritage</h2>
         <p className="text-gray-600 mt-1">Keep your family's story alive, not just its names and dates. Here is how to get started.</p>
       </div>
+
+      {loaded && counts.people > 0 && <OnThisDay />}
 
       <ol className="space-y-2">
         {steps.map((s) => (

@@ -178,6 +178,26 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
   }
 });
 
+test('welcome page shows family birthdays and remembrance days coming up', async ({ page }) => {
+  current = 'on-this-day';
+  const now = new Date();
+  const iso = (y: number, days = 0) => { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days); return `${y}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  // Avoid 1 January, which the feature treats as a stand-in date.
+  const shift = now.getMonth() === 0 && now.getDate() === 1 ? 1 : 0;
+  state.familyRows = [
+    { id: '44444444-0000-4000-8000-000000000001', first_name: 'Rosa', middle_name: null, last_name: 'Vega', birth_date: iso(1902, shift), death_date: '1980-03-02', birth_location: 'Oaxaca', is_living: false },
+    { id: '44444444-0000-4000-8000-000000000002', first_name: 'Maya', middle_name: null, last_name: 'Vega', birth_date: iso(1990, shift + 3), death_date: null, birth_location: null, is_living: true },
+  ];
+  try {
+    await page.goto('/dashboard?feature=welcome');
+    const card = page.getByTestId('on-this-day');
+    await expect(card).toContainText('Rosa Vega was born');
+    await expect(card).toContainText(/Maya Vega turns \d+ in 3 days/);
+  } finally {
+    state.familyRows = undefined;
+  }
+});
+
 test('heritage breakdown splits the family by country of birth', async ({ page }) => {
   current = 'heritage-mix';
   const row = (id: string, first: string, place: string | null, parents: string[], extra = {}) => ({

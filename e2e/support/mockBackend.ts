@@ -39,7 +39,7 @@ export async function signIn(context: BrowserContext) {
 
 export async function installMockBackend(page: Page, state: MockState) {
   const json = (route: Route, body: unknown, status = 200, headers: Record<string, string> = {}) =>
-    route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', ...headers }, body: JSON.stringify(body) });
+    route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', ...headers }, body: JSON.stringify(body) });
 
   await page.route(`${MOCK_URL}/**`, async (route) => {
     const req = route.request();
@@ -104,7 +104,7 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (table === 'subscriptions' && state.subscribed) {
         rows = [{ user_id: USER.id, status: 'active', provider: 'paypal', current_period_end: '2030-01-01T00:00:00Z', cancel_at_period_end: false }];
       }
-      if (table === 'family_members' && req.method() === 'GET' && state.familyRows) rows = state.familyRows;
+      if (table === 'family_members' && ['GET', 'HEAD'].includes(req.method()) && state.familyRows) rows = state.familyRows;
       if (table === 'cultural_stories' && req.method() === 'GET' && state.storyRows) rows = state.storyRows;
       if (table === 'app_settings' && state.manualPayments) {
         rows = [
