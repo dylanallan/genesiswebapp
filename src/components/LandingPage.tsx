@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Microscope, BookHeart, Mic, BookOpen, Map, Wand2, ShieldCheck, Users, Search, Check } from 'lucide-react';
+import { Upload, Microscope, BookHeart, Mic, BookOpen, Map, Wand2, ShieldCheck, Users, Search, Check, Link2 } from 'lucide-react';
 import Logo from './Logo';
 import { TAGLINE } from '../lib/brand';
 import { PRIVACY_PROMISES } from './PrivacyCenter';
@@ -22,6 +22,7 @@ const MORE = [
   { icon: Map, title: 'Family map', text: "See where your family lived and press play to watch the journey across the generations." },
   { icon: Wand2, title: 'Restore old photos', text: 'Repair scratches and fading, and add natural colour to black-and-white photos.' },
   { icon: ShieldCheck, title: 'Tree checkup', text: 'Finds impossible dates, too-young parents and people listed twice, free.' },
+  { icon: Link2, title: 'How are we related?', text: 'Click anyone to see exactly how you are related, from great-aunt to second cousin once removed, and the path that links you.' },
   { icon: Users, title: 'Share with family', text: 'Invite relatives to see your tree and add their own memories. Joining is free for them.' },
 ];
 

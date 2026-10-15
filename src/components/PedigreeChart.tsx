@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trees, Plus, Microscope, X, Users, BookHeart } from 'lucide-react';
+import { Trees, Plus, Microscope, X, Users, BookHeart, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
 import { defaultFocus, pedigree, PedigreePerson, PedigreeSlot, usedGenerations } from '../lib/pedigree';
+import { describeRelationship, findRelationship } from '../lib/relationship';
 
 interface Row {
   id: string; first_name: string | null; middle_name: string | null; last_name: string | null; gender: string | null;
@@ -30,6 +31,7 @@ export const PedigreeChart: React.FC = () => {
   const navigate = useNavigate();
   const [people, setPeople] = useState<PedigreePerson[] | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [meId, setMeId] = useState<string | null>(null); // who "you" are, for the relationship calculator
   const [adding, setAdding] = useState<AddTarget | null>(null);
   const [form, setForm] = useState({ name: '', birthDate: '', birthPlace: '' });
   const [saving, setSaving] = useState(false);
@@ -41,6 +43,7 @@ export const PedigreeChart: React.FC = () => {
       const list = rows.map(toPerson);
       setPeople(list);
       setFocusId((f) => (f && list.some((p) => p.id === f) ? f : defaultFocus(list)));
+      setMeId((m) => (m && list.some((p) => p.id === m) ? m : defaultFocus(list)));
     } catch {
       toast.error('Could not load your family tree.');
       setPeople([]);
@@ -82,6 +85,7 @@ export const PedigreeChart: React.FC = () => {
   };
 
   const focus = focusId ? byId.get(focusId) ?? null : null;
+  const kin = useMemo(() => (focus && meId && people ? findRelationship(meId, focus.id, people) : null), [focus, meId, people]);
 
   // Keep the chosen person in view: big trees are taller than the chart window.
   useEffect(() => {
@@ -161,6 +165,21 @@ export const PedigreeChart: React.FC = () => {
                 ))}
               </p>
             ))}
+            {meId && (
+              <div className="mt-3 text-sm bg-genesis-50 rounded-lg p-3 space-y-1" data-testid="relationship">
+                <p className="flex flex-wrap items-center gap-1">
+                  <Link2 className="w-4 h-4 text-genesis-600" /> How {focus.name.split(' ')[0]} is related to
+                  <select aria-label="Related to" value={meId} onChange={(e) => setMeId(e.target.value)} className="px-1 py-0.5 border rounded max-w-[180px] bg-white">
+                    {people.slice(0, 2000).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </p>
+                <p className="font-semibold">{meId === focus.id ? 'Pick someone else in the tree to see how they are related.' : describeRelationship(focus.name, kin, /^(self|me|myself)$/i.test(byId.get(meId)?.relationship ?? '') ? undefined : byId.get(meId)?.name)}</p>
+                {kin && kin.kind !== 'self' && kin.path.length > 2 && <p className="text-gray-600">Through: {kin.path.join(' → ')}</p>}
+                {kin?.dnaPercent != null && kin.kind === 'blood' && (
+                  <p className="text-gray-600">You would share about {kin.dnaPercent}% of your DNA (an average; real amounts vary).</p>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => navigate(`/dashboard?feature=life-story&person=${focus.id}`)} className="flex items-center gap-2 px-3 py-2 border rounded-lg">

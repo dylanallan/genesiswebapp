@@ -164,6 +164,9 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
       p_child: '11111111-0000-4000-8000-000000000001', p_role: 'father', p_first: 'Robert', p_middle: 'James', p_last: 'Batchelor',
     });
     await expect(page.getByText(/added as Dylan Batchelor's father/)).toBeVisible();
+    await page.getByRole('button', { name: /Ana López/ }).click();
+    await expect(page.getByTestId('relationship')).toContainText('Ana is your mother.');
+    await expect(page.getByTestId('relationship')).toContainText('about 50% of your DNA');
   } finally {
     state.familyRows = undefined;
   }
