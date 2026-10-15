@@ -172,6 +172,27 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
   }
 });
 
+test('heritage breakdown splits the family by country of birth', async ({ page }) => {
+  current = 'heritage-mix';
+  const row = (id: string, first: string, place: string | null, parents: string[], extra = {}) => ({
+    id, first_name: first, middle_name: null, last_name: 'Vega', birth_location: place, relationship: null, parent_ids: parents, birth_date: null, ...extra,
+  });
+  state.familyRows = [
+    row('33333333-0000-4000-8000-000000000001', 'Maya', 'Toronto, ON', ['33333333-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000003'], { relationship: 'self' }),
+    row('33333333-0000-4000-8000-000000000002', 'Luis', 'Oaxaca, México', []),
+    row('33333333-0000-4000-8000-000000000003', 'Siobhan', 'Cork, Ireland', []),
+  ];
+  try {
+    await page.goto('/dashboard?feature=heritage-mix');
+    const shares = page.getByTestId('heritage-shares');
+    await expect(shares).toContainText('Ireland 50%');
+    await expect(shares).toContainText('Mexico 50%');
+    await expect(shares).toContainText('From Luis Vega');
+  } finally {
+    state.familyRows = undefined;
+  }
+});
+
 test('family map pins birthplaces and draws the move between generations', async ({ page }) => {
   current = 'family-map';
   const row = (id: string, first: string, birth: string, place: string, parents: string[]) => ({
