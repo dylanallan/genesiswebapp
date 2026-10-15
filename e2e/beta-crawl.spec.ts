@@ -173,6 +173,10 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
     await expect(poster.locator('svg')).toContainText('Ana López');
     if (process.env.SHOTS) await poster.screenshot({ path: 'test-results/poster.png', fullPage: true });
     await poster.close();
+    await page.getByLabel('Show the tree of').selectOption({ label: 'Ana López (b. 1965)' });
+    await page.getByRole('tab', { name: 'Descendants' }).click();
+    await expect(page.getByTestId('descendants')).toContainText('1 descendant across 1 generation');
+    await expect(page.getByTestId('descendants')).toContainText('Dylan Batchelor');
   } finally {
     state.familyRows = undefined;
   }

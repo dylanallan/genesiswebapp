@@ -7,6 +7,7 @@ import { loadAllFamilyRows } from '../lib/family';
 import { defaultFocus, pedigree, PedigreePerson, PedigreeSlot, usedGenerations } from '../lib/pedigree';
 import { describeRelationship, findRelationship } from '../lib/relationship';
 import { posterHtml } from '../lib/tree-poster';
+import { DescNode, descendants } from '../lib/descendants';
 
 interface Row {
   id: string; first_name: string | null; middle_name: string | null; last_name: string | null; gender: string | null;
@@ -32,7 +33,8 @@ export const PedigreeChart: React.FC = () => {
   const navigate = useNavigate();
   const [people, setPeople] = useState<PedigreePerson[] | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [meId, setMeId] = useState<string | null>(null); // who "you" are, for the relationship calculator
+  const [meId, setMeId] = useState<string | null>(null);
+  const [view, setView] = useState<'ancestors' | 'descendants'>('ancestors'); // who "you" are, for the relationship calculator
   const [adding, setAdding] = useState<AddTarget | null>(null);
   const [form, setForm] = useState({ name: '', birthDate: '', birthPlace: '' });
   const [saving, setSaving] = useState(false);
@@ -86,6 +88,7 @@ export const PedigreeChart: React.FC = () => {
   };
 
   const focus = focusId ? byId.get(focusId) ?? null : null;
+  const desc = useMemo(() => (view === 'descendants' && focusId && people ? descendants(focusId, people) : null), [view, focusId, people]);
   const meIsSelf = /^(self|me|myself)$/i.test((meId && byId.get(meId)?.relationship) || '');
   const kin = useMemo(() => (focus && meId && people ? findRelationship(meId, focus.id, people) : null), [focus, meId, people]);
 
@@ -133,9 +136,31 @@ export const PedigreeChart: React.FC = () => {
         </label>
         </div>
       </div>
-      <p className="text-sm text-gray-500">Click anyone to move the tree to them. Use the dashed boxes to add a missing parent.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <div role="tablist" className="inline-flex rounded-lg border overflow-hidden text-sm">
+          {(['ancestors', 'descendants'] as const).map((v) => (
+            <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
+              className={`px-3 py-1.5 ${view === v ? 'bg-genesis-600 text-white' : 'bg-white hover:bg-gray-50'}`}>
+              {v === 'ancestors' ? 'Ancestors' : 'Descendants'}
+            </button>
+          ))}
+        </div>
+        <p className="text-sm text-gray-500">
+          {view === 'ancestors' ? 'Click anyone to move the tree to them. Use the dashed boxes to add a missing parent.' : 'Everyone who came from this person. Click a name to start from them.'}
+        </p>
+      </div>
 
-      <div ref={scroller} className="overflow-auto border rounded-lg bg-[#faf7f0]" style={{ maxHeight: 640 }}>
+      {view === 'descendants' && desc?.root && (
+        <div className="border rounded-lg bg-[#faf7f0] p-4 overflow-auto" style={{ maxHeight: 640 }} data-testid="descendants">
+          <p className="text-sm text-gray-700 mb-2">
+            {desc.count === 0 ? `No children recorded for ${desc.root.person.name.split(' ')[0]} yet.`
+              : <><strong>{desc.count}</strong> descendant{desc.count === 1 ? '' : 's'} across <strong>{desc.generations}</strong> generation{desc.generations === 1 ? '' : 's'}</>}
+          </p>
+          <DescendantBranch node={desc.root} onPick={setFocusId} />
+        </div>
+      )}
+
+      <div ref={scroller} hidden={view !== 'ancestors'} className="overflow-auto border rounded-lg bg-[#faf7f0]" style={{ maxHeight: 640 }}>
         <div className="relative" style={{ width: gens * (BOX_W + GAP_X), height: height + 16, margin: 8 }}>
           <svg className="absolute inset-0 pointer-events-none" width={gens * (BOX_W + GAP_X)} height={height + 16} aria-hidden="true">
             {shown.filter((s) => s.gen > 0 && (s.person || s.childId)).map((s) => {
@@ -235,5 +260,16 @@ export const PedigreeChart: React.FC = () => {
     </div>
   );
 };
+
+const DescendantBranch: React.FC<{ node: DescNode; onPick: (id: string) => void }> = ({ node, onPick }) => (
+  <div className={node.gen ? 'ml-5 pl-3 border-l-2 border-[#d9d3c4]' : ''}>
+    <p className="py-1 text-sm">
+      <button onClick={() => onPick(node.person.id)} className="font-medium hover:underline">{node.person.name}</button>
+      {years(node.person) && <span className="text-gray-500"> ({years(node.person)})</span>}
+      {node.spouses.length > 0 && <span className="text-gray-500"> · married {node.spouses.map((x) => x.name).join(', ')}</span>}
+    </p>
+    {node.children.map((c) => <DescendantBranch key={c.person.id} node={c} onPick={onPick} />)}
+  </div>
+);
 
 export default PedigreeChart;
