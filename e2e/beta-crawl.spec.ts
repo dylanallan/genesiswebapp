@@ -167,6 +167,12 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
     await page.getByRole('button', { name: /Ana López/ }).click();
     await expect(page.getByTestId('relationship')).toContainText('Ana is your mother.');
     await expect(page.getByTestId('relationship')).toContainText('about 50% of your DNA');
+    await page.getByLabel('Show the tree of').selectOption({ label: 'Dylan Batchelor (b. 1992)' });
+    const [poster] = await Promise.all([page.context().waitForEvent('page'), page.getByRole('button', { name: 'Print poster' }).click()]);
+    await expect(poster.locator('h1')).toHaveText("Dylan Batchelor's family tree");
+    await expect(poster.locator('svg')).toContainText('Ana López');
+    if (process.env.SHOTS) await poster.screenshot({ path: 'test-results/poster.png', fullPage: true });
+    await poster.close();
   } finally {
     state.familyRows = undefined;
   }

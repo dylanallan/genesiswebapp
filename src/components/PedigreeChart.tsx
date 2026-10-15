@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trees, Plus, Microscope, X, Users, BookHeart, Link2 } from 'lucide-react';
+import { Trees, Plus, Microscope, X, Users, BookHeart, Link2, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
 import { defaultFocus, pedigree, PedigreePerson, PedigreeSlot, usedGenerations } from '../lib/pedigree';
 import { describeRelationship, findRelationship } from '../lib/relationship';
+import { posterHtml } from '../lib/tree-poster';
 
 interface Row {
   id: string; first_name: string | null; middle_name: string | null; last_name: string | null; gender: string | null;
@@ -93,6 +94,16 @@ export const PedigreeChart: React.FC = () => {
     if (!el || !focusId) return;
     el.scrollTo({ top: Math.max(0, height / 2 - el.clientHeight / 2), left: 0 });
   }, [focusId, height]);
+  // A free printable poster of up to six generations (print it, or choose "Save as PDF").
+  const printPoster = () => {
+    if (!focus || !people) return;
+    const w = window.open('', '_blank');
+    if (!w) { toast.error('Please allow pop-ups to print your tree.'); return; }
+    w.document.write(posterHtml(`${focus.name}'s family tree`, pedigree(focus.id, people, 6)));
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  };
   const research = (id: string) => navigate(`/dashboard?feature=research-assistant&person=${id}`);
 
   if (people === null) return <p className="p-6 text-gray-600">Loading your family tree…</p>;
@@ -110,11 +121,16 @@ export const PedigreeChart: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold flex items-center gap-2"><Trees className="w-6 h-6 text-genesis-600" /> Family tree</h2>
+        <div className="flex flex-wrap items-center gap-3">
+        <button onClick={printPoster} className="flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50">
+          <Printer className="w-4 h-4" /> Print poster
+        </button>
         <label className="text-sm flex items-center gap-2">Show the tree of
           <select value={focusId ?? ''} onChange={(e) => setFocusId(e.target.value)} className="px-2 py-1 border rounded-lg max-w-[220px]">
             {people.slice(0, 2000).map((p) => <option key={p.id} value={p.id}>{p.name}{years(p) ? ` (${years(p)})` : ''}</option>)}
           </select>
         </label>
+        </div>
       </div>
       <p className="text-sm text-gray-500">Click anyone to move the tree to them. Use the dashed boxes to add a missing parent.</p>
 
