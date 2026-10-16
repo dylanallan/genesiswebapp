@@ -1,7 +1,6 @@
 // Cache bust: 2024-07-01-1
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link as RouterLink } from 'react-router-dom';
 import { 
   Home, 
   Users, 
@@ -113,8 +112,6 @@ import { EnhancedAIAssistant } from './EnhancedAIAssistant';
 import UniversalSearch from './UniversalSearch';
 import { DataSourceAdmin } from './DataSourceAdmin';
 import { useSession } from '../lib/session-context';
-import { useAtom } from 'jotai';
-import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';
 import { CulturalArtifactGallery } from './CulturalArtifactGallery';
 import { TraditionsManager } from './TraditionsManager';
@@ -125,7 +122,6 @@ import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
 import { AutomationHub } from './AutomationHub';
 import { UserProfileManager } from './UserProfileManager';
-import { UserProfileButton } from './UserProfileButton';
 import { ErrorBoundary } from '../lib/error-boundary';
 import { chatApi } from '../api/chat';
 import { FamilyTreeAnalyzer } from './FamilyTreeAnalyzer';
@@ -946,7 +942,6 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [preferences] = useAtom(userPreferencesAtom);
   const [searchParams] = useSearchParams();
   const [activeFeature, setActiveFeature] = useState(searchParams.get('feature') ?? 'welcome');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -954,7 +949,6 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     () => CUSTOMER_MENU.find((g) => g.items.some(([id]) => id === (searchParams.get('feature') ?? 'welcome')))?.id ?? 'start',
   );
 
-  const { colorScheme } = preferences;
 
   // Links inside the app (e.g. "Research this person") change ?feature= to switch screens.
   const linkedFeature = searchParams.get('feature');
@@ -1015,37 +1009,6 @@ export const Dashboard: React.FC<DashboardProps> = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur-sm" style={{ 
-        borderColor: colorScheme.border
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Home className="w-6 h-6 text-genesis-600" />
-                <h1 className="text-lg font-medium text-gray-900">
-                  Genesis Heritage
-                </h1>
-              </div>
-              <p className="text-sm hidden sm:block text-gray-600">
-                Your family's story, kept safe and shared
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <RouterLink
-                to="/pricing"
-                className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Plans &amp; billing
-              </RouterLink>
-
-              <UserProfileButton />
-            </div>
-          </div>
-        </div>
-      </nav>
 
       {/* Category Filter */}
       <div className="bg-gray-50 border-b border-gray-200">
