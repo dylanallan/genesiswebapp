@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { collectProblems, installMockBackend, signIn, type MockState, type Problem } from './support/mockBackend';
 import fs from 'node:fs';
+import { unzipSync, strFromU8 } from 'fflate';
 
 // "Beta tester": signs in and opens EVERY dashboard feature, recording crashes, error boundaries
 // and console errors. Run with:  npm run test:beta   (needs VITE_SUPABASE_URL=https://mock.supabase.co)
@@ -431,6 +432,30 @@ test('a crash in the browser is reported so it can be fixed', async ({ page }) =
     page.evaluate(() => { setTimeout(() => { throw new Error('Test boom'); }, 0); }),
   ]);
   expect(JSON.parse(req.postData() ?? '{}')).toMatchObject({ p_message: 'Error: Test boom', p_page: '/dashboard?feature=welcome' });
+});
+
+test('download everything gives one zip with data, tree, photos and recordings', async ({ page }) => {
+  current = 'full-export';
+  state.storageFiles = { 'family-photos': ['a.jpg', 'restored/b.png'], 'voice-recordings': ['interview.webm'] };
+  state.familyRows = [{ id: '77777777-0000-4000-8000-000000000001', first_name: 'Rosa', middle_name: null, last_name: 'Vega', gender: 'female', birth_date: '1902-03-04', birth_location: 'Oaxaca', death_date: null, death_location: null, is_living: false, notes: null, parent_ids: [], spouse_ids: [] }];
+  try {
+    await page.goto('/dashboard?feature=privacy-center');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Download everything (.zip)' }).click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^genesis-heritage-\d{4}-\d{2}-\d{2}\.zip$/);
+    const files = unzipSync(new Uint8Array(fs.readFileSync(await download.path())));
+    expect(Object.keys(files).sort()).toEqual([
+      'Interview recordings/interview.webm', 'Photos/a.jpg', 'Photos/restored/b.png', 'README.txt', 'my-data.json', 'my-family-tree.ged',
+    ]);
+    expect(strFromU8(files['my-family-tree.ged'])).toContain('Rosa /Vega/');
+    expect(strFromU8(files['Photos/a.jpg'])).toBe('file:a.jpg');
+    await expect(page.getByText(/Downloaded your data, 1 person and 3 files/)).toBeVisible();
+  } finally {
+    state.storageFiles = undefined;
+    state.familyRows = undefined;
+  }
 });
 
 test('my account: real name, text size and helper wishes', async ({ page }) => {

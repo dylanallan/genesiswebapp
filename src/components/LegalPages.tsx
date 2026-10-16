@@ -48,7 +48,7 @@ export const PrivacyPolicy: React.FC = () => (
 
     <h2>Your choices and rights</h2>
     <ul>
-      <li><strong>Download:</strong> Account → Your data &amp; privacy → Download all my data, or download your tree as a GEDCOM file.</li>
+      <li><strong>Download:</strong> My account → Your data &amp; privacy → Download everything (one .zip with your data, your tree as a GEDCOM file, and all your photos and recordings).</li>
       <li><strong>Delete:</strong> Account → Your data &amp; privacy → Delete my account permanently removes your account and everything in it.</li>
       <li><strong>Correct:</strong> you can edit anything you have saved at any time.</li>
       <li>You can ask us about the information we hold about you, as provided by Canadian privacy law (PIPEDA) and other laws that apply to you.</li>

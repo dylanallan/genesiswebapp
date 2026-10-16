@@ -7,8 +7,8 @@ import { decodeGedcom, parseGedcom, toFamilyRows, toGedcom, GedcomParseResult, E
 
 const BATCH = 400;
 
-export function downloadFile(name: string, text: string, type = 'text/plain') {
-  const url = URL.createObjectURL(new Blob([text], { type }));
+export function downloadFile(name: string, content: string | Uint8Array, type = 'text/plain') {
+  const url = URL.createObjectURL(new Blob([content as BlobPart], { type }));
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
@@ -16,10 +16,15 @@ export function downloadFile(name: string, text: string, type = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function exportTreeAsGedcom() {
+export async function treeAsGedcom(): Promise<{ text: string; count: number }> {
   const rows = await loadAllFamilyRows<ExportPerson>('id,first_name,middle_name,last_name,gender,birth_date,birth_location,death_date,death_location,is_living,notes,parent_ids,spouse_ids');
-  downloadFile('my-family-tree.ged', toGedcom(rows), 'text/vnd.familysearch.gedcom');
-  return rows.length;
+  return { text: toGedcom(rows), count: rows.length };
+}
+
+export async function exportTreeAsGedcom() {
+  const { text, count } = await treeAsGedcom();
+  downloadFile('my-family-tree.ged', text, 'text/vnd.familysearch.gedcom');
+  return count;
 }
 
 export const TreeImport: React.FC = () => {

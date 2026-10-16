@@ -31,6 +31,7 @@ export interface MockState {
   recordHits?: unknown[];   // hits returned by records-search
   storyRows?: unknown[];    // rows returned for cultural_stories
   posted?: Record<string, unknown[]>; // bodies of POSTs, by table
+  storageFiles?: Record<string, string[]>; // files in each storage bucket, as paths under the user's folder
 }
 
 export async function signIn(context: BrowserContext) {
@@ -129,6 +130,22 @@ export async function installMockBackend(page: Page, state: MockState) {
       return json(route, rows, 200, { 'content-range': `0-${Math.max(rows.length - 1, 0)}/${rows.length}` });
     }
     if (path.startsWith('/storage/v1/object/sign/')) return json(route, { signedURL: '/icons/icon-512x512.png' });
+    if (path.startsWith('/storage/v1/object/list/')) {
+      const bucket = path.split('/')[5];
+      const prefix = (JSON.parse(req.postData() ?? '{}').prefix ?? '') as string;
+      const under = prefix.split('/').slice(1).join('/');
+      const names = new Map<string, boolean>(); // name -> is a file
+      for (const f of state.storageFiles?.[bucket] ?? []) {
+        if (under && !f.startsWith(`${under}/`)) continue;
+        const rest = under ? f.slice(under.length + 1) : f;
+        const [head, ...tail] = rest.split('/');
+        names.set(head, tail.length === 0);
+      }
+      return json(route, [...names].map(([name, file]) => ({ name, id: file ? `id-${name}` : null })));
+    }
+    if (path.startsWith('/storage/v1/object/') && req.method() === 'GET' && state.storageFiles) {
+      return route.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from(`file:${path.split('/').pop()}`) });
+    }
     if (path.startsWith('/storage/v1/object/') && req.method() === 'POST') return json(route, { Key: path.replace('/storage/v1/object/', ''), Id: 'mock-file' });
     if (path.startsWith('/storage/v1/')) return json(route, []);
     return json(route, {});
