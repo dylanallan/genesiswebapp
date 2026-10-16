@@ -27,42 +27,88 @@ const SYSTEM_PROMPT = [
   'Be respectful about sensitive topics such as adoption, enslavement, migration and family secrets.',
 ].join(' ')
 
-async function callAnthropic(message: string, apiKey: string): Promise<string> {
+// Reads why a provider refused (a short slice of its reply) so the logs say what went wrong, not just a status code.
+async function refusal(name: string, r: Response): Promise<Error & { status?: number }> {
+  let detail = ''
+  try { detail = (await r.text()).replace(/\s+/g, ' ').slice(0, 300) } catch { /* no body */ }
+  return Object.assign(new Error(`${name} ${r.status}: ${detail}`), { status: r.status })
+}
+
+// Try each model in turn when one is busy, rate limited or retired, so one model's bad day doesn't stop the chat.
+const RETRY_NEXT_MODEL = new Set([404, 408, 429, 500, 502, 503, 504])
+const unique = (xs: (string | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))]
+const pause = (ms: number) => new Promise((res) => setTimeout(res, ms))
+interface Answer { text: string; model: string }
+
+async function callAnthropic(message: string, apiKey: string): Promise<Answer> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: MODELS.anthropic, max_tokens: 1024, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: message }] }),
   })
-  if (!r.ok) throw new Error(`Anthropic API error: ${r.status}`)
-  return (await r.json()).content[0].text
+  if (!r.ok) throw await refusal('anthropic', r)
+  const text = (await r.json()).content?.[0]?.text
+  if (typeof text !== 'string' || !text) throw new Error('anthropic returned an empty answer')
+  return { text, model: MODELS.anthropic }
+}
+
+// Spare models to fall back on when the configured one is retired or busy.
+const SPARE_MODELS: Record<string, string[]> = {
+  groq: ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'llama-3.1-8b-instant'],
+  openrouter: ['meta-llama/llama-3.3-70b-instruct:free', 'deepseek/deepseek-chat-v3-0324:free'],
 }
 
 // Any OpenAI-compatible chat API: OpenAI itself, a self-hosted OmniRoute gateway, and the free tiers.
 function openAICompatible(name: string, baseUrl: string) {
-  return async (message: string, apiKey: string): Promise<string> => {
-    const r = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODELS[name], max_tokens: 1024, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message }] }),
-    })
-    if (!r.ok) throw new Error(`${name} API error: ${r.status}`)
-    const text = (await r.json()).choices?.[0]?.message?.content
-    if (typeof text !== 'string' || !text) throw new Error(`${name} returned an empty answer`)
-    return text
+  return async (message: string, apiKey: string): Promise<Answer> => {
+    let last: Error | undefined
+    for (const model of unique([MODELS[name], ...(SPARE_MODELS[name] ?? [])])) {
+      const r = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message }] }),
+      })
+      if (!r.ok) {
+        last = await refusal(`${name}/${model}`, r)
+        // A retired model often comes back as 400 "model_decommissioned" or "model not found".
+        if (RETRY_NEXT_MODEL.has(r.status) || /decommission|not found|does not exist|no longer supported/i.test(last.message)) continue
+        throw last
+      }
+      const text = (await r.json()).choices?.[0]?.message?.content
+      if (typeof text !== 'string' || !text) { last = new Error(`${name}/${model} returned an empty answer`); continue }
+      return { text, model }
+    }
+    throw last ?? new Error(`${name}: no model answered`)
   }
 }
 
-async function callGemini(message: string, apiKey: string): Promise<string> {
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // header, not URL, so it never lands in logs
-    body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ parts: [{ text: message }] }] }),
-  })
-  if (!r.ok) throw new Error(`Gemini API error: ${r.status}`)
-  return (await r.json()).candidates[0].content.parts[0].text
+async function callGemini(message: string, apiKey: string): Promise<Answer> {
+  let last: Error | undefined
+  const models = unique([MODELS.gemini, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'])
+  for (const [i, model] of models.entries()) {
+    for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
+      if (attempt) await pause(700)
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // header, not URL, so it never lands in logs
+        body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ parts: [{ text: message }] }] }),
+      })
+      if (!r.ok) {
+        last = await refusal(`gemini/${model}`, r)
+        if (RETRY_NEXT_MODEL.has(r.status)) continue
+        throw last
+      }
+      const data = await r.json()
+      const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('')
+      if (typeof text === 'string' && text.trim()) return { text, model }
+      last = new Error(`gemini/${model} gave no answer (${data.promptFeedback?.blockReason ?? data.candidates?.[0]?.finishReason ?? 'empty'})`)
+      break
+    }
+  }
+  throw last ?? new Error('gemini: no model answered')
 }
 
-interface Provider { name: string; key: () => string | undefined; call: (message: string, apiKey: string) => Promise<string> }
+interface Provider { name: string; key: () => string | undefined; call: (message: string, apiKey: string) => Promise<Answer> }
 
 const ALL_PROVIDERS: Provider[] = [
   ...Object.entries(OPENAI_COMPATIBLE).map(([name, p]) => ({ name, key: () => compatibleKey(name), call: openAICompatible(name, p.baseUrl()) })),
@@ -94,9 +140,9 @@ Deno.serve(async (req) => {
     const { data: paid, error: planError } = await db.rpc('has_pro_access', { p_user: user.id })
     if (planError) throw planError
     const limit = paid ? PAID_DAILY_MESSAGES : FREE_DAILY_MESSAGES
-    const { data: used, error: usageError } = await db.rpc('increment_ai_usage', { p_user: user.id })
+    const { data: count, error: usageError } = await db.rpc('increment_ai_usage', { p_user: user.id })
     if (usageError) throw usageError
-    if (used > limit) {
+    if (count > limit) {
       return json({
         error: paid ? 'Daily message limit reached. It resets at midnight UTC.' : 'Free daily limit reached. Upgrade to keep chatting.',
         code: paid ? 'LIMIT_REACHED' : 'UPGRADE_REQUIRED',
@@ -111,13 +157,16 @@ Deno.serve(async (req) => {
       const key = p.key()
       if (!key) continue
       try {
-        const response = await p.call(message, key)
-        return json({ response, provider: p.name, model: MODELS[p.name], remaining: Math.max(0, limit - used) }, 200, cors)
+        const answer = await p.call(message, key)
+        return json({ response: answer.text, provider: p.name, model: answer.model, remaining: Math.max(0, limit - count) }, 200, cors)
       } catch (e) {
         console.error(`ai-router: ${p.name} failed:`, (e as Error).message)
       }
     }
-    return json({ error: 'The AI service is temporarily unavailable. Please try again shortly.' }, 503, cors)
+    // Nobody answered: give the message back so a bad moment on the AI side doesn't use up the person's daily allowance.
+    const { error: refundError } = await db.rpc('refund_ai_usage', { p_user: user.id })
+    if (refundError) console.error('ai-router: refund failed:', refundError.message)
+    return json({ error: 'The family history helper is busy right now. Please try again in a minute.' }, 503, cors)
   } catch (e) {
     return errorResponse(e, cors)
   }
