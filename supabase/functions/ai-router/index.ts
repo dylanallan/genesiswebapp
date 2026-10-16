@@ -37,7 +37,6 @@ async function refusal(name: string, r: Response): Promise<Error & { status?: nu
 // Try each model in turn when one is busy, rate limited or retired, so one model's bad day doesn't stop the chat.
 const RETRY_NEXT_MODEL = new Set([404, 408, 429, 500, 502, 503, 504])
 const unique = (xs: (string | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))]
-const pause = (ms: number) => new Promise((res) => setTimeout(res, ms))
 interface Answer { text: string; model: string }
 
 async function callAnthropic(message: string, apiKey: string): Promise<Answer> {
@@ -84,26 +83,23 @@ function openAICompatible(name: string, baseUrl: string) {
 
 async function callGemini(message: string, apiKey: string): Promise<Answer> {
   let last: Error | undefined
-  const models = unique([MODELS.gemini, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'])
-  for (const [i, model] of models.entries()) {
-    for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
-      if (attempt) await pause(700)
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // header, not URL, so it never lands in logs
-        body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ parts: [{ text: message }] }] }),
-      })
-      if (!r.ok) {
-        last = await refusal(`gemini/${model}`, r)
-        if (RETRY_NEXT_MODEL.has(r.status)) continue
-        throw last
-      }
-      const data = await r.json()
-      const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('')
-      if (typeof text === 'string' && text.trim()) return { text, model }
-      last = new Error(`gemini/${model} gave no answer (${data.promptFeedback?.blockReason ?? data.candidates?.[0]?.finishReason ?? 'empty'})`)
-      break
+  // Two models at most: when Google is overloaded every model tends to be, so it's quicker to move on to the next service.
+  const models = unique([MODELS.gemini, 'gemini-flash-latest', 'gemini-2.5-flash']).slice(0, 2)
+  for (const model of models) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // header, not URL, so it never lands in logs
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ parts: [{ text: message }] }] }),
+    })
+    if (!r.ok) {
+      last = await refusal(`gemini/${model}`, r)
+      if (RETRY_NEXT_MODEL.has(r.status)) continue
+      throw last
     }
+    const data = await r.json()
+    const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('')
+    if (typeof text === 'string' && text.trim()) return { text, model }
+    last = new Error(`gemini/${model} gave no answer (${data.promptFeedback?.blockReason ?? data.candidates?.[0]?.finishReason ?? 'empty'})`)
   }
   throw last ?? new Error('gemini: no model answered')
 }
@@ -153,11 +149,13 @@ Deno.serve(async (req) => {
     // The chosen provider goes first; the others stay as fallbacks so a choice that is down or not set up still gets an answer.
     const candidates = provider ? orderByPreference(PROVIDERS, (p) => p.name, provider) : PROVIDERS
 
+    const started = Date.now()
     for (const p of candidates) {
       const key = p.key()
       if (!key) continue
       try {
         const answer = await p.call(message, key)
+        console.log(`ai-router: answered by ${p.name}/${answer.model} in ${Date.now() - started}ms`)
         return json({ response: answer.text, provider: p.name, model: answer.model, remaining: Math.max(0, limit - count) }, 200, cors)
       } catch (e) {
         console.error(`ai-router: ${p.name} failed:`, (e as Error).message)
