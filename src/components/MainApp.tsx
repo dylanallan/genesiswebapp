@@ -40,9 +40,6 @@ const SELLING_POINTS = [
   ['Fair price', 'Free to start. Pro is $19 CAD a month, a fraction of the big sites.'],
 ];
 
-// A shared demo login is only offered when a demo account is explicitly configured at build time.
-const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
-const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
 
 const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => void }> = ({ startMode, onBack }) => {
   const [email, setEmail] = useState('');
@@ -150,24 +147,6 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
     }
   };
 
-  const handleDemoLogin = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: DEMO_EMAIL!,
-        password: DEMO_PASSWORD!,
-      });
-
-      if (error) throw error;
-      toast.success('Demo login successful!');
-    } catch (error: any) {
-      console.error('Demo login error:', error);
-      toast.error('Demo login failed. Please try manual signup.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col lg:flex-row items-center justify-center gap-10 p-4">
       <section className="max-w-md w-full order-2 lg:order-1">
@@ -270,17 +249,6 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
               : (authMode === 'signin' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Email me a reset link')}
           </button>
         </form>
-
-        {/* Demo Login Button */}
-        {DEMO_EMAIL && DEMO_PASSWORD && <div className="mt-6 text-center">
-          <button
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-            className="text-blue-600 hover:text-blue-700 text-sm disabled:opacity-50"
-          >
-            Try Demo Account
-          </button>
-        </div>}
 
         {/* Toggle Auth Mode */}
         <div className="mt-4 text-center">

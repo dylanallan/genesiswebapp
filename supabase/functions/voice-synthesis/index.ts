@@ -1,5 +1,6 @@
 import { corsFor } from "../_shared/cors.ts";
 import { requireUser, requireActiveSubscription, json, errorResponse } from "../_shared/auth.ts";
+import { takeDailyUse } from "../_shared/quota.ts";
 import { cfg } from '../_shared/runtime-config.ts';
 
 // Text-to-speech with two interchangeable backends:
@@ -49,6 +50,9 @@ Deno.serve(async (req) => {
     if (typeof text !== "string" || !text.trim()) return json({ error: "Missing text" }, 400, cors);
     if (text.length > MAX_CHARS) return json({ error: `Text too long (max ${MAX_CHARS} characters)` }, 400, cors);
 
+    const use = await takeDailyUse(user.id, "voice-read", 100, 100, "readings");
+    if (!use.ok) return json({ error: use.message, code: "LIMIT_REACHED" }, 429, cors);
+
     let ttsRes: Response;
     if (TTS_SERVER_URL) {
       const chosen = typeof voice === "string" && OPEN_VOICES.includes(voice) ? voice : DEFAULT_OPEN_VOICE;
@@ -59,6 +63,7 @@ Deno.serve(async (req) => {
 
     if (!ttsRes.ok) {
       console.error("TTS provider error", ttsRes.status, await ttsRes.text());
+      await use.refund();
       return json({ error: "Voice generation failed" }, 502, cors);
     }
     return new Response(ttsRes.body, {

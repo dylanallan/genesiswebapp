@@ -109,8 +109,6 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
-import UniversalSearch from './UniversalSearch';
-import { DataSourceAdmin } from './DataSourceAdmin';
 import { useSession } from '../lib/session-context';
 import { cn } from '../lib/utils';
 import { CulturalArtifactGallery } from './CulturalArtifactGallery';
@@ -346,22 +344,6 @@ const features = [
     category: 'heritage',
   },
   // Core System Features
-  {
-    id: 'search',
-    name: 'Universal Search',
-    icon: Search,
-    component: UniversalSearch,
-    description: 'Search across all data sources',
-    category: 'core'
-  },
-  {
-    id: 'data',
-    name: 'Data Sources',
-    icon: Database,
-    component: DataSourceAdmin,
-    description: 'Manage data sources and integrations',
-    category: 'core'
-  },
   {
     id: 'ai-assistant',
     name: 'AI Assistant',

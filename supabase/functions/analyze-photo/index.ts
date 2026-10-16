@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
+import { takeDailyUse } from '../_shared/quota.ts'
 import { cfg } from '../_shared/runtime-config.ts'
 
 // Analyses one of the caller's own photos (bucket "family-photos", folder = their user id) with the
@@ -49,11 +50,16 @@ Deno.serve(async (req) => {
       return json({ error: 'You can only analyse your own photos' }, 403, cors)
     }
 
+    const use = await takeDailyUse(user.id, 'photo-analysis', 20, 200, 'photo analyses')
+    if (!use.ok) return json({ error: use.message, code: use.pro ? 'LIMIT_REACHED' : 'UPGRADE_REQUIRED' }, 429, cors)
+    // Any failure from here gives the day's use back.
+    const fail = async (status: number, error: string) => { await use.refund(); return json({ error }, status, cors) }
+
     const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
     const { data: file, error: dlError } = await db.storage.from('family-photos').download(photoPath)
-    if (dlError || !file) return json({ error: 'Photo not found' }, 404, cors)
+    if (dlError || !file) return await fail(404, 'Photo not found')
     const bytes = new Uint8Array(await file.arrayBuffer())
-    if (bytes.length > MAX_BYTES) return json({ error: 'Photo is larger than 10 MB' }, 400, cors)
+    if (bytes.length > MAX_BYTES) return await fail(400, 'Photo is larger than 10 MB')
 
     const res = await fetch('https://vision.googleapis.com/v1/images:annotate', {
       method: 'POST',
@@ -76,7 +82,7 @@ Deno.serve(async (req) => {
     const result: VisionResponse = body.responses?.[0] ?? {}
     if (!res.ok || result.error) {
       console.error('Vision error', res.status, result.error?.message ?? JSON.stringify(body).slice(0, 500))
-      return json({ error: 'Photo analysis failed. Please try again.' }, 502, cors)
+      return await fail(502, 'Photo analysis failed. Please try again.')
     }
 
     const faces = (result.faceAnnotations ?? []).map((f) => {

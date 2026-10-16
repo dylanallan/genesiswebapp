@@ -4,6 +4,7 @@ import { requireCaller, json, errorResponse } from '../_shared/auth.ts'
 import { callAI, getAIProvider, isKnownProvider, type AIMessage } from '../_shared/ai-utils.ts'
 import { providerOrder } from '../_shared/ai-providers.ts'
 import { cfg } from '../_shared/runtime-config.ts'
+import { takeDailyUse } from '../_shared/quota.ts'
 
 // Use-case aware AI processing. Provider keys come only from function secrets (never the database).
 type UseCase = 'genealogy' | 'business' | 'creative' | 'analysis' | 'document' | 'voice' | 'coding'
@@ -46,10 +47,13 @@ Deno.serve(async (req) => {
     const useCase: UseCase = body.useCase in SYSTEM_PROMPTS ? body.useCase : 'analysis'
     const userId = caller.internal ? body.userId ?? null : caller.userId
 
-    const preferred = normalizeProvider(body.preferences?.provider)
+    // Every person has a daily allowance; only trusted internal calls may pick the provider.
+    const use = userId ? await takeDailyUse(userId, 'ai-tools', 20, 200, 'AI tasks') : null
+    if (use && !use.ok) return json({ success: false, error: use.message, code: use.pro ? 'LIMIT_REACHED' : 'UPGRADE_REQUIRED' }, 429, cors)
+    const preferred = caller.internal ? normalizeProvider(body.preferences?.provider) : undefined
     const order = [...new Set([...(preferred ? [preferred] : []), ...providerOrder()])]
       .filter((p) => getAIProvider(p))
-    if (order.length === 0) return json({ success: false, error: 'No AI provider is configured' }, 503, cors)
+    if (order.length === 0) { await use?.refund(); return json({ success: false, error: 'No AI provider is configured' }, 503, cors) }
 
     const messages: AIMessage[] = [
       { role: 'system', content: SYSTEM_PROMPTS[useCase] },
@@ -58,7 +62,7 @@ Deno.serve(async (req) => {
     ]
     const opts = {
       temperature: Math.min(1, Math.max(0, Number(body.preferences?.temperature ?? 0.7))),
-      maxTokens: Math.min(4000, Math.max(64, Number(body.preferences?.maxTokens ?? 1500))),
+      maxTokens: Math.min(caller.internal ? 4000 : 1500, Math.max(64, Number(body.preferences?.maxTokens ?? 1500) || 1500)),
     }
 
     const started = Date.now()
@@ -91,6 +95,7 @@ Deno.serve(async (req) => {
       }
     }
     console.error('All providers failed', lastError)
+    await use?.refund()
     return json({ success: false, error: 'The AI service is temporarily unavailable. Please try again.' }, 503, cors)
   } catch (e) {
     return errorResponse(e, cors)

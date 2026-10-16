@@ -3,6 +3,7 @@ import OpenAI from 'npm:openai@4.28.0'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 import { cfg } from '../_shared/runtime-config.ts'
+import { takeDailyUse } from '../_shared/quota.ts'
 
 // Adds a document or note to the caller's private AI memory: splits it into chunks, embeds them
 // (OpenAI text-embedding-3-small, 1536 dimensions) and stores them in ai_embeddings.
@@ -28,9 +29,13 @@ Deno.serve(async (req) => {
     const chunks = chunkContent(content)
     if (chunks.length > MAX_CHUNKS) return json({ error: 'That document is too long to add at once. Please split it up.' }, 400, cors)
 
+    const use = await takeDailyUse(user.id, 'ai-memory', 30, 300, 'documents added to AI memory')
+    if (!use.ok) return json({ error: use.message, code: use.pro ? 'LIMIT_REACHED' : 'UPGRADE_REQUIRED' }, 429, cors)
+
     // One request embeds every chunk
     const openai = new OpenAI({ apiKey })
     const embeddings = await openai.embeddings.create({ model: 'text-embedding-3-small', input: chunks, encoding_format: 'float' })
+      .catch(async (e) => { await use.refund(); throw e })
 
     const db = createClient(cfg('SUPABASE_URL') ?? '', cfg('SUPABASE_SERVICE_ROLE_KEY') ?? '')
     const now = new Date().toISOString()
