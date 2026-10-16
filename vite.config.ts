@@ -68,7 +68,9 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true
-      }
+      },
+      mangle: { toplevel: true }, // shorter, less readable names everywhere, not only inside functions
+      format: { comments: false }
     }
   },
   server: {
