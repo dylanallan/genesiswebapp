@@ -424,7 +424,7 @@ test('search my family finds people and opens their story', async ({ page }) => 
   try {
     await page.goto('/dashboard?feature=family-search');
     await page.getByLabel('Search my family').fill('Vega');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
     const results = page.getByTestId('family-search-results');
     await expect(results).toContainText('Rosa Vega');
     await expect(results).toContainText('Person · born 1902, Oaxaca');

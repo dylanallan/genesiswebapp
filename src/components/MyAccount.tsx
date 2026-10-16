@@ -21,17 +21,20 @@ export const MyAccount: React.FC = () => {
   const [loaded, setLoaded] = useState(false); // fields stay locked until your saved details arrive, so typing is never overwritten
 
   useEffect(() => {
+    let current = true; // a load that was superseded never overwrites the fields
     (async () => {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
-      if (!user) return;
+      if (!user || !current) return;
+      const { data: row } = await supabase.from('ai_custom_instructions').select('instructions').eq('user_id', user.id).maybeSingle();
+      if (!current) return;
       setEmail(user.email ?? '');
       const n = (user.user_metadata?.full_name as string | undefined) ?? '';
       setName(n); setSavedName(n);
-      const { data: row } = await supabase.from('ai_custom_instructions').select('instructions').eq('user_id', user.id).maybeSingle();
       const text = row?.instructions ?? '';
       setInstructions(text); setSavedInstructions(text);
-    })().finally(() => setLoaded(true));
+    })().finally(() => { if (current) setLoaded(true); });
+    return () => { current = false; };
   }, []);
 
   const saveName = async (e: React.FormEvent) => {
