@@ -335,8 +335,15 @@ test('life story shows a timeline with ages and world events', async ({ page }) 
     await expect(page.getByText('Son Luis Vega is born')).toBeVisible();
     await expect(page.getByText('1930 · age 28')).toBeVisible();
     await expect(page.getByText('The Mexican Revolution (1910–1920)')).toBeVisible();
+    state.posted = {};
     await page.getByRole('button', { name: "Write Rosa's life story" }).click();
     await expect(page.getByText('Hello from the mock AI.')).toBeVisible();
+    // Only the facts leave the browser; the writing instructions are added on the server.
+    const sent = state.posted['ai-router']?.[0] as { task: string; input: Record<string, string>; message?: string };
+    expect(sent.task).toBe('life_story');
+    expect(sent.input.name).toBe('Rosa Vega');
+    expect(sent.input.events).toContain('Son Luis Vega is born');
+    expect(sent.message).toBeUndefined();
   } finally {
     state.familyRows = undefined;
   }

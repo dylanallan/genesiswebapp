@@ -61,15 +61,18 @@ async function describeFunctionError(error: unknown): Promise<{ message: string;
  * user's conversation history. Saving is best-effort: a good answer is never discarded because
  * history could not be written.
  */
+/** A built-in AI job: the app sends the family's facts and the server adds the writing instructions. */
+export interface AITask { task: 'record_explain' | 'storybook_chapter' | 'life_story'; input: Record<string, string | number> }
+
 async function sendMessage(
-  message: string,
+  message: string | AITask,
   options: { conversationId?: string; provider?: string; persist?: boolean } = {},
 ): Promise<ChatResponse> {
   const { conversationId, provider, persist = true } = options;
   const now = () => new Date().toISOString();
 
   const { data, error } = await supabase.functions.invoke('ai-router', {
-    body: { message, ...(provider && provider !== 'auto' ? { provider } : {}) },
+    body: { ...(typeof message === 'string' ? { message } : message), ...(provider && provider !== 'auto' ? { provider } : {}) },
   });
 
   if (error || data?.error) {
@@ -86,7 +89,7 @@ async function sendMessage(
     remaining: data.remaining,
   };
 
-  if (!persist) return result;
+  if (!persist || typeof message !== 'string') return result;
 
   try {
     const { data: auth } = await supabase.auth.getUser();

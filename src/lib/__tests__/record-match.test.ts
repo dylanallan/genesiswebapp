@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeName, scoreMatch, soundex, verificationPrompt } from '../record-match';
+import { normalizeName, scoreMatch, soundex, verificationRequest } from '../record-match';
 
 const rosa = { name: 'Rosa María Vega', birthYear: 1902, deathYear: 1980, birthPlace: 'Oaxaca, Mexico', deathPlace: 'Los Angeles, California' };
 
@@ -43,8 +43,9 @@ describe('record matching', () => {
   });
 
   it('builds an explainer prompt that forbids invented facts', () => {
-    const p = verificationPrompt(rosa, [{ title: 'Rosa Vega', source: 'WikiTree', url: 'https://x', result: scoreMatch(rosa, { title: 'Rosa Vega' }) }]);
-    expect(p).toContain('Never invent facts');
-    expect(p).toContain('Rosa María Vega, born 1902, in Oaxaca, Mexico');
+    const job = verificationRequest(rosa, [{ title: 'Rosa Vega', source: 'WikiTree', url: 'https://x', result: scoreMatch(rosa, { title: 'Rosa Vega' }) }]);
+    expect(job.task).toBe('record_explain');
+    expect(job.input.subject).toBe('Rosa María Vega, born 1902, in Oaxaca, Mexico, died 1980, in Los Angeles, California');
+    expect(job.input.records).toContain('"Rosa Vega" (WikiTree)');
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lifeStoryPrompt, lifeTimeline, LifePerson } from '../life-story';
+import { lifeStoryRequest, lifeTimeline, LifePerson } from '../life-story';
 
 const p = (id: string, name: string, birthDate: string | null, extra: Partial<LifePerson> = {}): LifePerson => ({
   id, name, gender: null, birthDate, deathDate: null, birthPlace: null, deathPlace: null, parentIds: [], spouseIds: [], childrenIds: [], ...extra,
@@ -33,9 +33,11 @@ describe('life story timeline', () => {
   });
 
   it('builds a prompt that forbids invented facts', () => {
-    const prompt = lifeStoryPrompt(people[0], lifeTimeline('rosa', people), ['She loved to sing.']);
-    expect(prompt).toContain('Never invent');
-    expect(prompt).toContain('1930 (age 28): Son Luis Vega is born');
-    expect(prompt).toContain('She loved to sing.');
+    const job = lifeStoryRequest(people[0], lifeTimeline('rosa', people), ['She loved to sing.']);
+    expect(job.task).toBe('life_story');
+    expect(job.input.name).toBe('Rosa Vega');
+    expect(job.input.events).toContain('1930 (age 28): Son Luis Vega is born');
+    expect(job.input.memories).toContain('She loved to sing.');
+    expect(JSON.stringify(job)).not.toContain('Never invent'); // the instructions stay on the server
   });
 });

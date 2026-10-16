@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
 import { chatApi } from '../api/chat';
-import { LifePerson, lifeStoryPrompt, lifeTimeline } from '../lib/life-story';
+import { LifePerson, lifeStoryRequest, lifeTimeline } from '../lib/life-story';
 
 interface Row {
   id: string; first_name: string | null; middle_name: string | null; last_name: string | null; gender: string | null;
@@ -57,7 +57,7 @@ export const LifeStory: React.FC = () => {
   const write = async () => {
     if (!person) return;
     setBusy(true);
-    const res = await chatApi.sendMessage(lifeStoryPrompt(person, events, stories.map((s) => `${s.title}: ${s.content}`)), { persist: false });
+    const res = await chatApi.sendMessage(lifeStoryRequest(person, events, stories.map((s) => `${s.title}: ${s.content}`)), { persist: false });
     setBusy(false);
     if (res.provider === 'error') toast.error(res.response); else setStory(res.response.trim());
   };

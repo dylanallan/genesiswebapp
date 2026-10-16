@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planChapters, chapterPrompt, storybookHtml, StoryPerson } from '../storybook';
+import { planChapters, chapterRequest, storybookHtml, StoryPerson } from '../storybook';
 
 const person = (name: string, birthYear: number | null, extra: Partial<StoryPerson> = {}): StoryPerson => ({
   name, birthYear, deathYear: null, birthPlace: null, deathPlace: null, relationship: null, occupation: [], notes: null, ...extra,
@@ -19,9 +19,8 @@ describe('storybook', () => {
   });
 
   it('tells the AI not to invent facts', () => {
-    const prompt = chapterPrompt('The García Family', { heading: 'Our generation', facts: '- Me (1992–)' }, 0, 3);
-    expect(prompt).toContain('Use ONLY the facts below');
-    expect(prompt).toContain('- Me (1992–)');
+    const job = chapterRequest('The García Family', { heading: 'Our generation', facts: '- Me (1992–)' }, 0, 3);
+    expect(job).toEqual({ task: 'storybook_chapter', input: { book: 'The García Family', heading: 'Our generation', number: 1, total: 3, facts: '- Me (1992–)' } });
   });
 
   it('escapes text in the printable page', () => {

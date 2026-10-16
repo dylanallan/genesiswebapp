@@ -3,6 +3,7 @@ import { corsFor } from '../_shared/cors.ts'
 import { requireUser, json, errorResponse } from '../_shared/auth.ts'
 import { OPENAI_COMPATIBLE, compatibleKey, compatibleModel, orderByPreference, DEFAULT_PROVIDER_ORDER } from '../_shared/ai-providers.ts'
 import { cfg } from '../_shared/runtime-config.ts'
+import { taskPrompt } from './tasks.ts'
 
 const MAX_MESSAGE_CHARS = 8000
 const FREE_DAILY_MESSAGES = Number(cfg('FREE_DAILY_MESSAGES') ?? '10')
@@ -127,8 +128,11 @@ Deno.serve(async (req) => {
 
   try {
     const user = await requireUser(req)
-    const { message, provider } = await req.json()
-    if (typeof message !== 'string' || !message.trim()) return json({ error: 'A message is required' }, 400, cors)
+    const body = await req.json()
+    const provider = body.provider
+    // Built-in jobs (storybook, life story, record explainer) send facts only; the instructions are added here.
+    const message = body.task !== undefined ? taskPrompt(body.task, body.input) : body.message
+    if (typeof message !== 'string' || !message.trim()) return json({ error: body.task !== undefined ? 'Something needed for this request is missing.' : 'A message is required' }, 400, cors)
     if (message.length > MAX_MESSAGE_CHARS) return json({ error: `Message too long (max ${MAX_MESSAGE_CHARS} characters)` }, 400, cors)
 
     // Plan + daily quota (counted before the call so failures can't be used to dodge the limit)

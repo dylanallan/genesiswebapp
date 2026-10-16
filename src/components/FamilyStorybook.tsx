@@ -3,7 +3,7 @@ import { BookOpen, Sparkles, Printer, Download, Save, Trash2 } from 'lucide-reac
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { chatApi } from '../api/chat';
-import { Chapter, StoryPerson, chapterPrompt, planChapters, storybookHtml } from '../lib/storybook';
+import { Chapter, StoryPerson, chapterRequest, planChapters, storybookHtml } from '../lib/storybook';
 import { downloadFile } from './TreeImport';
 import { loadAllFamilyRows } from '../lib/family';
 
@@ -79,7 +79,7 @@ export const FamilyStorybook: React.FC = () => {
       const written: Chapter[] = [];
       for (let i = 0; i < plans.length; i++) {
         setProgress(`Writing chapter ${i + 1} of ${plans.length}: ${plans[i].heading}...`);
-        const res = await chatApi.sendMessage(chapterPrompt(title, plans[i], i, plans.length), { persist: false });
+        const res = await chatApi.sendMessage(chapterRequest(title, plans[i], i, plans.length), { persist: false });
         if (res.provider === 'error') {
           if (written.length === 0) throw new Error(res.response);
           toast.warning(`Stopped after ${written.length} chapters: ${res.response}`);

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
 import { chatApi } from '../api/chat';
-import { MatchPerson, MatchResult, RecordFacts, scoreMatch, verificationPrompt } from '../lib/record-match';
+import { MatchPerson, MatchResult, RecordFacts, scoreMatch, verificationRequest } from '../lib/record-match';
 import { archiveLinks } from '../lib/archive-links';
 
 interface Row { id: string; first_name: string | null; middle_name: string | null; last_name: string | null; birth_date: string | null; death_date: string | null; birth_location: string | null; death_location: string | null }
@@ -99,7 +99,7 @@ export const ResearchAssistant: React.FC = () => {
   const explain = async () => {
     if (!selected || !findings?.length) return;
     setBusy('Asking the AI genealogist...');
-    const res = await chatApi.sendMessage(verificationPrompt(person(selected), findings.map((f) => ({ title: f.hit.title, source: f.hit.sourceLabel, url: f.hit.url, result: f.result }))), { persist: false });
+    const res = await chatApi.sendMessage(verificationRequest(person(selected), findings.map((f) => ({ title: f.hit.title, source: f.hit.sourceLabel, url: f.hit.url, result: f.result }))), { persist: false });
     setBusy(null);
     if (res.provider === 'error') toast.error(res.response); else setExplanation(res.response.trim());
   };

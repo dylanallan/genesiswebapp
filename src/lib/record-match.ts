@@ -1,5 +1,6 @@
 // Scores how well a found record matches a person in the tree, and says WHY: every point of agreement or
 // conflict is listed as evidence, so people (and the AI explainer) can judge it instead of trusting a black box.
+import type { AITask } from '../api/chat';
 
 export interface MatchPerson {
   name: string;
@@ -127,21 +128,11 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
   return { score, level, evidence };
 }
 
-/** Prompt for the AI explainer: it must reason only from the evidence given and say what would confirm it. */
-export function verificationPrompt(person: MatchPerson, findings: Array<{ title: string; source: string; url: string; result: MatchResult }>): string {
-  const me = [person.name, person.birthYear && `born ${person.birthYear}`, person.birthPlace && `in ${person.birthPlace}`,
+/** The record explainer job: who is being researched and each record with its score and evidence. */
+export function verificationRequest(person: MatchPerson, findings: Array<{ title: string; source: string; url: string; result: MatchResult }>): AITask {
+  const subject = [person.name, person.birthYear && `born ${person.birthYear}`, person.birthPlace && `in ${person.birthPlace}`,
     person.deathYear && `died ${person.deathYear}`, person.deathPlace && `in ${person.deathPlace}`].filter(Boolean).join(', ');
-  const list = findings.slice(0, 8).map((f, i) =>
+  const records = findings.slice(0, 8).map((f, i) =>
     `${i + 1}. "${f.title}" (${f.source}) score ${f.result.score}/100 [${f.result.level}]\n   ${f.result.evidence.map((e) => `${e.kind}: ${e.text}`).join('\n   ')}`).join('\n');
-  return [
-    `You are a careful professional genealogist. A family historian is researching: ${me}.`,
-    'Below are records found in public archives, each with an automatic match score and the evidence for and against.',
-    'In plain, friendly language for a non-expert:',
-    '1. Say which records are most likely about this same person and why, and which are probably someone else.',
-    '2. Point out any conflicts (different dates or places) and what could explain them (spelling, record errors, a different person).',
-    '3. Suggest the 2-3 most useful next steps to confirm or rule out the best matches (specific record types and places to check).',
-    'Use ONLY the information below. Never invent facts. Keep it under 250 words, no tables.',
-    '',
-    list,
-  ].join('\n');
+  return { task: 'record_explain', input: { subject, records: records.slice(0, 6000) } };
 }

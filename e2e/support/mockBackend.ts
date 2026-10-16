@@ -64,6 +64,7 @@ export async function installMockBackend(page: Page, state: MockState) {
     if (path.startsWith('/functions/v1/')) {
       const fn = path.split('/')[3];
       if (fn === 'ai-router') {
+        (state.posted ??= {})['ai-router'] = [...(state.posted['ai-router'] ?? []), JSON.parse(req.postData() ?? 'null')];
         if (state.chatQuotaExceeded) return json(route, { error: 'Free daily limit reached. Upgrade to keep chatting.', code: 'UPGRADE_REQUIRED' }, 429);
         return json(route, { response: 'Hello from the mock AI.', provider: 'mock', model: 'mock-1', remaining: 9 });
       }

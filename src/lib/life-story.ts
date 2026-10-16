@@ -1,5 +1,6 @@
 // Builds one person's life timeline from the family tree (births, deaths, children, losses) and adds the
 // world events they lived through, clearly marked as background, like Ancestry's LifeStory but free.
+import type { AITask } from '../api/chat';
 
 export interface LifePerson {
   id: string;
@@ -87,14 +88,14 @@ export function lifeTimeline(focusId: string, people: LifePerson[], thisYear = n
   return events.sort((a, b) => a.year - b.year || (a.kind === 'family' ? -1 : 1));
 }
 
-export function lifeStoryPrompt(person: LifePerson, events: LifeEvent[], stories: string[]): string {
-  return [
-    `Write a warm, readable short life story (250-400 words) about ${person.name} for their family.`,
-    'Use ONLY the facts below. Never invent names, dates, places, jobs or events. World events are background: you may say what life was',
-    'generally like then, but do not claim the person took part in anything unless the facts say so. No headings or bullet points.',
-    '',
-    'Life events:',
-    ...events.map((e) => `- ${e.year}${e.age !== null ? ` (age ${e.age})` : ''}: ${e.text}${e.kind === 'world' ? ' [world event]' : ''}`),
-    ...(stories.length ? ['', 'Family memories:', ...stories.map((s) => `- ${s.replace(/\s+/g, ' ').slice(0, 600)}`)] : []),
-  ].join('\n').slice(0, 7500);
+/** A life story as an AI job: the person, their life events and any family memories. */
+export function lifeStoryRequest(person: LifePerson, events: LifeEvent[], stories: string[]): AITask {
+  return {
+    task: 'life_story',
+    input: {
+      name: person.name,
+      events: events.map((e) => `- ${e.year}${e.age !== null ? ` (age ${e.age})` : ''}: ${e.text}${e.kind === 'world' ? ' [world event]' : ''}`).join('\n').slice(0, 5500),
+      memories: stories.map((s) => `- ${s.replace(/\s+/g, ' ').slice(0, 600)}`).join('\n').slice(0, 2000),
+    },
+  };
 }

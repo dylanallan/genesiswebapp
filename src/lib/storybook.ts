@@ -1,5 +1,6 @@
-// Plans a family storybook: groups what the user has saved into chapters and writes the AI prompt for each.
+// Plans a family storybook: groups what the user has saved into chapters and the AI job for each.
 // The AI is only ever asked to retell facts we give it, never to invent ancestors.
+import type { AITask } from '../api/chat';
 
 export interface StoryPerson {
   name: string;
@@ -76,18 +77,9 @@ export function planChapters(people: StoryPerson[], extras: StoryExtras): Chapte
   return plans;
 }
 
-export function chapterPrompt(familyName: string, plan: ChapterPlan, index: number, total: number): string {
-  return [
-    `You are writing chapter ${index + 1} of ${total} of a warm, readable family history book called "${familyName}".`,
-    `Chapter title: "${plan.heading}".`,
-    'Write 250-450 words of flowing narrative prose for this chapter, for family members of all ages.',
-    'Use ONLY the facts below. Never invent names, dates, places, jobs or events. Where facts are thin, you may describe the',
-    'general historical setting of those places and years, clearly framed as background ("Life in ... at that time ...").',
-    'Do not add a title or headings, do not use bullet points, and do not mention that you are an AI.',
-    '',
-    'Facts:',
-    clip(plan.facts, 6500), // the AI service accepts up to 8000 characters per request
-  ].join('\n');
+/** One chapter as an AI job: the book, the chapter and its facts (the AI service accepts up to 8000 characters). */
+export function chapterRequest(familyName: string, plan: ChapterPlan, index: number, total: number): AITask {
+  return { task: 'storybook_chapter', input: { book: familyName, heading: plan.heading, number: index + 1, total, facts: clip(plan.facts, 6500) } };
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
