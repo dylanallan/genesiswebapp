@@ -105,3 +105,43 @@ do $$ begin
 exception when others then raise notice 'CHECK direct error insert blocked: PASS'; end $$;
 reset role;
 select 'error report stored once' as check, count(*) = 1 as pass from client_errors where message = 'Boom';
+
+-- Guided merge: links and stories move to the kept person, the duplicate can be removed, and undo restores everything.
+set role authenticated;
+set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
+insert into family_members (id, first_name, last_name, birth_date) values
+  ('cdcd0000-0000-4000-8000-000000000001', 'Juana', 'Perez', '1920-05-01'),
+  ('cdcd0000-0000-4000-8000-000000000002', 'Juana', 'Pérez', null),
+  ('cdcd0000-0000-4000-8000-000000000003', 'Child', 'Perez', '1950-01-01'),
+  ('cdcd0000-0000-4000-8000-000000000004', 'Husband', 'Perez', null);
+update family_members set parent_ids = array['cdcd0000-0000-4000-8000-000000000002']::uuid[] where id = 'cdcd0000-0000-4000-8000-000000000003';
+update family_members set spouse_ids = array['cdcd0000-0000-4000-8000-000000000002']::uuid[] where id = 'cdcd0000-0000-4000-8000-000000000004';
+update family_members set spouse_ids = array['cdcd0000-0000-4000-8000-000000000004']::uuid[], children_ids = array['cdcd0000-0000-4000-8000-000000000003']::uuid[], birth_location = 'Oaxaca' where id = 'cdcd0000-0000-4000-8000-000000000002';
+insert into cultural_stories (title, content, family_member_id) values ('Juana''s kitchen', 'She made tamales.', 'cdcd0000-0000-4000-8000-000000000002');
+insert into saved_records (user_id, source, source_id, url, title, family_member_id) values ('eeeeeeee-0000-4000-8000-000000000005', 'test', 't1', 'https://example.org/1', 'Juana baptism', 'cdcd0000-0000-4000-8000-000000000002');
+select merge_family_members('cdcd0000-0000-4000-8000-000000000001', 'cdcd0000-0000-4000-8000-000000000002', '{"last_name": "Pérez", "birth_location": "Oaxaca"}'::jsonb);
+select 'merge moves the child' as check, parent_ids = array['cdcd0000-0000-4000-8000-000000000001']::uuid[] as pass from family_members where id = 'cdcd0000-0000-4000-8000-000000000003';
+select 'merge moves the spouse' as check, spouse_ids = array['cdcd0000-0000-4000-8000-000000000001']::uuid[] as pass from family_members where id = 'cdcd0000-0000-4000-8000-000000000004';
+select 'kept person gets links and chosen details' as check,
+  spouse_ids = array['cdcd0000-0000-4000-8000-000000000004']::uuid[] and children_ids = array['cdcd0000-0000-4000-8000-000000000003']::uuid[]
+  and last_name = 'Pérez' and birth_location = 'Oaxaca' and birth_date = '1920-05-01' as pass
+  from family_members where id = 'cdcd0000-0000-4000-8000-000000000001';
+select 'merge moves stories' as check, family_member_id = 'cdcd0000-0000-4000-8000-000000000001' as pass from cultural_stories where title = 'Juana''s kitchen';
+select 'merge moves saved records' as check, family_member_id = 'cdcd0000-0000-4000-8000-000000000001' as pass from saved_records where title = 'Juana baptism';
+delete from family_members where id = 'cdcd0000-0000-4000-8000-000000000002';
+select undo_family_merge((select id from family_merges order by created_at desc limit 1));
+select 'undo brings the duplicate back' as check, count(*) = 1 as pass from family_members where id = 'cdcd0000-0000-4000-8000-000000000002' and birth_location = 'Oaxaca';
+select 'undo restores the child link' as check, parent_ids = array['cdcd0000-0000-4000-8000-000000000002']::uuid[] as pass from family_members where id = 'cdcd0000-0000-4000-8000-000000000003';
+select 'undo restores the kept person' as check, last_name = 'Perez' and birth_location is null and coalesce(cardinality(spouse_ids), 0) = 0 as pass from family_members where id = 'cdcd0000-0000-4000-8000-000000000001';
+select 'undo moves stories back' as check, family_member_id = 'cdcd0000-0000-4000-8000-000000000002' as pass from cultural_stories where title = 'Juana''s kitchen';
+select 'undo moves saved records back' as check, family_member_id = 'cdcd0000-0000-4000-8000-000000000002' as pass from saved_records where title = 'Juana baptism';
+do $$ begin
+  perform undo_family_merge((select id from family_merges order by created_at desc limit 1));
+  raise notice 'CHECK cannot undo twice: FAIL';
+exception when others then raise notice 'CHECK cannot undo twice: PASS'; end $$;
+set request.jwt.claim.sub = 'abababab-0000-4000-8000-000000000007';
+do $$ begin
+  perform merge_family_members('cdcd0000-0000-4000-8000-000000000001', 'cdcd0000-0000-4000-8000-000000000003', '{}'::jsonb);
+  raise notice 'CHECK stranger cannot merge: FAIL';
+exception when others then raise notice 'CHECK stranger cannot merge: PASS'; end $$;
+reset role;

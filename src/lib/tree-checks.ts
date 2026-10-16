@@ -14,7 +14,7 @@ export interface CheckPerson {
 }
 
 export type Severity = 'error' | 'warning';
-export interface TreeIssue { personId: string; severity: Severity; message: string }
+export interface TreeIssue { personId: string; severity: Severity; message: string; otherId?: string } // otherId: the likely duplicate
 
 const year = (d: string | null) => (d ? Number(d.slice(0, 4)) || null : null);
 const time = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T00:00:00Z`).getTime() : null);
@@ -71,7 +71,7 @@ export function checkTree(people: CheckPerson[], today = new Date()): TreeIssue[
     const key = `${p.name.trim().toLowerCase().replace(/\s+/g, ' ')}|${year(p.birthDate) ?? ''}`;
     const other = seen.get(key);
     if (other && (year(p.birthDate) || p.parentIds.some((id) => other.parentIds.includes(id)))) {
-      add(p, 'warning', `${p.name} may be listed twice${year(p.birthDate) ? ` (both born ${year(p.birthDate)})` : ''}.`);
+      issues.push({ personId: p.id, otherId: other.id, severity: 'warning', message: `${p.name} may be listed twice${year(p.birthDate) ? ` (both born ${year(p.birthDate)})` : ''}.` });
     } else if (!other) seen.set(key, p);
   }
   return issues;

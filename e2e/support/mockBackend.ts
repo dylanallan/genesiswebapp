@@ -96,6 +96,10 @@ export async function installMockBackend(page: Page, state: MockState) {
         currency: 'CAD', reference_code: 'GEN-TEST01', status: 'pending', created_at: '2026-01-01T00:00:00Z',
       });
     }
+    if (path === '/rest/v1/rpc/merge_family_members' || path === '/rest/v1/rpc/undo_family_merge') {
+      (state.posted ??= {})[path.slice(13)] = [...(state.posted[path.slice(13)] ?? []), JSON.parse(req.postData() ?? 'null')];
+      return json(route, '44444444-4444-4444-8444-444444444444');
+    }
     if (path.startsWith('/rest/v1/rpc/')) return json(route, []);
     if (path.startsWith('/rest/v1/')) {
       const table = path.split('/')[3];

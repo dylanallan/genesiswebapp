@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const site = (process.env.SITE_URL || process.env.URL || 'https://example.com').replace(/\/$/, ''); // Netlify sets URL
+const site = (process.env.SITE_URL || process.env.URL || 'https://genesisheritage.netlify.app').replace(/\/$/, ''); // Netlify sets URL
 const pages = ['/', '/privacy', '/terms'];
 const today = new Date().toISOString().slice(0, 10);
 

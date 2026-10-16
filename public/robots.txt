@@ -34,5 +34,4 @@ User-agent: Omgilibot
 Disallow: /
 User-agent: img2dataset
 Disallow: /
-
 Sitemap: https://genesisheritage.netlify.app/sitemap.xml

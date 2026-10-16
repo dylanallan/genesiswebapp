@@ -224,6 +224,42 @@ test('family facts shows highlights from the tree', async ({ page }) => {
   }
 });
 
+test('tree checkup merges a person listed twice, with undo', async ({ page }) => {
+  current = 'tree-checkup';
+  const row = (id: string, birth: string | null, place: string | null, parents: string[] = []) => ({
+    id, first_name: 'Juana', middle_name: null, last_name: 'Perez', gender: null, birth_date: birth, birth_location: place,
+    death_date: null, death_location: null, notes: null, is_living: true, parent_ids: parents, spouse_ids: [], children_ids: [],
+  });
+  state.familyRows = [
+    row('66666666-0000-4000-8000-000000000001', '1920-01-01', null, ['66666666-0000-4000-8000-000000000009']),
+    row('66666666-0000-4000-8000-000000000002', '1920-05-04', 'Oaxaca, Mexico'),
+  ];
+  state.posted = {};
+  try {
+    await page.goto('/dashboard?feature=tree-checkup');
+    await expect(page.getByText('Juana Perez may be listed twice (both born 1920).')).toBeVisible();
+    await page.getByRole('button', { name: 'Merge', exact: true }).click();
+    const dialog = page.getByTestId('merge-dialog');
+    await expect(dialog).toContainText('Merge two records for Juana Perez');
+    // The more exact birth date and the filled-in birth place are picked for the person.
+    await expect(dialog.getByRole('radio', { name: '1920-05-04' })).toBeChecked();
+    await expect(dialog.getByRole('radio', { name: 'Oaxaca, Mexico' })).toBeChecked();
+    await dialog.getByRole('button', { name: 'Merge into one person' }).click();
+    await expect(page.getByText('Merged into one record for Juana Perez.')).toBeVisible();
+    const merge = state.posted.merge_family_members?.[0] as { p_keep: string; p_remove: string; p_fields: Record<string, string> };
+    expect(merge.p_keep).toBe('66666666-0000-4000-8000-000000000001');
+    expect(merge.p_remove).toBe('66666666-0000-4000-8000-000000000002');
+    expect(merge.p_fields.birth_date).toBe('1920-05-04');
+    expect(merge.p_fields.birth_location).toBe('Oaxaca, Mexico');
+    expect(state.calls).toContain('DELETE /rest/v1/family_members');
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByText('Merge undone. Both records are back.')).toBeVisible();
+    expect(state.posted.undo_family_merge?.[0]).toEqual({ p_merge: '44444444-4444-4444-8444-444444444444' });
+  } finally {
+    state.familyRows = undefined;
+  }
+});
+
 test('heritage breakdown splits the family by country of birth', async ({ page }) => {
   current = 'heritage-mix';
   const row = (id: string, first: string, place: string | null, parents: string[], extra = {}) => ({
@@ -429,7 +465,8 @@ test('search my family finds people and opens their story', async ({ page }) => 
     await expect(results).toContainText('Rosa Vega');
     await expect(results).toContainText('Person · born 1902, Oaxaca');
     await results.getByRole('button', { name: /Rosa Vega/ }).click();
-    await expect(page).toHaveURL(/feature=life-story/);
+    // Life stories opens on that person (and then tidies the link out of the address bar).
+    await expect(page.getByRole('heading', { name: 'Rosa Vega', level: 2 })).toBeVisible();
   } finally {
     state.familyRows = undefined;
   }
