@@ -45,6 +45,9 @@ test('the help button on a phone jumps to the family history helper', async ({ p
   state.familyRows = FAMILY;
   await installMockBackend(page, state);
   await page.goto('/dashboard?feature=family-facts');
+  // Wait until the page has settled, as a person would, before tapping.
+  await expect(page.getByTestId('family-facts')).toBeVisible();
+  await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Ask the family history helper' }).click();
   await expect(page.getByPlaceholder(/Ask about an ancestor/)).toBeInViewport();
 });
