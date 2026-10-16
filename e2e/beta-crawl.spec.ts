@@ -377,6 +377,8 @@ test('pricing page: free user can start PayPal checkout', async ({ page }) => {
   current = 'pricing';
   await page.goto('/pricing');
   await expect(page.getByRole('heading', { name: /choose your plan/i })).toBeVisible();
+  await expect(page.getByTestId('billing-promises')).toContainText('Cancel in one tap on this page.');
+  await expect(page.getByTestId('billing-promises')).toContainText('never renew');
   const [req] = await Promise.all([
     page.waitForRequest((r) => r.url().includes('paypal-subscription') && (r.postData() ?? '').includes('"create"')),
     page.getByRole('button', { name: 'Subscribe with PayPal' }).first().click(),

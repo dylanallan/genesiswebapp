@@ -16,6 +16,16 @@ const FREE_FEATURES = [
   'Unlimited family tree, with Ancestry / GEDCOM import and export', 'Free historical records search, no paywall',
   'Interview recordings, stories, recipes and photos', 'Share with family members for free', `${FREE_DAILY} AI messages per day`,
 ];
+// Plain promises about money and data. Each one is true of how the app works today; keep it that way.
+const PROMISES = [
+  'Cancel in one tap on this page. No phone calls, no forms, no questions.',
+  'If you cancel, you keep Pro until the end of the time you paid for.',
+  'e-Transfer and one-time PayPal payments never renew. We never charge you without asking.',
+  'Stop paying and your tree, photos, stories and recordings stay yours on the free plan. Download everything any time.',
+  'One clear price in Canadian dollars. No teaser rates and no add-on packs.',
+  'We never sell your data or your family\'s data.',
+];
+
 const PRO_FEATURES = [
   'Everything in Free', 'Generous daily AI limits: write storybooks as often as you like', 'Restore and colourise old photos (10 a day)', 'Priority support',
 ];
@@ -156,6 +166,15 @@ export default function PricingPage() {
           <p className="mt-3 text-xs text-blue-800">One-time payments do not renew automatically. Pay again any time to extend; days are never lost.</p>
         </section>
       )}
+
+      <section aria-labelledby="promises" className="mt-8 rounded-xl border border-gray-200 bg-white p-5" data-testid="billing-promises">
+        <h2 id="promises" className="text-lg font-semibold mb-3">Our promises</h2>
+        <ul className="space-y-2">
+          {PROMISES.map((p) => (
+            <li key={p} className="flex gap-2 text-gray-700"><Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" /><span>{p}</span></li>
+          ))}
+        </ul>
+      </section>
 
       <p className="mt-6 text-center text-xs text-gray-500">Card and PayPal payments are processed securely by PayPal. We never see or store your card or bank details.</p>
     </div>
