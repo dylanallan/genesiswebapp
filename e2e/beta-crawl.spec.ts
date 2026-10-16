@@ -376,3 +376,14 @@ test.afterAll(() => {
   fs.writeFileSync('test-results/problems.json', JSON.stringify(unique, null, 2));
   console.log(`\n${unique.length} distinct console/page errors recorded`);
 });
+
+test('a crash in the browser is reported so it can be fixed', async ({ page }) => {
+  current = 'error-report';
+  await page.goto('/dashboard?feature=welcome');
+  await expect(page.getByText('Welcome to Genesis Heritage')).toBeVisible();
+  const [req] = await Promise.all([
+    page.waitForRequest((r) => r.url().includes('/rest/v1/rpc/report_client_error')),
+    page.evaluate(() => { setTimeout(() => { throw new Error('Test boom'); }, 0); }),
+  ]);
+  expect(JSON.parse(req.postData() ?? '{}')).toMatchObject({ p_message: 'Error: Test boom', p_page: '/dashboard?feature=welcome' });
+});

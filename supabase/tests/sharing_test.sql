@@ -92,3 +92,16 @@ do $$ begin
   raise notice 'CHECK cannot add parents to someone else''s tree: FAIL';
 exception when others then raise notice 'CHECK cannot add parents to someone else''s tree: PASS'; end $$;
 reset role;
+
+-- Error reports: people can add their own (capped), cannot write directly, and cannot read anyone's.
+set role authenticated;
+set request.jwt.claim.sub = 'abababab-0000-4000-8000-000000000007';
+select 'error report accepted' as check, report_client_error('Boom', 'at x', '/dashboard', 'test') as pass;
+select 'same error not repeated' as check, report_client_error('Boom', 'at x', '/dashboard', 'test') = false as pass;
+select 'non-admin cannot read error reports' as check, count(*) = 0 as pass from client_errors;
+do $$ begin
+  insert into client_errors (user_id, message) values ('abababab-0000-4000-8000-000000000007', 'forged');
+  raise notice 'CHECK direct error insert blocked: FAIL';
+exception when others then raise notice 'CHECK direct error insert blocked: PASS'; end $$;
+reset role;
+select 'error report stored once' as check, count(*) = 1 as pass from client_errors where message = 'Boom';
