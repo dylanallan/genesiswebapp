@@ -229,3 +229,17 @@ export function describeRelationship(themName: string, r: Relationship | null, m
   const label = r.label.replace(/ of your /, ` of ${mine} `);
   return `${first} is ${/ of /.test(label) ? 'the' : mine} ${label}.`;
 }
+
+/** Groups a relationship name for simple filters (Parent, Sibling, Cousin...). */
+export function relationCategory(label: string): string {
+  const l = label.toLowerCase();
+  if (/grand(father|mother|parent)/.test(l)) return 'Grandparent';
+  if (/^(step)?(father|mother|parent)$/.test(l)) return 'Parent';
+  if (/(brother|sister|sibling)$/.test(l) && !/in-law/.test(l)) return 'Sibling';
+  if (/grand(son|daughter|child)/.test(l)) return 'Grandchild';
+  if (/^(step)?(son|daughter|child)$/.test(l)) return 'Child';
+  if (/cousin/.test(l)) return 'Cousin';
+  if (/(aunt|uncle)/.test(l)) return 'Aunt/Uncle';
+  if (/(husband|wife|spouse)$/.test(l)) return 'Spouse';
+  return 'Other';
+}

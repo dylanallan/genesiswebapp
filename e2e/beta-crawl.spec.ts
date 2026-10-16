@@ -67,8 +67,8 @@ test('every dashboard feature opens without crashing', async ({ page }) => {
   current = 'dashboard';
   state.admin = true; // admins see every tool, so the crawl covers everything
   await page.goto('/dashboard');
-  const categoryBand = page.locator('div.overflow-x-auto').nth(0);
-  const band = page.locator('div.overflow-x-auto').nth(1);
+  const categoryBand = page.getByTestId('category-menu');
+  const band = page.getByTestId('feature-menu');
   await expect(categoryBand.getByRole('button', { name: 'All tools (admin)' })).toBeVisible();
   // Customer menus, then one pass over every tool (the other admin groups are subsets of it).
   const categories = (await categoryBand.locator('button').allInnerTexts()).map((t) => t.trim())
@@ -107,7 +107,7 @@ test('every dashboard feature opens without crashing', async ({ page }) => {
 test('customers only see family-history menus', async ({ page }) => {
   current = 'customer-menu';
   await page.goto('/dashboard');
-  const categoryBand = page.locator('div.overflow-x-auto').nth(0);
+  const categoryBand = page.getByTestId('category-menu');
   await expect(categoryBand.getByRole('button', { name: 'Memories', exact: true })).toBeVisible();
   await expect(categoryBand.getByRole('button', { name: /admin|Business/ })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Welcome to Genesis Heritage' })).toBeVisible();
@@ -386,4 +386,51 @@ test('a crash in the browser is reported so it can be fixed', async ({ page }) =
     page.evaluate(() => { setTimeout(() => { throw new Error('Test boom'); }, 0); }),
   ]);
   expect(JSON.parse(req.postData() ?? '{}')).toMatchObject({ p_message: 'Error: Test boom', p_page: '/dashboard?feature=welcome' });
+});
+
+test('my account: real name, text size and helper wishes', async ({ page }) => {
+  current = 'my-account';
+  state.posted = {};
+  await page.goto('/dashboard?feature=my-account');
+  const account = page.getByTestId('my-account');
+  await expect(account).toContainText('Signed in as');
+  await expect(account).not.toContainText('user@example.com');
+  await expect(page.getByLabel('Your name')).toBeEnabled();
+
+  await page.getByLabel('Your name').fill('Dylan B');
+  const [nameReq] = await Promise.all([
+    page.waitForRequest((r) => r.url().includes('/auth/v1/user') && r.method() === 'PUT'),
+    page.getByRole('button', { name: 'Save name' }).click(),
+  ]);
+  expect(JSON.parse(nameReq.postData() ?? '{}').data).toMatchObject({ full_name: 'Dylan B' });
+
+  await page.getByRole('radio', { name: 'Extra large' }).click();
+  expect(await page.evaluate(() => document.documentElement.style.fontSize)).toBe('20px');
+  await page.reload();
+  expect(await page.evaluate(() => document.documentElement.style.fontSize)).toBe('20px');
+  await page.getByRole('radio', { name: 'Normal' }).click();
+  expect(await page.evaluate(() => document.documentElement.style.fontSize)).toBe('');
+
+  await page.getByLabel(/Tell the family history helper/).fill('Please answer in Spanish');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect.poll(() => state.posted?.ai_custom_instructions?.[0]).toMatchObject({ instructions: 'Please answer in Spanish', is_active: true });
+});
+
+test('search my family finds people and opens their story', async ({ page }) => {
+  current = 'family-search';
+  state.familyRows = [
+    { id: '88888888-0000-4000-8000-000000000001', first_name: 'Rosa', middle_name: null, last_name: 'Vega', birth_date: '1902-03-04', birth_location: 'Oaxaca' },
+  ];
+  try {
+    await page.goto('/dashboard?feature=family-search');
+    await page.getByLabel('Search my family').fill('Vega');
+    await page.getByRole('button', { name: 'Search' }).click();
+    const results = page.getByTestId('family-search-results');
+    await expect(results).toContainText('Rosa Vega');
+    await expect(results).toContainText('Person · born 1902, Oaxaca');
+    await results.getByRole('button', { name: /Rosa Vega/ }).click();
+    await expect(page).toHaveURL(/feature=life-story/);
+  } finally {
+    state.familyRows = undefined;
+  }
 });

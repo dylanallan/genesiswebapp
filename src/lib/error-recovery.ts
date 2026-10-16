@@ -253,15 +253,11 @@ class ErrorRecoverySystem {
           }
         }
         
-        if (success) {
-          toast.success(`System recovered from ${errorType} error`);
-        } else {
-          toast.error(`Recovery failed after ${this.maxRetries} attempts`);
-        }
+        // Background recovery stays silent: the feature that hit the problem shows its own plain message.
+        if (!success) console.warn(`Recovery failed after ${this.maxRetries} attempts`);
       } else {
         console.log('🔄 Applying generic recovery...');
         await this.genericRecovery();
-        toast.info('System recovery attempted');
       }
 
       // Log recovery attempt

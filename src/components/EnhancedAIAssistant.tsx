@@ -54,6 +54,7 @@ export const EnhancedAIAssistant: React.FC = () => {
   const [showCustomInstructionsEditor, setShowCustomInstructionsEditor] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesBoxRef = useRef<HTMLDivElement>(null);
   const conversationIdRef = useRef<string | undefined>(undefined);
   const session = useSession();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -84,8 +85,10 @@ What would you like to find out?`,
     scrollToBottom();
   }, [messages, streamingContent]);
 
+  // Scroll only the conversation box, never the whole page, so opening any screen doesn't jump down to the helper.
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const box = messagesBoxRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
   };
 
   const initializeSpeechRecognition = () => {
@@ -230,20 +233,10 @@ What would you like to find out?`,
             <p className="text-xs text-gray-500">Ask anything about your ancestors</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Helper settings"
-            aria-label="Helper settings"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-blue-50/30">
+      <div ref={messagesBoxRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-blue-50/30">
         {messages.map((message, index) => (
           <motion.div 
             key={message.id}
@@ -269,11 +262,6 @@ What would you like to find out?`,
                 
                 <div className="mt-3 flex items-center justify-between text-xs opacity-70">
                   <span>{message.timestamp.toLocaleTimeString()}</span>
-                  {message.provider && (
-                    <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-600">
-                      {message.provider.toUpperCase()}
-                    </span>
-                  )}
                 </div>
               </div>
               

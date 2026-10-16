@@ -92,7 +92,7 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
     setSaving(true);
     const { error } = await supabase.from('family_members').insert(rows);
     setSaving(false);
-    if (error) { toast.error(`Could not save: ${error.message}`); return; }
+    if (error) { toast.error('We could not save your family just now. Please check your connection and try again.'); return; }
     toast.success(`${rows.length} people added to your family tree`);
     load();
     // First discovery: search free archives for the oldest person they entered.

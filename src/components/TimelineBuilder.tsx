@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Calendar, MapPin, Users, Image, Video, FileText, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { loadAllFamilyRows } from '../lib/family';
 
 interface TimelineEvent {
   id: string;
@@ -17,6 +18,7 @@ interface TimelineEvent {
     caption?: string;
   }[];
   category: 'birth' | 'marriage' | 'migration' | 'achievement' | 'tradition' | 'other';
+  fromTree?: boolean; // births and deaths shown from the family tree (edit them on the tree)
 }
 
 export const TimelineBuilder: React.FC = () => {
@@ -46,7 +48,18 @@ export const TimelineBuilder: React.FC = () => {
         .select('*')
         .order('date', { ascending: true });
       if (error) throw error;
-      setEvents(data || []);
+      // Add every birth and death already in the family tree, so the timeline is never empty for a family with dates.
+      type Row = { id: string; first_name: string | null; middle_name: string | null; last_name: string | null; birth_date: string | null; death_date: string | null; birth_location: string | null; death_location: string | null };
+      const rows = await loadAllFamilyRows<Row>('id,first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location').catch(() => [] as Row[]);
+      const fromTree: TimelineEvent[] = rows.flatMap((r) => {
+        const name = [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') || 'Someone';
+        const out: TimelineEvent[] = [];
+        if (r.birth_date) out.push({ id: `tree-b-${r.id}`, date: r.birth_date, title: `${name} is born`, description: '', location: r.birth_location ?? undefined, people: [name], media: [], category: 'birth', fromTree: true });
+        if (r.death_date) out.push({ id: `tree-d-${r.id}`, date: r.death_date, title: `${name} dies`, description: '', location: r.death_location ?? undefined, people: [name], media: [], category: 'other', fromTree: true });
+        return out;
+      });
+      const saved = ((data || []) as TimelineEvent[]).map((e) => ({ ...e, people: e.people ?? [], media: e.media ?? [] }));
+      setEvents([...saved, ...fromTree].sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')));
     } catch (error) {
       toast.error('Failed to load timeline events');
     } finally {
@@ -213,12 +226,17 @@ export const TimelineBuilder: React.FC = () => {
         <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300"></div>
         
         <div className="space-y-6">
+          {!isLoading && events.length === 0 && (
+            <p className="relative bg-white border rounded-lg p-6 text-gray-600">
+              Your family timeline will appear here. Add birth and death dates on the family tree, or press "Add event" to record a wedding, a move or any special moment.
+            </p>
+          )}
           {events.map((event, index) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: Math.min(index, 10) * 0.05 }}
               className="relative flex items-start space-x-4"
             >
               <div className="flex-shrink-0 w-16 h-16 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center text-2xl z-10">
@@ -233,7 +251,7 @@ export const TimelineBuilder: React.FC = () => {
                         {event.category}
                       </span>
                       <span className="text-sm text-gray-500">
-                        {new Date(event.date).toLocaleDateString()}
+                        {new Date(`${event.date.slice(0, 10)}T12:00:00`).toLocaleDateString()}
                       </span>
                     </div>
                     
@@ -255,7 +273,7 @@ export const TimelineBuilder: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="flex space-x-2">
+                  {event.fromTree ? <span className="text-xs text-gray-400">From your family tree</span> : <div className="flex space-x-2">
                     <button
                       onClick={() => setEditingEvent(event)}
                       className="p-1 text-gray-400 hover:text-blue-500"
@@ -268,7 +286,7 @@ export const TimelineBuilder: React.FC = () => {
                     >
                       <Trash className="w-4 h-4" />
                     </button>
-                  </div>
+                  </div>}
                 </div>
               </div>
             </motion.div>

@@ -197,6 +197,8 @@ import PedigreeChart from './PedigreeChart';
 import FamilyMap from './FamilyMap';
 import HeritageMix from './HeritageMix';
 import FamilyFacts from './FamilyFacts';
+import MyAccount from './MyAccount';
+import FamilySearch from './FamilySearch';
 import PhotoRestore from './PhotoRestore';
 import LifeStory from './LifeStory';
 import { useSearchParams } from 'react-router-dom';
@@ -294,6 +296,22 @@ const features = [
     component: FamilyFacts,
     description: 'Highlights from your family tree',
     category: 'heritage',
+  },
+  {
+    id: 'family-search',
+    name: 'Search my family',
+    icon: Search,
+    component: FamilySearch,
+    description: 'Find people, places, stories and recipes you have saved',
+    category: 'heritage',
+  },
+  {
+    id: 'my-account',
+    name: 'My account',
+    icon: User,
+    component: MyAccount,
+    description: 'Your name, password, text size and helper preferences',
+    category: 'core',
   },
   {
     id: 'research-assistant',
@@ -923,7 +941,7 @@ const features = [
 const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType<{ className?: string }>; items: Array<[string, string]> }> = [
   { id: 'start', name: 'Start here', icon: Home, items: [['welcome', 'Get started'], ['tree-import', 'Import or export tree']] },
   { id: 'family', name: 'My family', icon: Trees, items: [
-    ['family-tree-chart', 'Family tree'], ['family-map', 'Family map'], ['heritage-mix', 'Where we come from'], ['family-facts', 'Family facts'], ['life-story', 'Life stories'], ['family-tree-viz', 'People list'], ['tree-checkup', 'Tree checkup'], ['family-tree', 'Tree insights'], ['timeline-builder', 'Timeline'],
+    ['family-tree-chart', 'Family tree'], ['family-map', 'Family map'], ['heritage-mix', 'Where we come from'], ['family-facts', 'Family facts'], ['life-story', 'Life stories'], ['family-tree-viz', 'People list'], ['tree-checkup', 'Tree checkup'], ['timeline-builder', 'Timeline'],
     ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
@@ -931,11 +949,11 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
     ['photo-restore', 'Restore old photos'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
-  { id: 'research', name: 'Research', icon: Search, items: [['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records'], ['search', 'Search everything']] },
+  { id: 'research', name: 'Research', icon: Search, items: [['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
   { id: 'ai', name: 'AI helper', icon: Brain, items: [
-    ['ai-assistant', 'Ask the AI'], ['family-tree-voice', 'Talk about my tree'], ['conversation-summarizer', 'Past conversations'], ['ai-custom-instructions', 'AI preferences'],
+    ['family-tree-voice', 'Talk about my tree'],
   ] },
-  { id: 'account', name: 'Account', icon: User, items: [['privacy-center', 'Your data & privacy'], ['user-settings', 'Profile'], ['app-settings', 'Settings']] },
+  { id: 'account', name: 'Account', icon: User, items: [['my-account', 'My account'], ['privacy-center', 'Your data & privacy']] },
 ];
 
 export const Dashboard: React.FC<DashboardProps> = () => {
@@ -1013,7 +1031,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Category Filter */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="category-menu" role="navigation" aria-label="Sections">
             {categories.map(category => {
               const Icon = category.icon;
               return (
@@ -1040,7 +1058,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Feature Navigation */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="feature-menu" role="navigation" aria-label="Pages in this section">
             {filteredFeatures.map(feature => {
               const Icon = feature.icon;
               return (

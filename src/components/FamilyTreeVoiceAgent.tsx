@@ -38,8 +38,17 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [pendingMembers, setPendingMembers] = useState<FamilyMember[]>([]);
   const [showFamilyTree, setShowFamilyTree] = useState(false);
+  // Voices installed on this device (they differ between phones and computers); '' means the device's default.
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const load = () => setVoices(window.speechSynthesis.getVoices());
+    load();
+    window.speechSynthesis.addEventListener?.('voiceschanged', load);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', load);
+  }, []);
   const [voiceSettings, setVoiceSettings] = useState({
-    voice: 'en-US-Standard-J',
+    voice: (() => { try { return localStorage.getItem('genesis-voice') ?? ''; } catch { return ''; } })(),
     rate: 1.0,
     pitch: 1.0,
     volume: 1.0
@@ -296,6 +305,8 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
     utteranceRef.current.rate = voiceSettings.rate;
     utteranceRef.current.pitch = voiceSettings.pitch;
     utteranceRef.current.volume = voiceSettings.volume;
+    const chosen = voices.find((v) => v.voiceURI === voiceSettings.voice);
+    if (chosen) utteranceRef.current.voice = chosen;
 
     // Set event handlers
     utteranceRef.current.onstart = () => setIsSpeaking(true);
@@ -390,6 +401,8 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
+              aria-label="Reading speed and pitch"
+              title="Reading speed and pitch"
               className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
             >
               <Settings className="w-5 h-5" />
@@ -694,20 +707,22 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Voice
-                    </label>
+                    <label htmlFor="voice-choice" className="block text-sm font-medium text-gray-700">Reading voice</label>
                     <select
+                      id="voice-choice"
                       value={voiceSettings.voice}
-                      onChange={(e) => setVoiceSettings({ ...voiceSettings, voice: e.target.value })}
+                      onChange={(e) => {
+                        setVoiceSettings({ ...voiceSettings, voice: e.target.value });
+                        try { localStorage.setItem('genesis-voice', e.target.value); } catch { /* private window */ }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="en-US-Standard-J">Male (US)</option>
-                      <option value="en-US-Standard-E">Female (US)</option>
-                      <option value="en-GB-Standard-B">Male (UK)</option>
-                      <option value="en-GB-Standard-A">Female (UK)</option>
+                      <option value="">This device's usual voice</option>
+                      {voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
                     </select>
+                    {voices.length === 0 && <p className="text-xs text-gray-500">This device has no other voices to choose from.</p>}
                   </div>
+
 
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
@@ -771,7 +786,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                   <button
                     onClick={() => {
                       setVoiceSettings({
-                        voice: 'en-US-Standard-J',
+                        voice: '',
                         rate: 1.0,
                         pitch: 1.0,
                         volume: 1.0
@@ -783,13 +798,10 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                     Reset to Default
                   </button>
                   <button
-                    onClick={() => {
-                      setShowSettings(false);
-                      toast.success('Voice settings saved');
-                    }}
+                    onClick={() => setShowSettings(false)}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Save Settings
+                    Done
                   </button>
                 </div>
               </div>

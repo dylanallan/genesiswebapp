@@ -39,11 +39,11 @@ const RETRY_NEXT_MODEL = new Set([404, 408, 429, 500, 502, 503, 504])
 const unique = (xs: (string | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))]
 interface Answer { text: string; model: string }
 
-async function callAnthropic(message: string, apiKey: string): Promise<Answer> {
+async function callAnthropic(message: string, apiKey: string, system: string): Promise<Answer> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: MODELS.anthropic, max_tokens: 1024, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: message }] }),
+    body: JSON.stringify({ model: MODELS.anthropic, max_tokens: 1024, system, messages: [{ role: 'user', content: message }] }),
   })
   if (!r.ok) throw await refusal('anthropic', r)
   const text = (await r.json()).content?.[0]?.text
@@ -59,13 +59,13 @@ const SPARE_MODELS: Record<string, string[]> = {
 
 // Any OpenAI-compatible chat API: OpenAI itself, a self-hosted OmniRoute gateway, and the free tiers.
 function openAICompatible(name: string, baseUrl: string) {
-  return async (message: string, apiKey: string): Promise<Answer> => {
+  return async (message: string, apiKey: string, system: string): Promise<Answer> => {
     let last: Error | undefined
     for (const model of unique([MODELS[name], ...(SPARE_MODELS[name] ?? [])])) {
       const r = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message }] }),
+        body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
       })
       if (!r.ok) {
         last = await refusal(`${name}/${model}`, r)
@@ -81,7 +81,7 @@ function openAICompatible(name: string, baseUrl: string) {
   }
 }
 
-async function callGemini(message: string, apiKey: string): Promise<Answer> {
+async function callGemini(message: string, apiKey: string, system: string): Promise<Answer> {
   let last: Error | undefined
   // Two models at most: when Google is overloaded every model tends to be, so it's quicker to move on to the next service.
   const models = unique([MODELS.gemini, 'gemini-flash-latest', 'gemini-2.5-flash']).slice(0, 2)
@@ -89,7 +89,7 @@ async function callGemini(message: string, apiKey: string): Promise<Answer> {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // header, not URL, so it never lands in logs
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ parts: [{ text: message }] }] }),
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ parts: [{ text: message }] }] }),
     })
     if (!r.ok) {
       last = await refusal(`gemini/${model}`, r)
@@ -104,7 +104,7 @@ async function callGemini(message: string, apiKey: string): Promise<Answer> {
   throw last ?? new Error('gemini: no model answered')
 }
 
-interface Provider { name: string; key: () => string | undefined; call: (message: string, apiKey: string) => Promise<Answer> }
+interface Provider { name: string; key: () => string | undefined; call: (message: string, apiKey: string, system: string) => Promise<Answer> }
 
 const ALL_PROVIDERS: Provider[] = [
   ...Object.entries(OPENAI_COMPATIBLE).map(([name, p]) => ({ name, key: () => compatibleKey(name), call: openAICompatible(name, p.baseUrl()) })),
@@ -149,12 +149,19 @@ Deno.serve(async (req) => {
     // The chosen provider goes first; the others stay as fallbacks so a choice that is down or not set up still gets an answer.
     const candidates = provider ? orderByPreference(PROVIDERS, (p) => p.name, provider) : PROVIDERS
 
+    // The person's own wishes from "How the helper talks to you" (My account), e.g. a language or a shorter style.
+    const { data: pref } = await db.from('ai_custom_instructions').select('instructions').eq('user_id', user.id).eq('is_active', true).maybeSingle()
+    const wishes = String(pref?.instructions ?? '').trim().slice(0, 1000)
+    const system = wishes
+      ? `${SYSTEM_PROMPT}\n\nThis person has asked you to always keep the following in mind. Follow it, unless it would mean inventing facts or being unsafe:\n${wishes}`
+      : SYSTEM_PROMPT
+
     const started = Date.now()
     for (const p of candidates) {
       const key = p.key()
       if (!key) continue
       try {
-        const answer = await p.call(message, key)
+        const answer = await p.call(message, key, system)
         console.log(`ai-router: answered by ${p.name}/${answer.model} in ${Date.now() - started}ms`)
         return json({ response: answer.text, provider: p.name, model: answer.model, remaining: Math.max(0, limit - count) }, 200, cors)
       } catch (e) {

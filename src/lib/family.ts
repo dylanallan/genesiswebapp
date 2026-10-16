@@ -5,6 +5,7 @@ export interface TreeMember {
   id: string;
   name: string;
   relationship: string;
+  gender?: string | null;
   birthDate?: string;
   birthPlace?: string;
   deathDate?: string;
@@ -24,6 +25,7 @@ interface FamilyRow {
   middle_name: string | null;
   last_name: string | null;
   relationship: string | null;
+  gender?: string | null;
   birth_date: string | null;
   birth_location: string | null;
   death_date: string | null;
@@ -40,6 +42,7 @@ export const fromRow = (r: FamilyRow): TreeMember => ({
   id: r.id,
   name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' '),
   relationship: r.relationship ?? '',
+  gender: r.gender ?? null,
   birthDate: r.birth_date ?? undefined,
   birthPlace: r.birth_location ?? undefined,
   deathDate: r.death_date ?? undefined,
