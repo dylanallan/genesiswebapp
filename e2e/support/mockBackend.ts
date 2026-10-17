@@ -31,7 +31,8 @@ export interface MockState {
   recordHits?: unknown[];   // hits returned by records-search
   storyRows?: unknown[];    // rows returned for cultural_stories
   posted?: Record<string, unknown[]>; // bodies of POSTs, by table
-  storageFiles?: Record<string, string[]>; // files in each storage bucket, as paths under the user's folder
+  storageFiles?: Record<string, string[]>;
+  waitlistRows?: unknown[];  // rows returned for waitlist_signups (admin view) // files in each storage bucket, as paths under the user's folder
 }
 
 export async function signIn(context: BrowserContext) {
@@ -98,6 +99,12 @@ export async function installMockBackend(page: Page, state: MockState) {
         currency: 'CAD', reference_code: 'GEN-TEST01', status: 'pending', created_at: '2026-01-01T00:00:00Z',
       });
     }
+    if (path === '/rest/v1/rpc/join_waitlist') {
+      const body = JSON.parse(req.postData() ?? '{}');
+      (state.posted ??= {}).join_waitlist = [...(state.posted.join_waitlist ?? []), body];
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(body.p_email ?? '').trim())) return json(route, { ok: false, reason: 'Please enter a valid email address.' });
+      return json(route, { ok: true, already: false, code: 'abc12345', position: 42, invited: 0 });
+    }
     if (path === '/rest/v1/rpc/merge_family_members' || path === '/rest/v1/rpc/undo_family_merge') {
       (state.posted ??= {})[path.slice(13)] = [...(state.posted[path.slice(13)] ?? []), JSON.parse(req.postData() ?? 'null')];
       return json(route, '44444444-4444-4444-8444-444444444444');
@@ -112,6 +119,7 @@ export async function installMockBackend(page: Page, state: MockState) {
       }
       if (table === 'family_members' && ['GET', 'HEAD'].includes(req.method()) && state.familyRows) rows = state.familyRows;
       if (table === 'cultural_stories' && req.method() === 'GET' && state.storyRows) rows = state.storyRows;
+      if (table === 'waitlist_signups' && req.method() === 'GET' && state.waitlistRows) rows = state.waitlistRows;
       if (table === 'app_settings' && state.manualPayments) {
         rows = [
           { key: 'etransfer_email', value: 'pay@example.com' },

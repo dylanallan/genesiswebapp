@@ -1,6 +1,6 @@
 // Adapters that give dashboard features the data and open/close wiring they need.
 // Each one loads real data for the signed-in user; nothing here is placeholder content.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { FamilyTreeVisualizer } from '../FamilyTreeVisualizer';
@@ -36,11 +36,13 @@ export function FamilyTreeFeature() {
     void load();
   };
 
+  // Made once per load, not on every redraw: the list remembers relationships per family list it is given.
+  const confirmed = useMemo(() => members.filter((m) => m.source !== 'ai'), [members]);
+  const pending = useMemo(() => members.filter((m) => m.source === 'ai'), [members]);
   if (loading) return <p className="p-6 text-gray-600">Loading your family tree…</p>;
-  const pending = members.filter((m) => m.source === 'ai');
   return (
     <FamilyTreeVisualizer
-      familyMembers={members.filter((m) => m.source !== 'ai')}
+      familyMembers={confirmed}
       pendingMembers={pending}
       onAddMember={(m) => run(supabase.from('family_members').insert(toRow(m)), 'Family member added')}
       onUpdateMember={(m) => run(supabase.from('family_members').update(toRow(m)).eq('id', m.id), 'Saved')}

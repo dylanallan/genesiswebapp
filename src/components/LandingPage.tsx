@@ -3,6 +3,7 @@ import { Upload, Microscope, BookHeart, Mic, BookOpen, Map, Wand2, ShieldCheck, 
 import Logo from './Logo';
 import { TAGLINE } from '../lib/brand';
 import { PRIVACY_PROMISES } from './PrivacyCenter';
+import WaitlistForm from './WaitlistForm';
 
 interface Props { onStart: () => void; onSignIn: () => void }
 
@@ -58,7 +59,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onSignIn }) => (
           <button onClick={onStart} className="px-6 py-3 rounded-full bg-[#2E5A44] text-white text-lg font-semibold shadow hover:opacity-90">Start your family's story, free</button>
           <a href="#move" className="px-6 py-3 rounded-full border border-[#2E5A44] text-[#2E5A44] text-lg font-semibold hover:bg-white/50">Moving from Ancestry?</a>
         </div>
-        <p className="mt-4 text-sm text-[#5c6660]">Free to start · No credit card · We never sell your data</p>
+        <p className="mt-4 text-sm text-[#5c6660]">Free to start · No credit card · We never sell your data · <a href="#waitlist" className="underline">Not ready yet? Join the waitlist</a></p>
       </div>
       <img src="/screens/tree.png" alt="A Genesis family tree with four generations" className="w-full rounded-xl shadow-xl border border-black/5 bg-white" loading="eager" />
     </section>
@@ -140,6 +141,14 @@ export const LandingPage: React.FC<Props> = ({ onStart, onSignIn }) => (
           </ul>
           <button onClick={onStart} className="mt-6 w-full py-3 rounded-full bg-[#2E5A44] text-white font-semibold">Start free, upgrade any time</button>
         </div>
+      </div>
+    </section>
+
+    <section id="waitlist" className="bg-[#efe8da] border-t border-black/5">
+      <div className="max-w-2xl mx-auto px-4 py-14 text-center space-y-5">
+        <h2 className="font-serif text-3xl font-bold">Not ready to start? Join the waitlist.</h2>
+        <p className="text-lg text-[#4a554e]">Be first to hear when new features open, from printed family books to the French version. Share your link and bring the whole family.</p>
+        <WaitlistForm source="home" />
       </div>
     </section>
 

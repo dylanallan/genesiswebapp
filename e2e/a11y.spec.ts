@@ -24,6 +24,7 @@ test('home page', async ({ page }) => {
 });
 
 test.describe('signed in', () => {
+  test.describe.configure({ timeout: 60_000 }); // the first screen also waits for the dev server to build
   test.beforeEach(async ({ context, page }) => { await signIn(context); await installMockBackend(page, state); });
   for (const f of FEATURES) {
     test(`screen ${f}`, async ({ page }) => {

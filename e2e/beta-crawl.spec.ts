@@ -55,6 +55,46 @@ test('"Start free" on the home page opens account creation', async ({ browser })
   await expect(page.getByText('Questions families ask')).toBeVisible();
 });
 
+test('a visitor joins the waitlist from a family member\'s link and gets their own', async ({ browser }) => {
+  const page = await (await browser.newContext()).newPage();
+  state.posted = {};
+  await installMockBackend(page, state);
+  await page.goto('/?ref=fam00001#waitlist');
+  const form = page.getByTestId('waitlist-form');
+  await form.getByLabel('Email').fill('not-an-email@x');
+  await form.getByRole('button', { name: 'Join the waitlist' }).click();
+  await expect(form.getByRole('alert')).toContainText('valid email');
+  await form.getByLabel('Email').fill('rosa@example.com');
+  await form.getByLabel(/First name/).fill('Rosa');
+  await form.getByRole('button', { name: 'Join the waitlist' }).click();
+  const joined = page.getByTestId('waitlist-joined');
+  await expect(joined).toContainText('You’re on the list!');
+  await expect(joined).toContainText('number 42');
+  await expect(joined.getByLabel('Your invite link')).toHaveValue(/\/\?ref=abc12345#waitlist$/);
+  expect(state.posted.join_waitlist?.at(-1)).toEqual({ p_email: 'rosa@example.com', p_name: 'Rosa', p_source: 'home', p_ref: 'fam00001' });
+});
+
+test('admin sees the waitlist with invite counts and can download it', async ({ page }) => {
+  current = 'admin-waitlist';
+  state.admin = true;
+  state.waitlistRows = [
+    { email: 'rosa@example.com', name: 'Rosa', source: 'home', code: 'abc12345', referred_by: null, created_at: new Date().toISOString() },
+    { email: 'luis@example.com', name: null, source: 'home', code: 'def67890', referred_by: 'abc12345', created_at: new Date().toISOString() },
+  ];
+  try {
+    await page.goto('/dashboard?feature=admin-waitlist');
+    const panel = page.getByTestId('admin-waitlist');
+    await expect(panel).toContainText('2 people on the waitlist');
+    await expect(panel).toContainText('1 came from an invite link');
+    const [download] = await Promise.all([page.waitForEvent('download'), panel.getByRole('button', { name: 'Download CSV' }).click()]);
+    const csv = fs.readFileSync(await download.path(), 'utf8');
+    expect(csv.split('\n')[1]).toBe('"rosa@example.com","Rosa","home","' + new Date().toISOString().slice(0, 10) + '","1"');
+  } finally {
+    state.admin = false;
+    state.waitlistRows = undefined;
+  }
+});
+
 test('signed-in user lands on home and sees their plan', async ({ page }) => {
   current = 'home';
   await page.goto('/');

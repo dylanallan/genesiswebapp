@@ -158,19 +158,22 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
 
   // Work out how each person is related to you from the tree links, so imported people and people added on the
   // tree chart get a relationship too, not only those whose relationship was typed in.
+  // Worked out only when a person is shown or filtered on (not for everyone up front), and remembered, so a
+  // 10,000-person tree opens quickly.
   const relationOf = useMemo(() => {
     const isSelf = (r: string) => /^(self|me|myself)$/i.test(r.trim());
     const self = familyMembers.find((m) => isSelf(m.relationship));
     const kin = familyMembers.map((m) => ({ id: m.id, name: m.name, gender: m.gender ?? null, parentIds: m.parentIds ?? [], spouseIds: m.spouseIds ?? [] }));
     const labels = new Map<string, string>();
-    familyMembers.forEach((m, i) => {
-      if (isSelf(m.relationship)) labels.set(m.id, 'You');
-      else if (self && i < 3000) labels.set(m.id, findRelationship(self.id, m.id, kin)?.label ?? m.relationship);
-      else labels.set(m.id, m.relationship);
-    });
-    return labels;
+    return (m: FamilyMember): string => {
+      const known = labels.get(m.id);
+      if (known !== undefined) return known;
+      const label = isSelf(m.relationship) ? 'You' : (self && findRelationship(self.id, m.id, kin)?.label) || m.relationship;
+      labels.set(m.id, label);
+      return label;
+    };
   }, [familyMembers]);
-  const labelOf = (m: FamilyMember) => relationOf.get(m.id) || m.relationship;
+  const labelOf = (m: FamilyMember) => relationOf(m) || m.relationship;
 
   const filteredMembers = familyMembers.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

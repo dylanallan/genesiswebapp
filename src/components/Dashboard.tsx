@@ -104,7 +104,8 @@ import {
   CreditCard,
   Table,
   Server,
-  Trophy
+  Trophy,
+  ListChecks
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -183,6 +184,7 @@ import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
 import RecordsSearch from './RecordsSearch';
 import AdminPayments from './AdminPayments';
+import { AdminWaitlist } from './AdminWaitlist';
 import TreeImport from './TreeImport';
 import FamilySharing from './FamilySharing';
 import FamilyStorybook from './FamilyStorybook';
@@ -907,6 +909,14 @@ const features = [
     component: SettingsPanel,
     description: 'Manage application settings',
     category: 'tools'
+  },
+  {
+    id: 'admin-waitlist',
+    name: 'Waitlist (admin)',
+    icon: ListChecks,
+    component: AdminWaitlist,
+    description: 'Who joined the waitlist',
+    category: 'user',
   },
   {
     id: 'admin-payments',

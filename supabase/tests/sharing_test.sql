@@ -157,3 +157,28 @@ do $$ begin
   raise notice 'CHECK conversation search blocked for users: FAIL';
 exception when insufficient_privilege then raise notice 'CHECK conversation search blocked for users: PASS'; end $$;
 reset role;
+
+-- Waitlist: visitors can join (once), get a referral code, and can't read or change the list.
+set role anon;
+select 'waitlist rejects a bad email' as check, (public.join_waitlist('not-an-email')->>'ok')::boolean = false as pass;
+select 'waitlist join works' as check, (public.join_waitlist('Rosa@Example.com', 'Rosa', 'test')->>'ok')::boolean as pass;
+select 'waitlist ignores a repeat' as check, (public.join_waitlist(' rosa@example.com ')->>'already')::boolean as pass;
+do $$ declare c text; begin
+  c := public.join_waitlist('rosa@example.com')->>'code';
+  perform public.join_waitlist('luis@example.com', null, null, c);
+  if (public.join_waitlist('rosa@example.com')->>'invited')::int = 1 then raise notice 'CHECK waitlist counts referrals: PASS';
+  else raise notice 'CHECK waitlist counts referrals: FAIL'; end if;
+end $$;
+do $$ begin
+  perform 1 from public.waitlist_signups;
+  raise notice 'CHECK visitors cannot read the waitlist: FAIL';
+exception when insufficient_privilege then raise notice 'CHECK visitors cannot read the waitlist: PASS'; end $$;
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
+select 'non-admins see no waitlist rows' as check, count(*) = 0 as pass from public.waitlist_signups;
+do $$ begin
+  insert into public.waitlist_signups (email, code) values ('x@example.com', 'forged01');
+  raise notice 'CHECK direct waitlist insert blocked: FAIL';
+exception when others then raise notice 'CHECK direct waitlist insert blocked: PASS'; end $$;
+reset role;
