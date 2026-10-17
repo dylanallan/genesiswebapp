@@ -3,6 +3,7 @@ import { CheckCircle2, Circle, Upload, Users, Mic, BookOpen, Search, Sparkles, E
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import OnThisDay from './OnThisDay';
+import { t, useLang } from '../lib/i18n';
 
 interface Props { open: (featureId: string) => void }
 interface Slot { key: string; label: string; relationship: string }
@@ -53,6 +54,7 @@ export function quickTreeRows(entries: Record<string, Entry>, newId: () => strin
 }
 
 export const GetStarted: React.FC<Props> = ({ open }) => {
+  useLang();
   const [counts, setCounts] = useState({ people: 0, stories: 0, shares: 0, books: 0 });
   const [loaded, setLoaded] = useState(false);
   const [entries, setEntries] = useState<Record<string, Entry>>(Object.fromEntries(SLOTS.map((s) => [s.key, { name: '', birthDate: '', birthPlace: '' }])));
@@ -83,17 +85,17 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
   const saveQuickTree = async (e: React.FormEvent) => {
     e.preventDefault();
     const rows = quickTreeRows(entries);
-    if (!rows.length) { toast.error('Add at least your own name to start.'); return; }
+    if (!rows.length) { toast.error(t('Add at least your own name to start.')); return; }
     // Grandparents are linked through a parent, so that parent needs at least a name (even "Unknown").
     const has = (k: string) => !!entries[k].name.trim();
-    if ((has('mgm') || has('mgf')) && !has('mother')) { toast.error('Please add your mother\'s name too (or type "Unknown"), so her parents connect to you.'); return; }
-    if ((has('pgm') || has('pgf')) && !has('father')) { toast.error('Please add your father\'s name too (or type "Unknown"), so his parents connect to you.'); return; }
-    if ((has('mother') || has('father')) && !has('me')) { toast.error('Please add your own name too, so your parents connect to you.'); return; }
+    if ((has('mgm') || has('mgf')) && !has('mother')) { toast.error(t('Please add your mother’s name too (or type “Unknown”), so her parents connect to you.')); return; }
+    if ((has('pgm') || has('pgf')) && !has('father')) { toast.error(t('Please add your father’s name too (or type “Unknown”), so his parents connect to you.')); return; }
+    if ((has('mother') || has('father')) && !has('me')) { toast.error(t('Please add your own name too, so your parents connect to you.')); return; }
     setSaving(true);
     const { error } = await supabase.from('family_members').insert(rows);
     setSaving(false);
-    if (error) { toast.error('We could not save your family just now. Please check your connection and try again.'); return; }
-    toast.success(`${rows.length} people added to your family tree`);
+    if (error) { toast.error(t('We could not save your family just now. Please check your connection and try again.')); return; }
+    toast.success(t('{n} people added to your family tree', { n: rows.length }));
     load();
     // First discovery: search free archives for the oldest person they entered.
     const oldest = ['pgf', 'pgm', 'mgf', 'mgm', 'father', 'mother', 'me'].map((k) => entries[k]).find((x) => x.name.trim());
@@ -101,10 +103,10 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
   };
 
   const steps = [
-    { done: counts.people > 0, label: 'Start your family tree', icon: Users, action: counts.people ? () => open('family-tree-chart') : undefined, cta: 'See my tree' },
-    { done: counts.stories > 0, label: 'Interview a parent or grandparent', icon: Mic, action: () => open('family-interview'), cta: 'Start an interview' },
-    { done: counts.shares > 0, label: 'Invite a relative to add their memories', icon: Users, action: () => open('family-sharing'), cta: 'Invite family' },
-    { done: counts.books > 0, label: 'Make your family storybook', icon: BookOpen, action: () => open('family-storybook'), cta: 'Make a storybook' },
+    { done: counts.people > 0, label: t('Start your family tree'), icon: Users, action: counts.people ? () => open('family-tree-chart') : undefined, cta: t('See my tree') },
+    { done: counts.stories > 0, label: t('Interview a parent or grandparent'), icon: Mic, action: () => open('family-interview'), cta: t('Start an interview') },
+    { done: counts.shares > 0, label: t('Invite a relative to add their memories'), icon: Users, action: () => open('family-sharing'), cta: t('Invite family') },
+    { done: counts.books > 0, label: t('Make your family storybook'), icon: BookOpen, action: () => open('family-storybook'), cta: t('Make a storybook') },
   ];
 
   const field = (key: string, prop: keyof Entry) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -113,8 +115,8 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Welcome to Genesis Heritage</h2>
-        <p className="text-gray-600 mt-1">Keep your family's story alive, not just its names and dates. Here is how to get started.</p>
+        <h2 className="text-2xl font-semibold">{t('Welcome to Genesis Heritage')}</h2>
+        <p className="text-gray-600 mt-1">{t('Keep your family’s story alive, not just its names and dates. Here is how to get started.')}</p>
       </div>
 
       {loaded && counts.people > 0 && <OnThisDay />}
@@ -136,30 +138,30 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
           <div className="grid sm:grid-cols-2 gap-3">
             <button onClick={() => open('tree-import')} className="flex items-start gap-3 text-left border-2 border-genesis-200 rounded-lg p-4 hover:border-genesis-400">
               <Upload className="w-6 h-6 text-genesis-600 shrink-0" />
-              <span><strong>I already have a tree</strong><br /><span className="text-sm text-gray-600">Bring it from Ancestry, MyHeritage or FamilySearch in about two minutes.</span></span>
+              <span><strong>{t('I already have a tree')}</strong><br /><span className="text-sm text-gray-600">{t('Bring it from Ancestry, MyHeritage or FamilySearch in about two minutes.')}</span></span>
             </button>
             <a href="#quick-tree" className="flex items-start gap-3 text-left border-2 border-gray-200 rounded-lg p-4 hover:border-genesis-400">
               <Sparkles className="w-6 h-6 text-genesis-600 shrink-0" />
-              <span><strong>I'm starting fresh</strong><br /><span className="text-sm text-gray-600">Add yourself, your parents and grandparents below. Leave blank anyone you don't know.</span></span>
+              <span><strong>{t('I’m starting fresh')}</strong><br /><span className="text-sm text-gray-600">{t('Add yourself, your parents and grandparents below. Leave blank anyone you don’t know.')}</span></span>
             </a>
           </div>
 
           <form id="quick-tree" onSubmit={saveQuickTree} className="space-y-3">
             {SLOTS.map((s) => (
               <fieldset key={s.key} className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
-                <label className="text-sm">{s.label}
-                  <input value={entries[s.key].name} onChange={field(s.key, 'name')} placeholder="Full name" className="mt-1 block w-full px-3 py-2 border rounded-lg" />
+                <label className="text-sm">{t(s.label)}
+                  <input value={entries[s.key].name} onChange={field(s.key, 'name')} placeholder={t('Full name')} className="mt-1 block w-full px-3 py-2 border rounded-lg" />
                 </label>
-                <label className="text-sm">Born on (optional)
+                <label className="text-sm">{t('Born on (optional)')}
                   <input type="date" value={entries[s.key].birthDate} onChange={field(s.key, 'birthDate')} className="mt-1 block w-full px-3 py-2 border rounded-lg" />
                 </label>
-                <label className="text-sm">Born in (optional)
-                  <input value={entries[s.key].birthPlace} onChange={field(s.key, 'birthPlace')} placeholder="Town, country" className="mt-1 block w-full px-3 py-2 border rounded-lg" />
+                <label className="text-sm">{t('Born in (optional)')}
+                  <input value={entries[s.key].birthPlace} onChange={field(s.key, 'birthPlace')} placeholder={t('Town, country')} className="mt-1 block w-full px-3 py-2 border rounded-lg" />
                 </label>
               </fieldset>
             ))}
             <button disabled={saving} className="px-5 py-3 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save and find my first records'}
+              {saving ? t('Saving…') : t('Save and find my first records')}
             </button>
           </form>
         </div>
@@ -167,9 +169,9 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
 
       {discovery && (
         <div className="bg-genesis-50 border border-genesis-200 rounded-lg p-4">
-          <h3 className="font-semibold flex items-center gap-2"><Search className="w-4 h-4" /> Your first discovery: {discovery.who}</h3>
+          <h3 className="font-semibold flex items-center gap-2"><Search className="w-4 h-4" /> {t('Your first discovery: {name}', { name: discovery.who })}</h3>
           {discovery.hits.length === 0 ? (
-            <p className="text-sm text-gray-700 mt-1">Nothing in the open archives yet. Try Historical Records with other spellings, or the free archive links there.</p>
+            <p className="text-sm text-gray-700 mt-1">{t('Nothing in the open archives yet. Try Historical Records with other spellings, or the free archive links there.')}</p>
           ) : (
             <ul className="mt-2 space-y-2">
               {discovery.hits.map((h) => (
@@ -181,7 +183,7 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
               ))}
             </ul>
           )}
-          <button onClick={() => open('records-search')} className="mt-2 text-sm text-genesis-700 hover:underline">Search more records →</button>
+          <button onClick={() => open('records-search')} className="mt-2 text-sm text-genesis-700 hover:underline">{t('Search more records')} →</button>
         </div>
       )}
     </div>

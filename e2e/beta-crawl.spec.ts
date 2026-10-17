@@ -280,13 +280,13 @@ test('family tree chart shows generations and adds a missing parent', async ({ p
     expect(JSON.parse(req.postData() ?? '{}')).toMatchObject({
       p_child: '11111111-0000-4000-8000-000000000001', p_role: 'father', p_first: 'Robert', p_middle: 'James', p_last: 'Batchelor',
     });
-    await expect(page.getByText(/added as Dylan Batchelor's father/)).toBeVisible();
+    await expect(page.getByText(/added as Dylan Batchelor[’']s father/)).toBeVisible();
     await page.getByRole('button', { name: /Ana López/ }).click();
     await expect(page.getByTestId('relationship')).toContainText('Ana is your mother.');
     await expect(page.getByTestId('relationship')).toContainText('about 50% of your DNA');
     await page.getByLabel('Show the tree of').selectOption({ label: 'Dylan Batchelor (b. 1992)' });
     const [poster] = await Promise.all([page.context().waitForEvent('page'), page.getByRole('button', { name: 'Print poster' }).click()]);
-    await expect(poster.locator('h1')).toHaveText("Dylan Batchelor's family tree");
+    await expect(poster.locator('h1')).toHaveText(/Dylan Batchelor[’']s family tree/);
     await expect(poster.locator('svg')).toContainText('Ana López');
     if (process.env.SHOTS) await poster.screenshot({ path: 'test-results/poster.png', fullPage: true });
     await poster.close();

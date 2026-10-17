@@ -3,10 +3,11 @@ import { test, expect, type Page } from '@playwright/test';
 import { installMockBackend, signIn, type MockState } from './support/mockBackend';
 import { FR } from '../src/lib/i18n-fr';
 
-const state: MockState = {
+// A fresh mock for each test, so one screen's actions never change what the next one sees.
+const fresh = (): MockState => ({
   subscribed: false, calls: [], chatQuotaExceeded: false,
   memoryRequest: { token: 'aaaabbbbccccddddeeeeffff00001111', view: { from_name: 'Dylan', relative_name: 'Mamie Rose', questions: ['Où avez-vous grandi ?'], answered: [], closed: false } },
-};
+});
 
 // English sentences that should have been translated (short words like "Pro" or names are fine either way).
 async function leftoverEnglish(page: Page): Promise<string[]> {
@@ -19,7 +20,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 test('home page in French', async ({ page }) => {
-  await installMockBackend(page, state);
+  await installMockBackend(page, fresh());
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ancestry vous donne les bases. Genesis vous emmène dans le voyage.');
   await expect(page.getByRole('button', { name: 'M’inscrire à la liste d’attente' })).toBeVisible();
@@ -31,7 +32,7 @@ test('home page in French', async ({ page }) => {
 });
 
 test('sign-up in French', async ({ page }) => {
-  await installMockBackend(page, state);
+  await installMockBackend(page, fresh());
   await page.goto('/');
   await page.getByRole('button', { name: 'Commencez l’histoire de votre famille, gratuitement' }).first().click();
   await expect(page.getByRole('button', { name: 'Créer mon compte' })).toBeVisible();
@@ -41,7 +42,7 @@ test('sign-up in French', async ({ page }) => {
 
 test('menus in French when signed in', async ({ page, context }) => {
   await signIn(context);
-  await installMockBackend(page, state);
+  await installMockBackend(page, fresh());
   await page.goto('/dashboard?feature=family-tree-chart');
   await expect(page.getByTestId('category-menu').getByRole('button', { name: 'Ma famille' })).toBeVisible();
   await expect(page.getByTestId('feature-menu').getByRole('button', { name: 'Arbre généalogique' })).toBeVisible();
@@ -49,9 +50,22 @@ test('menus in French when signed in', async ({ page, context }) => {
 });
 
 test('a relative’s answer page in French', async ({ page }) => {
-  await installMockBackend(page, state);
+  await installMockBackend(page, fresh());
   await page.goto('/memories/aaaabbbbccccddddeeeeffff00001111');
   await expect(page.getByRole('heading', { name: 'Bonjour Mamie Rose' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Enregistrer ma réponse' })).toBeVisible();
   expect(await leftoverEnglish(page)).toEqual([]);
 });
+
+// The inside screens: each opens in French with no translated sentence left in English.
+for (const feature of ['welcome', 'family-tree', 'family-tree-chart', 'cultural-stories', 'family-interview', 'ask-relative', 'record-hints', 'tree-checkup', 'my-account', 'privacy-center']) {
+  test(`${feature} in French`, async ({ page, context }) => {
+    await signIn(context);
+    await installMockBackend(page, fresh());
+    await page.goto(`/dashboard?feature=${feature}`);
+    await expect(page.getByTestId('feature-menu')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(800);
+    expect(await leftoverEnglish(page)).toEqual([]);
+  });
+}

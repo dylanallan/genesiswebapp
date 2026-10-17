@@ -1,6 +1,13 @@
 // French (Canada) for the app. Keys are the exact English text shown in the app; keep `{placeholders}` as they are.
 // Tone: warm, plain, "vous". Typographic apostrophes (’) and French spacing before : ; ? ! use a normal space here.
+import { FR_ACCOUNT } from './i18n-fr-account';
+import { FR_RESEARCH } from './i18n-fr-research';
+import { FR_TREE } from './i18n-fr-tree';
+
 export const FR: Record<string, string> = {
+  ...FR_ACCOUNT,
+  ...FR_RESEARCH,
+  ...FR_TREE,
   // Brand and shared
   'Ancestry gives you the foundation, but Genesis takes you on the journey.': 'Ancestry vous donne les bases. Genesis vous emmène dans le voyage.',
   'Start free': 'Commencer gratuitement',

@@ -8,6 +8,7 @@ import { defaultFocus, pedigree, PedigreePerson, PedigreeSlot, usedGenerations }
 import { describeRelationship, findRelationship } from '../lib/relationship';
 import { posterHtml } from '../lib/tree-poster';
 import { DescNode, descendants } from '../lib/descendants';
+import { locale, t, useLang } from '../lib/i18n';
 
 interface Row {
   id: string; first_name: string | null; middle_name: string | null; last_name: string | null; gender: string | null;
@@ -17,19 +18,20 @@ interface Row {
 
 const BOX_W = 210, BOX_H = 66, GAP_X = 44, ROW = 78, MAX_GEN = 5;
 const toPerson = (r: Row): PedigreePerson => ({
-  id: r.id, name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') || 'Unknown', gender: r.gender,
+  id: r.id, name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') || t('Unknown'), gender: r.gender,
   birthDate: r.birth_date, deathDate: r.death_date, birthPlace: r.birth_location, relationship: r.relationship,
   parentIds: r.parent_ids ?? [], childrenIds: r.children_ids ?? [], spouseIds: r.spouse_ids ?? [],
 });
 const years = (p: PedigreePerson) => {
   const b = p.birthDate?.slice(0, 4), d = p.deathDate?.slice(0, 4);
-  if (b && !d) return `b. ${b}`;
+  if (b && !d) return t('b. {year}', { year: b });
   return b || d ? `${b ?? '?'} – ${d ?? '?'}` : '';
 };
 
 interface AddTarget { childId: string; role: 'father' | 'mother' }
 
 export const PedigreeChart: React.FC = () => {
+  useLang();
   const navigate = useNavigate();
   const [people, setPeople] = useState<PedigreePerson[] | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export const PedigreeChart: React.FC = () => {
       setFocusId((f) => (f && list.some((p) => p.id === f) ? f : defaultFocus(list)));
       setMeId((m) => (m && list.some((p) => p.id === m) ? m : defaultFocus(list)));
     } catch {
-      toast.error('Could not load your family tree.');
+      toast.error(t('Could not load your family tree.'));
       setPeople([]);
     }
   }, []);
@@ -79,8 +81,8 @@ export const PedigreeChart: React.FC = () => {
       p_middle: parts.length > 2 ? parts.slice(1, -1).join(' ') : null, p_last: parts.length > 1 ? parts[parts.length - 1] : '',
       p_birth_date: form.birthDate || null, p_birth_place: form.birthPlace.trim() || null,
     });
-    if (error) toast.error(`Could not add: ${error.message}`);
-    else toast.success(`${form.name.trim()} added as ${child.name}'s ${adding.role}`);
+    if (error) toast.error(t('Could not add: {reason}', { reason: error.message }));
+    else toast.success(t(adding.role === 'mother' ? '{name} added as {child}’s mother' : '{name} added as {child}’s father', { name: form.name.trim(), child: child.name }));
     await load();
     setSaving(false);
     setAdding(null);
@@ -102,21 +104,21 @@ export const PedigreeChart: React.FC = () => {
   const printPoster = () => {
     if (!focus || !people) return;
     const w = window.open('', '_blank');
-    if (!w) { toast.error('Please allow pop-ups to print your tree.'); return; }
-    w.document.write(posterHtml(`${focus.name}'s family tree`, pedigree(focus.id, people, 6)));
+    if (!w) { toast.error(t('Please allow pop-ups to print your tree.')); return; }
+    w.document.write(posterHtml(t('{name}’s family tree', { name: focus.name }), pedigree(focus.id, people, 6)));
     w.document.close();
     w.focus();
     setTimeout(() => w.print(), 300);
   };
   const research = (id: string) => navigate(`/dashboard?feature=research-assistant&person=${id}`);
 
-  if (people === null) return <p className="p-6 text-gray-600">Loading your family tree…</p>;
+  if (people === null) return <p className="p-6 text-gray-600">{t('Loading your family tree…')}</p>;
   if (people.length === 0) {
     return (
       <div className="bg-white rounded-xl border p-6 text-center space-y-3">
         <Trees className="w-10 h-10 mx-auto text-genesis-600" />
-        <p className="text-gray-700">Your tree is empty. Start on the "Get started" page, or import a tree from Ancestry or MyHeritage.</p>
-        <button onClick={() => navigate('/dashboard?feature=welcome')} className="px-4 py-2 bg-genesis-600 text-white rounded-lg">Get started</button>
+        <p className="text-gray-700">{t('Your tree is empty. Start on the “Get started” page, or import a tree from Ancestry or MyHeritage.')}</p>
+        <button onClick={() => navigate('/dashboard?feature=welcome')} className="px-4 py-2 bg-genesis-600 text-white rounded-lg">{t('Get started')}</button>
       </div>
     );
   }
@@ -124,12 +126,12 @@ export const PedigreeChart: React.FC = () => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold flex items-center gap-2"><Trees className="w-6 h-6 text-genesis-600" /> Family tree</h2>
+        <h2 className="text-xl font-semibold flex items-center gap-2"><Trees className="w-6 h-6 text-genesis-600" /> {t('Family tree')}</h2>
         <div className="flex flex-wrap items-center gap-3">
         <button onClick={printPoster} className="flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50">
-          <Printer className="w-4 h-4" /> Print poster
+          <Printer className="w-4 h-4" /> {t('Print poster')}
         </button>
-        <label className="text-sm flex items-center gap-2">Show the tree of
+        <label className="text-sm flex items-center gap-2">{t('Show the tree of')}
           <select value={focusId ?? ''} onChange={(e) => setFocusId(e.target.value)} className="px-2 py-1 border rounded-lg max-w-[220px]">
             {people.slice(0, 2000).map((p) => <option key={p.id} value={p.id}>{p.name}{years(p) ? ` (${years(p)})` : ''}</option>)}
           </select>
@@ -141,20 +143,20 @@ export const PedigreeChart: React.FC = () => {
           {(['ancestors', 'descendants'] as const).map((v) => (
             <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
               className={`px-3 py-1.5 ${view === v ? 'bg-genesis-600 text-white' : 'bg-white hover:bg-gray-50'}`}>
-              {v === 'ancestors' ? 'Ancestors' : 'Descendants'}
+              {t(v === 'ancestors' ? 'Ancestors' : 'Descendants')}
             </button>
           ))}
         </div>
         <p className="text-sm text-gray-500">
-          {view === 'ancestors' ? 'Click anyone to move the tree to them. Use the dashed boxes to add a missing parent.' : 'Everyone who came from this person. Click a name to start from them.'}
+          {t(view === 'ancestors' ? 'Click anyone to move the tree to them. Use the dashed boxes to add a missing parent.' : 'Everyone who came from this person. Click a name to start from them.')}
         </p>
       </div>
 
       {view === 'descendants' && desc?.root && (
         <div className="border rounded-lg bg-[#faf7f0] p-4 overflow-auto" style={{ maxHeight: 640 }} data-testid="descendants">
           <p className="text-sm text-gray-700 mb-2">
-            {desc.count === 0 ? `No children recorded for ${desc.root.person.name.split(' ')[0]} yet.`
-              : <><strong>{desc.count}</strong> descendant{desc.count === 1 ? '' : 's'} across <strong>{desc.generations}</strong> generation{desc.generations === 1 ? '' : 's'}</>}
+            {desc.count === 0 ? t('No children recorded for {name} yet.', { name: desc.root.person.name.split(' ')[0] })
+              : t(desc.count === 1 ? '1 descendant' : '{n} descendants', { n: desc.count }) + ' ' + t('across') + ' ' + t(desc.generations === 1 ? '1 generation' : '{n} generations', { n: desc.generations })}
           </p>
           <DescendantBranch node={desc.root} onPick={setFocusId} />
         </div>
@@ -187,7 +189,7 @@ export const PedigreeChart: React.FC = () => {
             return (
               <button key={`${s.gen}-${s.index}`} style={style} onClick={() => setAdding({ childId: s.childId!, role: s.role === 'mother' ? 'mother' : 'father' })}
                 className="absolute flex items-center justify-center gap-1 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-genesis-400 hover:text-genesis-700">
-                <Plus className="w-4 h-4" /> Add {s.role === 'mother' ? 'mother' : 'father'}
+                <Plus className="w-4 h-4" /> {t(s.role === 'mother' ? 'Add mother' : 'Add father')}
               </button>
             );
           })}
@@ -198,10 +200,10 @@ export const PedigreeChart: React.FC = () => {
         <div className="border rounded-lg p-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="font-semibold">{focus.name}</p>
-            <p className="text-sm text-gray-600">{[years(focus), focus.birthPlace].filter(Boolean).join(' · ') || 'No dates yet'}</p>
+            <p className="text-sm text-gray-600">{[years(focus), focus.birthPlace].filter(Boolean).join(' · ') || t('No dates yet')}</p>
             {[['Spouses', focus.spouseIds], ['Children', focus.childrenIds]].map(([label, ids]) => (ids as string[]).length > 0 && (
               <p key={label as string} className="text-sm mt-2 flex flex-wrap items-center gap-1">
-                <Users className="w-4 h-4 text-gray-400" /> {label as string}:
+                <Users className="w-4 h-4 text-gray-400" /> {t(label as string)} :
                 {(ids as string[]).map((id) => byId.get(id)).filter(Boolean).map((p) => (
                   <button key={p!.id} onClick={() => setFocusId(p!.id)} className="px-2 py-0.5 bg-gray-100 rounded-full hover:bg-genesis-50">{p!.name}</button>
                 ))}
@@ -210,25 +212,27 @@ export const PedigreeChart: React.FC = () => {
             {meId && (
               <div className="mt-3 text-sm bg-genesis-50 rounded-lg p-3 space-y-1" data-testid="relationship">
                 <p className="flex flex-wrap items-center gap-1">
-                  <Link2 className="w-4 h-4 text-genesis-600" /> How {focus.name.split(' ')[0]} is related to
-                  <select aria-label="Related to" value={meId} onChange={(e) => setMeId(e.target.value)} className="px-1 py-0.5 border rounded max-w-[180px] bg-white">
+                  <Link2 className="w-4 h-4 text-genesis-600" /> {t('How {name} is related to', { name: focus.name.split(' ')[0] })}
+                  <select aria-label={t('Related to')} value={meId} onChange={(e) => setMeId(e.target.value)} className="px-1 py-0.5 border rounded max-w-[180px] bg-white">
                     {people.slice(0, 2000).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </p>
-                <p className="font-semibold">{meId === focus.id ? 'Pick someone else in the tree to see how they are related.' : describeRelationship(focus.name, kin, meIsSelf ? undefined : byId.get(meId)?.name)}</p>
-                {kin && kin.kind !== 'self' && kin.path.length > 2 && <p className="text-gray-600">Through: {kin.path.join(' → ')}</p>}
+                <p className="font-semibold">{meId === focus.id ? t('Pick someone else in the tree to see how they are related.') : describeRelationship(focus.name, kin, meIsSelf ? undefined : byId.get(meId)?.name)}</p>
+                {kin && kin.kind !== 'self' && kin.path.length > 2 && <p className="text-gray-600">{t('Through:')} {kin.path.join(' → ')}</p>}
                 {kin?.dnaPercent != null && kin.kind === 'blood' && (
-                  <p className="text-gray-600">{meIsSelf ? 'You' : `${byId.get(meId)?.name.split(' ')[0]} and ${focus.name.split(' ')[0]}`} would share about {kin.dnaPercent}% of {meIsSelf ? 'your' : 'their'} DNA (an average; real amounts vary).</p>
+                  <p className="text-gray-600">{meIsSelf
+                    ? t('You would share about {pct}% of your DNA (an average; real amounts vary).', { pct: kin.dnaPercent.toLocaleString(locale()) })
+                    : t('{a} and {b} would share about {pct}% of their DNA (an average; real amounts vary).', { a: byId.get(meId)?.name.split(' ')[0] ?? '', b: focus.name.split(' ')[0], pct: kin.dnaPercent.toLocaleString(locale()) })}</p>
                 )}
               </div>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => navigate(`/dashboard?feature=life-story&person=${focus.id}`)} className="flex items-center gap-2 px-3 py-2 border rounded-lg">
-              <BookHeart className="w-4 h-4" /> Life story
+              <BookHeart className="w-4 h-4" /> {t('Life story')}
             </button>
             <button onClick={() => research(focus.id)} className="flex items-center gap-2 px-3 py-2 bg-genesis-600 text-white rounded-lg">
-              <Microscope className="w-4 h-4" /> Research {focus.name.split(' ')[0]}
+              <Microscope className="w-4 h-4" /> {t('Research {name}', { name: focus.name.split(' ')[0] })}
             </button>
           </div>
         </div>
@@ -238,21 +242,21 @@ export const PedigreeChart: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
           <form onSubmit={saveParent} className="w-full max-w-md bg-white rounded-xl shadow-xl p-6 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Add {byId.get(adding.childId)?.name}'s {adding.role}</h3>
-              <button type="button" onClick={() => setAdding(null)} aria-label="Close"><X className="w-5 h-5" /></button>
+              <h3 className="text-lg font-semibold">{t(adding.role === 'mother' ? 'Add {name}’s mother' : 'Add {name}’s father', { name: byId.get(adding.childId)?.name ?? '' })}</h3>
+              <button type="button" onClick={() => setAdding(null)} aria-label={t('Close')}><X className="w-5 h-5" /></button>
             </div>
-            <label className="block text-sm">Full name
+            <label className="block text-sm">{t('Full name')}
               <input required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 w-full px-3 py-2 border rounded-lg" />
             </label>
-            <label className="block text-sm">Born on (optional)
+            <label className="block text-sm">{t('Born on (optional)')}
               <input type="date" value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })} className="mt-1 w-full px-3 py-2 border rounded-lg" />
             </label>
-            <label className="block text-sm">Born in (optional)
-              <input value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder="Town, country" className="mt-1 w-full px-3 py-2 border rounded-lg" />
+            <label className="block text-sm">{t('Born in (optional)')}
+              <input value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder={t('Town, country')} className="mt-1 w-full px-3 py-2 border rounded-lg" />
             </label>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setAdding(null)} className="px-4 py-2 border rounded-lg">Cancel</button>
-              <button disabled={saving} className="px-4 py-2 bg-genesis-600 text-white rounded-lg disabled:opacity-50">{saving ? 'Saving…' : 'Add to tree'}</button>
+              <button type="button" onClick={() => setAdding(null)} className="px-4 py-2 border rounded-lg">{t('Cancel')}</button>
+              <button disabled={saving} className="px-4 py-2 bg-genesis-600 text-white rounded-lg disabled:opacity-50">{t(saving ? 'Saving…' : 'Add to tree')}</button>
             </div>
           </form>
         </div>
@@ -266,7 +270,7 @@ const DescendantBranch: React.FC<{ node: DescNode; onPick: (id: string) => void 
     <p className="py-1 text-sm">
       <button onClick={() => onPick(node.person.id)} className="font-medium hover:underline">{node.person.name}</button>
       {years(node.person) && <span className="text-gray-500"> ({years(node.person)})</span>}
-      {node.spouses.length > 0 && <span className="text-gray-500"> · married {node.spouses.map((x) => x.name).join(', ')}</span>}
+      {node.spouses.length > 0 && <span className="text-gray-500"> · {t('married')} {node.spouses.map((x) => x.name).join(', ')}</span>}
     </p>
     {node.children.map((c) => <DescendantBranch key={c.person.id} node={c} onPick={onPick} />)}
   </div>

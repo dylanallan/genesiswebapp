@@ -2,6 +2,9 @@
 // the relationship in plain words (great-aunt, second cousin once removed, sister-in-law...), with the path
 // and roughly how much DNA the two people would be expected to share.
 
+import { getLang } from './i18n';
+import { describeRelationshipFr } from './relationship-fr';
+
 export interface KinPerson {
   id: string;
   name: string;
@@ -16,6 +19,7 @@ export interface Relationship {
   sharedAncestors: string[];
   dnaPercent: number | null; // expected autosomal DNA shared, blood relatives only
   kind: 'self' | 'blood' | 'spouse' | 'in-law';
+  gender?: string | null; // of `them`, so other languages can pick the right word form
 }
 
 const MAX_DEPTH = 15;
@@ -160,6 +164,11 @@ const SPOUSE_OF_RELATIVE: Record<string, (g: string | null) => string> = {
 };
 
 export function findRelationship(meId: string, themId: string, people: KinPerson[]): Relationship | null {
+  const r = relate(meId, themId, people);
+  return r && { ...r, gender: lookup(people).get(themId)?.gender ?? null };
+}
+
+function relate(meId: string, themId: string, people: KinPerson[]): Relationship | null {
   const byId = lookup(people);
   const me = byId.get(meId), them = byId.get(themId);
   if (!me || !them) return null;
@@ -246,6 +255,7 @@ function marriageChain(from: string, to: string, byId: Map<string, KinPerson>): 
 
 /** "Rosa is your great-grandmother" style sentence. Pass `meName` when "me" isn't the user, to get "Rosa is Juan's mother". */
 export function describeRelationship(themName: string, r: Relationship | null, meName?: string): string {
+  if (getLang() === 'fr') return describeRelationshipFr(themName, r, meName);
   const first = themName.split(' ')[0];
   const mine = meName ? `${meName.split(' ')[0]}'s` : 'your';
   if (!r) return `We couldn't find a link between ${meName ? meName.split(' ')[0] : 'you'} and ${first} in the tree yet.`;

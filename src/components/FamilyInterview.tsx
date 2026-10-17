@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { uploadOwnFile } from '../lib/storage';
 import { chatApi } from '../api/chat';
+import { getLang, locale, t, useLang } from '../lib/i18n';
 
 export const INTERVIEW_TOPICS: Record<string, string[]> = {
   'Childhood': [
@@ -52,10 +53,11 @@ type RecognitionCtor = new () => Recognition;
 const speechWindow = () => (typeof window === 'undefined' ? {} : window) as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
 
 export const FamilyInterview: React.FC = () => {
+  useLang();
   const [people, setPeople] = useState<Array<{ id: string; name: string }>>([]);
   const [personId, setPersonId] = useState('');
   const [personName, setPersonName] = useState('');
-  const [lang, setLang] = useState('en-CA');
+  const [lang, setLang] = useState(() => (getLang() === 'fr' ? 'fr-CA' : 'en-CA'));
   const [topics, setTopics] = useState<string[]>(Object.keys(INTERVIEW_TOPICS));
   const [started, setStarted] = useState(false);
   const [index, setIndex] = useState(0);
@@ -67,8 +69,10 @@ export const FamilyInterview: React.FC = () => {
   const chunks = useRef<Blob[]>([]);
   const recognition = useRef<Recognition | null>(null);
 
-  const questions = topics.flatMap((t) => INTERVIEW_TOPICS[t]);
+  const questions = topics.flatMap((topic) => INTERVIEW_TOPICS[topic]);
   const question = questions[index];
+  // The questions are shown and read aloud in the app's language; answers stay keyed by the English text.
+  const asked = (q: string) => t(q);
   const SpeechRecognition = speechWindow().SpeechRecognition ?? speechWindow().webkitSpeechRecognition ?? null;
 
   useEffect(() => {
@@ -107,7 +111,7 @@ export const FamilyInterview: React.FC = () => {
   const stopListening = () => { recognition.current?.stop(); setListening(false); };
 
   const begin = async () => {
-    if (!personName.trim()) { toast.error('Who are you interviewing? Choose or type their name.'); return; }
+    if (!personName.trim()) { toast.error(t('Who are you interviewing? Choose or type their name.')); return; }
     // Start clean, so a new interview can never pick up the previous interview's recording.
     chunks.current = [];
     recorder.current = null;
@@ -116,26 +120,26 @@ export const FamilyInterview: React.FC = () => {
       const rec = new MediaRecorder(stream);
       chunks.current = [];
       rec.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
-      rec.onstop = () => stream.getTracks().forEach((t) => t.stop());
+      rec.onstop = () => stream.getTracks().forEach((track) => track.stop());
       rec.start(1000);
       recorder.current = rec;
       setRecording(true);
     } catch {
-      toast.warning('The microphone is not available, so answers will be typed instead of recorded.');
+      toast.warning(t('The microphone is not available, so answers will be typed instead of recorded.'));
     }
     setStarted(true);
     setIndex(0);
-    setTimeout(() => speak(questions[0]), 300);
+    setTimeout(() => speak(asked(questions[0])), 300);
   };
 
   const go = (delta: number) => {
     stopListening();
     const next = Math.max(0, Math.min(questions.length - 1, index + delta));
     setIndex(next);
-    speak(questions[next]);
+    speak(asked(questions[next]));
   };
 
-  const transcript = () => questions.filter((q) => answers[q]?.trim()).map((q) => `Q: ${q}\nA: ${answers[q].trim()}`).join('\n\n');
+  const transcript = () => questions.filter((q) => answers[q]?.trim()).map((q) => `Q: ${asked(q)}\nA: ${answers[q].trim()}`).join('\n\n');
 
   const finishRecording = (): Promise<Blob | null> => new Promise((resolve) => {
     const rec = recorder.current;
@@ -147,40 +151,40 @@ export const FamilyInterview: React.FC = () => {
 
   const save = async (writeUp: boolean) => {
     const qa = transcript();
-    if (!qa) { toast.error('Answer at least one question first.'); return; }
+    if (!qa) { toast.error(t('Answer at least one question first.')); return; }
     stopListening();
     try {
       let story = '';
       if (writeUp) {
-        setBusy('Writing the story...');
+        setBusy(t('Writing the story…'));
         const res = await chatApi.sendMessage(
           `Below is an interview with ${personName}. Rewrite it as a warm, first-person life story in ${personName}'s own voice, ` +
           `in the same language the answers were given in. Keep every fact and name exactly as said; do not add anything new. ` +
           `No headings or bullet points.\n\n${qa.slice(0, 6500)}`, { persist: false });
-        if (res.provider === 'error') toast.warning(`The story write-up was skipped: ${res.response}`); else story = res.response.trim();
+        if (res.provider === 'error') toast.warning(t('The story write-up was skipped: {reason}', { reason: res.response })); else story = res.response.trim();
       }
-      setBusy('Saving the recording...');
+      setBusy(t('Saving the recording…'));
       const audio = await finishRecording();
       const audioPath = audio && audio.size > 0 ? await uploadOwnFile('voice-recordings', `interview-${personName}.webm`, audio, audio.type) : null;
-      setBusy('Saving...');
+      setBusy(t('Saving…'));
       const { error } = await supabase.from('cultural_stories').insert({
-        title: `Interview with ${personName} (${new Date().toLocaleDateString()})`,
-        content: story ? `${story}\n\n---\nInterview transcript\n\n${qa}` : qa,
+        title: t('Interview with {name} ({date})', { name: personName, date: new Date().toLocaleDateString(locale()) }),
+        content: story ? `${story}\n\n---\n${t('Interview transcript')}\n\n${qa}` : qa,
         storyteller: personName,
         family_member_id: personId || null,
         audio_path: audioPath,
         language: lang,
-        themes: ['interview', ...topics.map((t) => t.toLowerCase())],
+        themes: ['interview', ...topics.map((topic) => topic.toLowerCase())],
         date_recorded: new Date().toISOString(),
       });
       if (error) throw error;
-      toast.success(`Saved! You'll find it in the Story Library${audioPath ? ', with the recording' : ''}.`);
+      toast.success(t(audioPath ? 'Saved! You’ll find it in the Story Library, with the recording.' : 'Saved! You’ll find it in the Story Library.'));
       setStarted(false);
       setAnswers({});
       chunks.current = [];
       recorder.current = null;
     } catch (e) {
-      toast.error(`Could not save the interview: ${(e as Error).message}`);
+      toast.error(t('Could not save the interview: {error}', { error: (e as Error).message }));
     } finally {
       setBusy(null);
     }
@@ -190,38 +194,38 @@ export const FamilyInterview: React.FC = () => {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
         <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2"><Mic className="w-6 h-6 text-genesis-600" /> Interview a relative</h2>
-          <p className="text-gray-600 mt-1">Sit down with a parent or grandparent. The app reads each question out loud, records their answers, writes them down, and saves it all to your family history.</p>
+          <h2 className="text-xl font-semibold flex items-center gap-2"><Mic className="w-6 h-6 text-genesis-600" /> {t('Interview a relative')}</h2>
+          <p className="text-gray-600 mt-1">{t('Sit down with a parent or grandparent. The app reads each question out loud, records their answers, writes them down, and saves it all to your family history.')}</p>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
-          <label className="text-sm">Who are you interviewing?
+          <label className="text-sm">{t('Who are you interviewing?')}
             <select value={personId} onChange={(e) => { setPersonId(e.target.value); setPersonName(people.find((p) => p.id === e.target.value)?.name ?? ''); }} className="mt-1 block w-full px-3 py-2 border rounded-lg">
-              <option value="">Someone not in my tree yet</option>
+              <option value="">{t('Someone not in my tree yet')}</option>
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
-          <label className="text-sm">Their name
-            <input value={personName} onChange={(e) => setPersonName(e.target.value)} placeholder="e.g. Grandma Rosa" className="mt-1 block w-full px-3 py-2 border rounded-lg" />
+          <label className="text-sm">{t('Their name')}
+            <input value={personName} onChange={(e) => setPersonName(e.target.value)} placeholder={t('e.g. Grandma Rosa')} className="mt-1 block w-full px-3 py-2 border rounded-lg" />
           </label>
-          <label className="text-sm">Language
+          <label className="text-sm">{t('Language')}
             <select value={lang} onChange={(e) => setLang(e.target.value)} className="mt-1 block w-full px-3 py-2 border rounded-lg">
               {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
             </select>
           </label>
         </div>
         <fieldset>
-          <legend className="text-sm font-medium mb-1">Topics</legend>
+          <legend className="text-sm font-medium mb-1">{t('Topics')}</legend>
           <div className="flex flex-wrap gap-3">
-            {Object.keys(INTERVIEW_TOPICS).map((t) => (
-              <label key={t} className="flex items-center gap-1 text-sm">
-                <input type="checkbox" checked={topics.includes(t)} onChange={(e) => setTopics(e.target.checked ? [...topics, t] : topics.filter((x) => x !== t))} /> {t}
+            {Object.keys(INTERVIEW_TOPICS).map((topic) => (
+              <label key={topic} className="flex items-center gap-1 text-sm">
+                <input type="checkbox" checked={topics.includes(topic)} onChange={(e) => setTopics(e.target.checked ? [...topics, topic] : topics.filter((x) => x !== topic))} /> {t(topic)}
               </label>
             ))}
           </div>
         </fieldset>
-        {lang !== 'en-CA' && <p className="text-sm text-gray-500">Questions are read in English; answers can be given in any language you choose above.</p>}
+        {lang !== (getLang() === 'fr' ? 'fr-CA' : 'en-CA') && <p className="text-sm text-gray-500">{t('Questions are read in English; answers can be given in any language you choose above.')}</p>}
         <button onClick={begin} disabled={!topics.length} className="flex items-center gap-2 px-5 py-3 bg-genesis-600 text-white rounded-lg text-lg hover:bg-genesis-700 disabled:opacity-50">
-          <Mic className="w-5 h-5" /> Start the interview
+          <Mic className="w-5 h-5" /> {t('Start the interview')}
         </button>
       </div>
     );
@@ -230,26 +234,26 @@ export const FamilyInterview: React.FC = () => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
       <div className="flex items-center justify-between text-sm text-gray-500">
-        <span>Question {index + 1} of {questions.length} · {personName}</span>
-        {recording && <span className="flex items-center gap-1 text-red-600"><span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" /> Recording</span>}
+        <span>{t('Question {n} of {total}', { n: index + 1, total: questions.length })} · {personName}</span>
+        {recording && <span className="flex items-center gap-1 text-red-600"><span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" /> {t('Recording')}</span>}
       </div>
-      <p className="text-2xl font-serif leading-snug">{question}</p>
+      <p className="text-2xl font-serif leading-snug">{asked(question)}</p>
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => speak(question)} className="flex items-center gap-1 px-3 py-2 border rounded-lg"><Volume2 className="w-4 h-4" /> Read aloud</button>
+        <button onClick={() => speak(asked(question))} className="flex items-center gap-1 px-3 py-2 border rounded-lg"><Volume2 className="w-4 h-4" /> {t('Read aloud')}</button>
         {SpeechRecognition && (listening
-          ? <button onClick={stopListening} className="flex items-center gap-1 px-3 py-2 bg-red-600 text-white rounded-lg"><Square className="w-4 h-4" /> Stop writing down</button>
-          : <button onClick={startListening} className="flex items-center gap-1 px-3 py-2 bg-genesis-600 text-white rounded-lg"><Mic className="w-4 h-4" /> Write down the answer</button>)}
+          ? <button onClick={stopListening} className="flex items-center gap-1 px-3 py-2 bg-red-600 text-white rounded-lg"><Square className="w-4 h-4" /> {t('Stop writing down')}</button>
+          : <button onClick={startListening} className="flex items-center gap-1 px-3 py-2 bg-genesis-600 text-white rounded-lg"><Mic className="w-4 h-4" /> {t('Write down the answer')}</button>)}
       </div>
       <textarea rows={6} value={answers[question] ?? ''} onChange={(e) => setAnswers({ ...answers, [question]: e.target.value })}
-        placeholder={SpeechRecognition ? 'The answer appears here as they speak. You can also type or fix it.' : 'Type their answer here.'}
-        className="w-full px-3 py-2 border rounded-lg" aria-label="Answer" />
+        placeholder={t(SpeechRecognition ? 'The answer appears here as they speak. You can also type or fix it.' : 'Type their answer here.')}
+        className="w-full px-3 py-2 border rounded-lg" aria-label={t('Answer')} />
       <div className="flex flex-wrap justify-between gap-2">
-        <button onClick={() => go(-1)} disabled={index === 0} className="flex items-center gap-1 px-3 py-2 border rounded-lg disabled:opacity-40"><ChevronLeft className="w-4 h-4" /> Back</button>
-        {index < questions.length - 1 && <button onClick={() => go(1)} className="flex items-center gap-1 px-4 py-2 bg-gray-900 text-white rounded-lg">{answers[question] ? 'Next question' : 'Skip'} <ChevronRight className="w-4 h-4" /></button>}
+        <button onClick={() => go(-1)} disabled={index === 0} className="flex items-center gap-1 px-3 py-2 border rounded-lg disabled:opacity-40"><ChevronLeft className="w-4 h-4" /> {t('Back')}</button>
+        {index < questions.length - 1 && <button onClick={() => go(1)} className="flex items-center gap-1 px-4 py-2 bg-gray-900 text-white rounded-lg">{t(answers[question] ? 'Next question' : 'Skip')} <ChevronRight className="w-4 h-4" /></button>}
       </div>
       <div className="border-t pt-4 flex flex-wrap gap-3">
-        <button onClick={() => save(true)} disabled={busy !== null} className="flex items-center gap-2 px-4 py-2 bg-genesis-600 text-white rounded-lg disabled:opacity-50"><Sparkles className="w-4 h-4" /> {busy ?? 'Finish and write it as a story'}</button>
-        <button onClick={() => save(false)} disabled={busy !== null} className="flex items-center gap-2 px-4 py-2 border rounded-lg disabled:opacity-50"><Save className="w-4 h-4" /> Finish and save answers only</button>
+        <button onClick={() => save(true)} disabled={busy !== null} className="flex items-center gap-2 px-4 py-2 bg-genesis-600 text-white rounded-lg disabled:opacity-50"><Sparkles className="w-4 h-4" /> {busy ?? t('Finish and write it as a story')}</button>
+        <button onClick={() => save(false)} disabled={busy !== null} className="flex items-center gap-2 px-4 py-2 border rounded-lg disabled:opacity-50"><Save className="w-4 h-4" /> {t('Finish and save answers only')}</button>
       </div>
     </div>
   );
