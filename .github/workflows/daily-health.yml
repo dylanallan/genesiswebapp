@@ -1,0 +1,47 @@
+name: Daily health check
+
+# Once a day, and on demand: checks that the live site loads and that the database, file storage and sign-in
+# are up. Read-only: it changes nothing. If a check fails, GitHub emails the repository owner about the failed run.
+on:
+  schedule:
+    - cron: '17 11 * * *' # 07:17 Eastern (11:17 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE: https://genesisheritage.netlify.app
+      API: https://yomgwdeqsvbapvqpuspq.supabase.co
+    steps:
+      - name: Site loads
+        run: |
+          html=$(curl -fsS --retry 3 --retry-delay 10 --max-time 30 "$SITE/")
+          echo "$html" | grep -q '<div id="root"' || { echo "::error::The home page loaded but looks wrong"; exit 1; }
+          script=$(echo "$html" | grep -o 'src="/assets/[^"]*\.js"' | head -1 | cut -d'"' -f2)
+          [ -n "$script" ] || { echo "::error::No app script on the home page"; exit 1; }
+          curl -fsS --retry 3 --max-time 30 -o /dev/null "$SITE$script" || { echo "::error::The app script $script is missing"; exit 1; }
+
+      - name: Pages people share still open
+        run: |
+          for path in /pricing /privacy /terms /memories/00000000000000000000000000000000; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --max-time 30 "$SITE$path")
+            [ "$code" = 200 ] || { echo "::error::$path returned $code"; exit 1; }
+          done
+
+      - name: Database, storage and sign-in are up
+        run: |
+          body=$(curl -sS --retry 3 --retry-delay 10 --max-time 30 -w '\n%{http_code}' "$API/functions/v1/health-check")
+          code=$(echo "$body" | tail -1)
+          echo "$body" | head -1
+          [ "$code" = 200 ] || { echo "::error::The health check returned $code"; exit 1; }
+
+      - name: Sign-in service answers
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --max-time 30 "$API/auth/v1/health")
+          # 401 means it is up but wants the public key; anything 5xx or no answer means it is down.
+          case "$code" in 200|401) ;; *) echo "::error::Sign-in service returned $code"; exit 1 ;; esac
