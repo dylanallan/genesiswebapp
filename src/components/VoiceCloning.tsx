@@ -41,7 +41,10 @@ export const VoiceCloning: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadProfiles = useCallback(async () => {
-    const { data, error } = await supabase.from('voice_profiles').select('id,name,relationship,created_at').order('created_at', { ascending: false });
+    // Only this person's voices (the database enforces this too).
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase.from('voice_profiles').select('id,name,relationship,created_at').eq('user_id', user.id).order('created_at', { ascending: false });
     if (error) return toast.error('Could not load saved voices');
     setVoiceProfiles((data ?? []) as VoiceProfile[]);
   }, []);

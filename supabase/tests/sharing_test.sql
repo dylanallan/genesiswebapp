@@ -169,11 +169,17 @@ do $$ declare c text; begin
   if (public.join_waitlist('rosa@example.com')->>'invited')::int = 1 then raise notice 'CHECK waitlist counts referrals: PASS';
   else raise notice 'CHECK waitlist counts referrals: FAIL'; end if;
 end $$;
+select 'waitlist records who is joining' as check, (public.join_waitlist_v2('ana@example.com', 'Ana', 'partners', null, 'investor', 'Heritage Fund', 'Interested in a call')->>'ok')::boolean as pass;
+select 'waitlist ignores an unknown segment' as check, (public.join_waitlist_v2('bo@example.com', null, null, null, 'hacker')->>'ok')::boolean as pass;
+-- Someone who knows Ana's email can't change what she told us.
+select 'waitlist details cannot be overwritten' as check, (public.join_waitlist_v2('ana@example.com', null, null, null, 'family', 'Other', 'spam')->>'already')::boolean as pass;
 do $$ begin
   perform 1 from public.waitlist_signups;
   raise notice 'CHECK visitors cannot read the waitlist: FAIL';
 exception when insufficient_privilege then raise notice 'CHECK visitors cannot read the waitlist: PASS'; end $$;
 reset role;
+select 'waitlist keeps the first details' as check, (select interest = 'investor' and organization = 'Heritage Fund' and note = 'Interested in a call' from public.waitlist_signups where email = 'ana@example.com') as pass;
+select 'waitlist drops an unknown segment' as check, (select interest is null from public.waitlist_signups where email = 'bo@example.com') as pass;
 set role authenticated;
 set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
 select 'non-admins see no waitlist rows' as check, count(*) = 0 as pass from public.waitlist_signups;
