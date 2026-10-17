@@ -39,7 +39,7 @@ describe('record matching', () => {
 
   it('uses years in the text when there are no structured facts', () => {
     const outside = scoreMatch(rosa, { title: 'Vega family papers', snippet: 'Letters from 1750 and 1761' });
-    expect(outside.evidence.some((e) => e.text.includes("outside this person's lifetime"))).toBe(true);
+    expect(outside.evidence.some((e) => e.text.includes("outside this person’s lifetime"))).toBe(true);
   });
 
   it('builds an explainer prompt that forbids invented facts', () => {

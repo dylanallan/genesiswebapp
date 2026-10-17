@@ -1,5 +1,6 @@
 // Finds likely mistakes in a family tree (impossible or unlikely dates, broken links, duplicates).
 // Pure function so it can be tested and run on very large imported trees in the browser.
+import { t } from './i18n';
 
 export interface CheckPerson {
   id: string;
@@ -32,14 +33,14 @@ export function checkTree(people: CheckPerson[], today = new Date()): TreeIssue[
     const by = year(p.birthDate);
     const dy = year(p.deathDate);
 
-    if (b !== null && b > today.getTime()) add(p, 'error', `${p.name} has a birth date in the future.`);
-    if (b !== null && d !== null && d < b) add(p, 'error', `${p.name} died (${dy}) before being born (${by}).`);
-    if (by && dy && dy - by > 115) add(p, 'warning', `${p.name} lived ${dy - by} years, which is very unlikely. Check the dates.`);
+    if (b !== null && b > today.getTime()) add(p, 'error', t('{name} has a birth date in the future.', { name: p.name }));
+    if (b !== null && d !== null && d < b) add(p, 'error', t('{name} died ({died}) before being born ({born}).', { name: p.name, died: dy ?? '', born: by ?? '' }));
+    if (by && dy && dy - by > 115) add(p, 'warning', t('{name} lived {n} years, which is very unlikely. Check the dates.', { name: p.name, n: dy - by }));
     if (by && !dy && p.isLiving !== false && thisYear - by > 110) {
-      add(p, 'warning', `${p.name} was born in ${by} and has no death date. Mark them as deceased if they have passed away.`);
+      add(p, 'warning', t('{name} was born in {year} and has no death date. Mark them as deceased if they have passed away.', { name: p.name, year: by }));
     }
-    if (p.parentIds.length > 2) add(p, 'warning', `${p.name} has ${p.parentIds.length} parents linked. Usually there are two.`);
-    if (p.parentIds.includes(p.id) || p.spouseIds.includes(p.id)) add(p, 'error', `${p.name} is linked to themselves.`);
+    if (p.parentIds.length > 2) add(p, 'warning', t('{name} has {n} parents linked. Usually there are two.', { name: p.name, n: p.parentIds.length }));
+    if (p.parentIds.includes(p.id) || p.spouseIds.includes(p.id)) add(p, 'error', t('{name} is linked to themselves.', { name: p.name }));
 
     for (const parentId of p.parentIds) {
       const parent = byId.get(parentId);
@@ -48,20 +49,20 @@ export function checkTree(people: CheckPerson[], today = new Date()): TreeIssue[
       const pd = time(parent.deathDate);
       const pby = year(parent.birthDate);
       if (b !== null && pb !== null && pb >= b) {
-        add(p, 'error', `${p.name} was born before their parent ${parent.name}.`);
+        add(p, 'error', t('{name} was born before their parent {parent}.', { name: p.name, parent: parent.name }));
       } else if (by && pby) {
         const age = by - pby;
-        if (age < 12) add(p, 'error', `${parent.name} would have been ${age} when ${p.name} was born.`);
-        else if (age < 15) add(p, 'warning', `${parent.name} would have been only ${age} when ${p.name} was born.`);
-        else if (age > 60 && parent.gender === 'female') add(p, 'warning', `${parent.name} would have been ${age} when ${p.name} was born.`);
-        else if (age > 80) add(p, 'warning', `${parent.name} would have been ${age} when ${p.name} was born.`);
+        if (age < 12) add(p, 'error', t('{parent} would have been {age} when {name} was born.', { parent: parent.name, age, name: p.name }));
+        else if (age < 15) add(p, 'warning', t('{parent} would have been only {age} when {name} was born.', { parent: parent.name, age, name: p.name }));
+        else if (age > 60 && parent.gender === 'female') add(p, 'warning', t('{parent} would have been {age} when {name} was born.', { parent: parent.name, age, name: p.name }));
+        else if (age > 80) add(p, 'warning', t('{parent} would have been {age} when {name} was born.', { parent: parent.name, age, name: p.name }));
       }
       // A father can die up to ~9 months before the birth; a mother cannot die before it.
       if (b !== null && pd !== null) {
         const allowance = parent.gender === 'male' ? 280 * DAY : 0;
-        if (pd + allowance < b) add(p, 'error', `${parent.name} died before ${p.name} was born.`);
+        if (pd + allowance < b) add(p, 'error', t('{parent} died before {name} was born.', { parent: parent.name, name: p.name }));
       }
-      if (p.parentIds.includes(parentId) && p.childrenIds.includes(parentId)) add(p, 'error', `${p.name} and ${parent.name} are linked as both parent and child.`);
+      if (p.parentIds.includes(parentId) && p.childrenIds.includes(parentId)) add(p, 'error', t('{name} and {parent} are linked as both parent and child.', { name: p.name, parent: parent.name }));
     }
   }
 
@@ -71,7 +72,7 @@ export function checkTree(people: CheckPerson[], today = new Date()): TreeIssue[
     const key = `${p.name.trim().toLowerCase().replace(/\s+/g, ' ')}|${year(p.birthDate) ?? ''}`;
     const other = seen.get(key);
     if (other && (year(p.birthDate) || p.parentIds.some((id) => other.parentIds.includes(id)))) {
-      issues.push({ personId: p.id, otherId: other.id, severity: 'warning', message: `${p.name} may be listed twice${year(p.birthDate) ? ` (both born ${year(p.birthDate)})` : ''}.` });
+      issues.push({ personId: p.id, otherId: other.id, severity: 'warning', message: year(p.birthDate) ? t('{name} may be listed twice (both born {year}).', { name: p.name, year: year(p.birthDate) ?? '' }) : t('{name} may be listed twice.', { name: p.name }) });
     } else if (!other) seen.set(key, p);
   }
   return issues;

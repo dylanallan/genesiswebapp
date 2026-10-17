@@ -1,6 +1,7 @@
 // Scores how well a found record matches a person in the tree, and says WHY: every point of agreement or
 // conflict is listed as evidence, so people (and the AI explainer) can judge it instead of trusting a black box.
 import type { AITask } from '../api/chat';
+import { t } from './i18n';
 
 export interface MatchPerson {
   name: string;
@@ -73,15 +74,15 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
   const surnameShown = shown.length > 1 ? shown[shown.length - 1] : shown[0] ?? surname;
   const givenShown = shown.length > 1 ? shown[0] : given;
   const recordWords = norm.split(' ');
-  if (surname && recordWords.includes(surname)) { score += 30; evidence.push({ kind: 'support', text: `Surname "${surnameShown}" matches exactly.` }); }
+  if (surname && recordWords.includes(surname)) { score += 30; evidence.push({ kind: 'support', text: t('Surname “{name}” matches exactly.', { name: surnameShown }) }); }
   // Sound-alike matching only against capitalised, name-like words, so "Moore" doesn't match the word "more".
   else if (surname && soundex(surname) && nameWords(text).some((w) => w.length >= 3 && soundex(w) === soundex(surname))) {
-    score += 18; evidence.push({ kind: 'support', text: `Surname sounds the same (a spelling variant of "${surnameShown}").` });
-  } else if (surname) { score -= 25; evidence.push({ kind: 'conflict', text: `Surname "${surnameShown}" does not appear.` }); }
+    score += 18; evidence.push({ kind: 'support', text: t('Surname sounds the same (a spelling variant of “{name}”).', { name: surnameShown }) });
+  } else if (surname) { score -= 25; evidence.push({ kind: 'conflict', text: t('Surname “{name}” does not appear.', { name: surnameShown }) }); }
   if (given) {
-    if (recordWords.includes(given)) { score += 20; evidence.push({ kind: 'support', text: `First name "${givenShown}" matches.` }); }
-    else if (recordWords.some((w) => sameGiven(w, given))) { score += 12; evidence.push({ kind: 'support', text: `First name is a known variant or nickname of "${givenShown}".` }); }
-    else { score -= 10; evidence.push({ kind: 'conflict', text: `First name "${givenShown}" does not appear.` }); }
+    if (recordWords.includes(given)) { score += 20; evidence.push({ kind: 'support', text: t('First name “{name}” matches.', { name: givenShown }) }); }
+    else if (recordWords.some((w) => sameGiven(w, given))) { score += 12; evidence.push({ kind: 'support', text: t('First name is a known variant or nickname of “{name}”.', { name: givenShown }) }); }
+    else { score -= 10; evidence.push({ kind: 'conflict', text: t('First name “{name}” does not appear.', { name: givenShown }) }); }
   }
 
   // Dates: structured facts first, otherwise years mentioned in the text.
@@ -89,10 +90,10 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
   const compareYear = (label: string, mine: number | null, theirs: number | null | undefined) => {
     if (!mine || !theirs) return;
     const diff = Math.abs(mine - theirs);
-    if (diff === 0) { score += 20; evidence.push({ kind: 'support', text: `${label} year ${theirs} matches exactly.` }); }
-    else if (diff <= 2) { score += 12; evidence.push({ kind: 'support', text: `${label} year ${theirs} is within ${diff} year${diff > 1 ? 's' : ''} (common in old records).` }); }
-    else if (diff <= 5) { score += 2; evidence.push({ kind: 'note', text: `${label} year ${theirs} differs by ${diff} years.` }); }
-    else { score -= 25; evidence.push({ kind: 'conflict', text: `${label} year ${theirs} is ${diff} years away from ${mine}.` }); }
+    if (diff === 0) { score += 20; evidence.push({ kind: 'support', text: t('{label} year {year} matches exactly.', { label: t(label), year: theirs }) }); }
+    else if (diff <= 2) { score += 12; evidence.push({ kind: 'support', text: diff > 1 ? t('{label} year {year} is within {n} years (common in old records).', { label: t(label), year: theirs, n: diff }) : t('{label} year {year} is within 1 year (common in old records).', { label: t(label), year: theirs }) }); }
+    else if (diff <= 5) { score += 2; evidence.push({ kind: 'note', text: t('{label} year {year} differs by {n} years.', { label: t(label), year: theirs, n: diff }) }); }
+    else { score -= 25; evidence.push({ kind: 'conflict', text: t('{label} year {year} is {n} years away from {mine}.', { label: t(label), year: theirs, n: diff, mine }) }); }
   };
   compareYear('Birth', person.birthYear, facts.birthYear);
   compareYear('Death', person.deathYear, facts.deathYear);
@@ -102,9 +103,9 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
     if (recordYear) years.push(recordYear);
     const lifeStart = person.birthYear ?? (person.deathYear ? person.deathYear - 100 : null);
     const lifeEnd = person.deathYear ?? (person.birthYear ? person.birthYear + 100 : null);
-    if (person.birthYear && years.some((y) => Math.abs(y - person.birthYear!) <= 1)) { score += 10; evidence.push({ kind: 'support', text: `Mentions a year close to the birth year (${person.birthYear}).` }); }
+    if (person.birthYear && years.some((y) => Math.abs(y - person.birthYear!) <= 1)) { score += 10; evidence.push({ kind: 'support', text: t('Mentions a year close to the birth year ({year}).', { year: person.birthYear }) }); }
     else if (lifeStart && lifeEnd && years.length && years.every((y) => y < lifeStart - 5 || y > lifeEnd + 5)) {
-      score -= 15; evidence.push({ kind: 'conflict', text: `Its dates (${[...new Set(years)].slice(0, 3).join(', ')}) fall outside this person's lifetime.` });
+      score -= 15; evidence.push({ kind: 'conflict', text: t('Its dates ({years}) fall outside this person’s lifetime.', { years: [...new Set(years)].slice(0, 3).join(', ') }) });
     }
   }
 
@@ -115,9 +116,9 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
     const shared = [...words(theirs ?? text)].filter((w) => a.has(w));
     if (shared.length) {
       score += theirs ? 15 : 8;
-      evidence.push({ kind: 'support', text: theirs ? `${label} place "${theirs}" matches "${mine}".` : `Mentions ${mine}.` });
+      evidence.push({ kind: 'support', text: theirs ? t('{label} place “{theirs}” matches “{mine}”.', { label: t(label), theirs, mine }) : t('Mentions {place}.', { place: mine }) });
     }
-    else if (theirs) { score -= 8; evidence.push({ kind: 'conflict', text: `${label} place "${theirs}" differs from "${mine}".` }); }
+    else if (theirs) { score -= 8; evidence.push({ kind: 'conflict', text: t('{label} place “{theirs}” differs from “{mine}”.', { label: t(label), theirs, mine }) }); }
   };
   comparePlace('Birth', person.birthPlace, facts.birthPlace);
   if (facts.deathPlace) comparePlace('Death', person.deathPlace, facts.deathPlace);
