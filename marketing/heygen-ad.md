@@ -43,6 +43,14 @@ About 75 words, roughly 30 seconds at a calm pace.
 
 > Save Grandma’s stories before they’re only a memory. Genesis Heritage records family voices, builds your tree and turns it into a family storybook. Free to start, private by default. Presenter is AI-generated. #familyhistory #genealogy #familystories
 
+## Production plan: HeyGen reference, then polish
+
+1. **HeyGen reference video.** Your own avatar, your own voice and your chosen HeyGen style, reading the lines above. This locks the face, voice and timing.
+2. **Polish in Higgsfield (or similar).** Use the reference as the base: camera moves, lighting, a warmer cinematic look and smoother motion, keeping the same face and voice. Never change what is said or add claims.
+3. **Cutaways.** Screen recordings of the live app for each line (listed in the tables), plus a few gentle B-roll shots: old photos on a table, a grandmother and grandchild looking at a phone.
+4. **Edit.** Captions burned in, the “AI presenter” label for the first 3 seconds, end card with the link.
+5. **Review, then post.** Watch it all the way through, check every claim against the app, and make two or three variations to test.
+
 ## Before publishing
 
 - Watch it all the way through. Check the captions and that each cutaway matches what is said.
