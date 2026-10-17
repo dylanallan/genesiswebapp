@@ -1,5 +1,5 @@
 // Cache bust: 2024-07-01-1
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Home, 
@@ -114,99 +114,109 @@ import { supabase } from '../lib/supabase';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
 import { useSession } from '../lib/session-context';
 import { cn } from '../lib/utils';
-import { CulturalArtifactGallery } from './CulturalArtifactGallery';
-import { TraditionsManager } from './TraditionsManager';
-import { FamilyContactManager } from './FamilyContactManager';
-import { CelebrationManager } from './CelebrationManager';
-import { CulturalStoryLibrary } from './CulturalStoryLibrary';
-import { CulturalRecipeBook } from './CulturalRecipeBook';
-import { TimelineBuilder } from './TimelineBuilder';
-import { AutomationHub } from './AutomationHub';
-import { UserProfileManager } from './UserProfileManager';
 import { ErrorBoundary } from '../lib/error-boundary';
 import { chatApi } from '../api/chat';
-import { FamilyTreeAnalyzer } from './FamilyTreeAnalyzer';
-import { FamilyTreeVisualizer } from './FamilyTreeVisualizer';
-import { VoiceAgent } from './VoiceAgent';
-import { MediaGallery } from './MediaGallery';
-import { WorkflowGenerator } from './WorkflowGenerator';
-import { AISettings } from './AISettings';
-import { SystemHealthMonitor } from './SystemHealthMonitor';
-import { AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
-import { AIUsageStats } from './AIUsageStats';
-import { AIContextManager } from './AIContextManager';
-import { GenesisVoiceAssistant } from './GenesisVoiceAssistant';
-import { FamilyPhotoAnalyzer } from './FamilyPhotoAnalyzer';
-import { DNAInsights } from './DNAInsights';
-import { ConversationSummarizer } from './ConversationSummarizer';
-import { ARHeritageViewer } from './ARHeritageViewer';
-import { N8NIntegration } from './N8NIntegration';
-import { StartupAdvisor } from './StartupAdvisor';
-import { MarketingAutomation } from './MarketingAutomation';
-import { EnterpriseROICalculator } from './EnterpriseROICalculator';
-import EnterpriseValueProposition from './EnterpriseValueProposition';
-import EnterpriseFeatureComparison from './EnterpriseFeatureComparison';
-import EnterprisePricingPanel from './EnterprisePricingPanel';
-import EnterpriseMetricsPanel from './EnterpriseMetricsPanel';
-import EnterpriseDemo from './EnterpriseDemo';
-import HackathonDemoPage from './HackathonDemoPage';
-import HackathonLandingPage from './HackathonLandingPage';
-import HackathonPitch from './HackathonPitch';
-import EliteHackathonApp from './EliteHackathonApp';
-import { FamilyTreeVoiceAgent } from './FamilyTreeVoiceAgent';
-import { FlowBuilder } from './FlowBuilder';
-import { AutomationInterface } from './AutomationInterface';
-import { AutomationDashboard } from './AutomationDashboard';
-import { AutomationFlow } from './AutomationFlow';
-import { AIAdminDashboard } from './AIAdminDashboard';
-import { AICustomInstructionsEditor } from './AICustomInstructionsEditor';
-import { AIFeedbackAnalytics } from './AIFeedbackAnalytics';
-import { AISystemHealth } from './AISystemHealth';
-import { BackendStatusIndicator } from './BackendStatusIndicator';
-import { ColorSettings } from './ColorSettings';
-import { CulturalArtifactForm } from './CulturalArtifactForm';
-import { DataTable } from './DataTable';
-import { EmptyState } from './EmptyState';
-import { LoadingSpinner } from './LoadingSpinner';
-import { MetricsCard } from './MetricsCard';
-import { PaymentForm } from './PaymentForm';
-import { ProfileEditor } from './ProfileEditor';
-import { ProfileHistoryViewer } from './ProfileHistoryViewer';
-import { SEO } from './SEO';
-import { SystemDashboard } from './SystemDashboard';
-import { UserProfile } from './UserProfile';
-import { UserSettings } from './UserSettings';
-import { VideoPlayer } from './VideoPlayer';
-import { VoiceCloning } from './VoiceCloning';
-import { VoiceRecorder } from './VoiceRecorder';
-import { AudioPlayer } from './AudioPlayer';
-import { MediaPlayer } from './MediaPlayer';
-import { MediaUploader } from './MediaUploader';
-import { MediaDemo } from './MediaDemo';
-import SettingsPanel from './Settings';
-import RecordsSearch from './RecordsSearch';
-import AdminPayments from './AdminPayments';
-import { AdminWaitlist } from './AdminWaitlist';
-import { AskRelative } from './AskRelative';
-import { RecordHints } from './RecordHints';
-import TreeImport from './TreeImport';
-import FamilySharing from './FamilySharing';
-import FamilyStorybook from './FamilyStorybook';
-import FamilyInterview from './FamilyInterview';
-import PrivacyCenter from './PrivacyCenter';
 import GetStarted from './GetStarted';
-import TreeCheckup from './TreeCheckup';
-import ResearchAssistant from './ResearchAssistant';
-import PedigreeChart from './PedigreeChart';
-import FamilyMap from './FamilyMap';
-import HeritageMix from './HeritageMix';
-import FamilyFacts from './FamilyFacts';
-import MyAccount from './MyAccount';
-import FamilySearch from './FamilySearch';
-import PhotoRestore from './PhotoRestore';
-import LifeStory from './LifeStory';
 import { useSearchParams } from 'react-router-dom';
-import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
+
+// Each screen loads only when it is opened, so the dashboard itself opens fast (especially on phones).
+const CulturalArtifactGallery = lazy(() => import('./CulturalArtifactGallery').then((m) => ({ default: m.CulturalArtifactGallery })));
+const TraditionsManager = lazy(() => import('./TraditionsManager').then((m) => ({ default: m.TraditionsManager })));
+const FamilyContactManager = lazy(() => import('./FamilyContactManager').then((m) => ({ default: m.FamilyContactManager })));
+const CelebrationManager = lazy(() => import('./CelebrationManager').then((m) => ({ default: m.CelebrationManager })));
+const CulturalStoryLibrary = lazy(() => import('./CulturalStoryLibrary').then((m) => ({ default: m.CulturalStoryLibrary })));
+const CulturalRecipeBook = lazy(() => import('./CulturalRecipeBook').then((m) => ({ default: m.CulturalRecipeBook })));
+const TimelineBuilder = lazy(() => import('./TimelineBuilder').then((m) => ({ default: m.TimelineBuilder })));
+const AutomationHub = lazy(() => import('./AutomationHub').then((m) => ({ default: m.AutomationHub })));
+const UserProfileManager = lazy(() => import('./UserProfileManager').then((m) => ({ default: m.UserProfileManager })));
+const FamilyTreeAnalyzer = lazy(() => import('./FamilyTreeAnalyzer').then((m) => ({ default: m.FamilyTreeAnalyzer })));
+const FamilyTreeVisualizer = lazy(() => import('./FamilyTreeVisualizer').then((m) => ({ default: m.FamilyTreeVisualizer })));
+const VoiceAgent = lazy(() => import('./VoiceAgent').then((m) => ({ default: m.VoiceAgent })));
+const MediaGallery = lazy(() => import('./MediaGallery').then((m) => ({ default: m.MediaGallery })));
+const WorkflowGenerator = lazy(() => import('./WorkflowGenerator').then((m) => ({ default: m.WorkflowGenerator })));
+const AISettings = lazy(() => import('./AISettings').then((m) => ({ default: m.AISettings })));
+const SystemHealthMonitor = lazy(() => import('./SystemHealthMonitor').then((m) => ({ default: m.SystemHealthMonitor })));
+const AdvancedAnalyticsDashboard = lazy(() => import('./AdvancedAnalyticsDashboard').then((m) => ({ default: m.AdvancedAnalyticsDashboard })));
+const AIUsageStats = lazy(() => import('./AIUsageStats').then((m) => ({ default: m.AIUsageStats })));
+const AIContextManager = lazy(() => import('./AIContextManager').then((m) => ({ default: m.AIContextManager })));
+const GenesisVoiceAssistant = lazy(() => import('./GenesisVoiceAssistant').then((m) => ({ default: m.GenesisVoiceAssistant })));
+const FamilyPhotoAnalyzer = lazy(() => import('./FamilyPhotoAnalyzer').then((m) => ({ default: m.FamilyPhotoAnalyzer })));
+const DNAInsights = lazy(() => import('./DNAInsights').then((m) => ({ default: m.DNAInsights })));
+const ConversationSummarizer = lazy(() => import('./ConversationSummarizer').then((m) => ({ default: m.ConversationSummarizer })));
+const ARHeritageViewer = lazy(() => import('./ARHeritageViewer').then((m) => ({ default: m.ARHeritageViewer })));
+const N8NIntegration = lazy(() => import('./N8NIntegration').then((m) => ({ default: m.N8NIntegration })));
+const StartupAdvisor = lazy(() => import('./StartupAdvisor').then((m) => ({ default: m.StartupAdvisor })));
+const MarketingAutomation = lazy(() => import('./MarketingAutomation').then((m) => ({ default: m.MarketingAutomation })));
+const EnterpriseROICalculator = lazy(() => import('./EnterpriseROICalculator').then((m) => ({ default: m.EnterpriseROICalculator })));
+const EnterpriseValueProposition = lazy(() => import('./EnterpriseValueProposition'));
+const EnterpriseFeatureComparison = lazy(() => import('./EnterpriseFeatureComparison'));
+const EnterprisePricingPanel = lazy(() => import('./EnterprisePricingPanel'));
+const EnterpriseMetricsPanel = lazy(() => import('./EnterpriseMetricsPanel'));
+const EnterpriseDemo = lazy(() => import('./EnterpriseDemo'));
+const HackathonDemoPage = lazy(() => import('./HackathonDemoPage'));
+const HackathonLandingPage = lazy(() => import('./HackathonLandingPage'));
+const HackathonPitch = lazy(() => import('./HackathonPitch'));
+const EliteHackathonApp = lazy(() => import('./EliteHackathonApp'));
+const FamilyTreeVoiceAgent = lazy(() => import('./FamilyTreeVoiceAgent').then((m) => ({ default: m.FamilyTreeVoiceAgent })));
+const FlowBuilder = lazy(() => import('./FlowBuilder').then((m) => ({ default: m.FlowBuilder })));
+const AutomationInterface = lazy(() => import('./AutomationInterface').then((m) => ({ default: m.AutomationInterface })));
+const AutomationDashboard = lazy(() => import('./AutomationDashboard').then((m) => ({ default: m.AutomationDashboard })));
+const AutomationFlow = lazy(() => import('./AutomationFlow').then((m) => ({ default: m.AutomationFlow })));
+const AIAdminDashboard = lazy(() => import('./AIAdminDashboard').then((m) => ({ default: m.AIAdminDashboard })));
+const AICustomInstructionsEditor = lazy(() => import('./AICustomInstructionsEditor').then((m) => ({ default: m.AICustomInstructionsEditor })));
+const AIFeedbackAnalytics = lazy(() => import('./AIFeedbackAnalytics').then((m) => ({ default: m.AIFeedbackAnalytics })));
+const AISystemHealth = lazy(() => import('./AISystemHealth').then((m) => ({ default: m.AISystemHealth })));
+const BackendStatusIndicator = lazy(() => import('./BackendStatusIndicator').then((m) => ({ default: m.BackendStatusIndicator })));
+const ColorSettings = lazy(() => import('./ColorSettings').then((m) => ({ default: m.ColorSettings })));
+const CulturalArtifactForm = lazy(() => import('./CulturalArtifactForm').then((m) => ({ default: m.CulturalArtifactForm })));
+const DataTable = lazy(() => import('./DataTable').then((m) => ({ default: m.DataTable })));
+const EmptyState = lazy(() => import('./EmptyState').then((m) => ({ default: m.EmptyState })));
+const LoadingSpinner = lazy(() => import('./LoadingSpinner').then((m) => ({ default: m.LoadingSpinner })));
+const MetricsCard = lazy(() => import('./MetricsCard').then((m) => ({ default: m.MetricsCard })));
+const PaymentForm = lazy(() => import('./PaymentForm').then((m) => ({ default: m.PaymentForm })));
+const ProfileEditor = lazy(() => import('./ProfileEditor').then((m) => ({ default: m.ProfileEditor })));
+const ProfileHistoryViewer = lazy(() => import('./ProfileHistoryViewer').then((m) => ({ default: m.ProfileHistoryViewer })));
+const SEO = lazy(() => import('./SEO').then((m) => ({ default: m.SEO })));
+const SystemDashboard = lazy(() => import('./SystemDashboard').then((m) => ({ default: m.SystemDashboard })));
+const UserProfile = lazy(() => import('./UserProfile').then((m) => ({ default: m.UserProfile })));
+const UserSettings = lazy(() => import('./UserSettings').then((m) => ({ default: m.UserSettings })));
+const VideoPlayer = lazy(() => import('./VideoPlayer').then((m) => ({ default: m.VideoPlayer })));
+const VoiceCloning = lazy(() => import('./VoiceCloning').then((m) => ({ default: m.VoiceCloning })));
+const VoiceRecorder = lazy(() => import('./VoiceRecorder').then((m) => ({ default: m.VoiceRecorder })));
+const AudioPlayer = lazy(() => import('./AudioPlayer').then((m) => ({ default: m.AudioPlayer })));
+const MediaPlayer = lazy(() => import('./MediaPlayer').then((m) => ({ default: m.MediaPlayer })));
+const MediaUploader = lazy(() => import('./MediaUploader').then((m) => ({ default: m.MediaUploader })));
+const MediaDemo = lazy(() => import('./MediaDemo').then((m) => ({ default: m.MediaDemo })));
+const SettingsPanel = lazy(() => import('./Settings'));
+const RecordsSearch = lazy(() => import('./RecordsSearch'));
+const AdminPayments = lazy(() => import('./AdminPayments'));
+const AdminWaitlist = lazy(() => import('./AdminWaitlist').then((m) => ({ default: m.AdminWaitlist })));
+const AskRelative = lazy(() => import('./AskRelative').then((m) => ({ default: m.AskRelative })));
+const RecordHints = lazy(() => import('./RecordHints').then((m) => ({ default: m.RecordHints })));
+const TreeImport = lazy(() => import('./TreeImport'));
+const FamilySharing = lazy(() => import('./FamilySharing'));
+const FamilyStorybook = lazy(() => import('./FamilyStorybook'));
+const FamilyInterview = lazy(() => import('./FamilyInterview'));
+const PrivacyCenter = lazy(() => import('./PrivacyCenter'));
+const TreeCheckup = lazy(() => import('./TreeCheckup'));
+const ResearchAssistant = lazy(() => import('./ResearchAssistant'));
+const PedigreeChart = lazy(() => import('./PedigreeChart'));
+const FamilyMap = lazy(() => import('./FamilyMap'));
+const HeritageMix = lazy(() => import('./HeritageMix'));
+const FamilyFacts = lazy(() => import('./FamilyFacts'));
+const MyAccount = lazy(() => import('./MyAccount'));
+const FamilySearch = lazy(() => import('./FamilySearch'));
+const PhotoRestore = lazy(() => import('./PhotoRestore'));
+const LifeStory = lazy(() => import('./LifeStory'));
+const SavedRecordsTableFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SavedRecordsTableFeature })));
+const SEOFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SEOFeature })));
+const FamilyTreeFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.FamilyTreeFeature })));
+const ROICalculatorFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.ROICalculatorFeature })));
+const MetricsFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.MetricsFeature })));
+const VideoFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.VideoFeature })));
+const AudioFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.AudioFeature })));
+const MediaFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.MediaFeature })));
+const SummarizerFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SummarizerFeature })));
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
@@ -1110,12 +1120,14 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           <div className="lg:col-span-2">
             {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
             <ErrorBoundary key={activeFeature}>
-              {activeEntry.id === 'welcome' ? <GetStarted open={open} /> : activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
+              <Suspense fallback={<p className="p-6 text-gray-600" role="status">{t('Loading…')}</p>}>
+              {activeEntry.id === 'welcome' ? <GetStarted open={open} /> : activeEntry.render ? activeEntry.render(closeFeature) : ActiveComponent ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
                   <h2 className="text-xl font-bold mb-2">Component Error</h2>
                   <p>Feature component is not available or is not a valid React component.</p>
                 </div>
               )}
+              </Suspense>
             </ErrorBoundary>
             
           </div>

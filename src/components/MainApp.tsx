@@ -18,10 +18,7 @@ const ComparePage = React.lazy(() => import('./ComparePage'));
 const PartnersPage = React.lazy(() => import('./PartnersPage'));
 
 // Screens load only when someone opens them, so the first page on a phone downloads as little as possible.
-const GenesisHome = lazy(() => import('./GenesisHome'));
 const Dashboard = lazy(() => import('./Dashboard'));
-const EliteHackathonApp = lazy(() => import('./EliteHackathonApp'));
-const GlobalIntelligenceDashboard = lazy(() => import('./GlobalIntelligenceDashboard'));
 const PricingPage = lazy(() => import('./PricingPage'));
 const AnswerMemories = lazy(() => import('./AnswerMemories').then((m) => ({ default: m.AnswerMemories })));
 const PrivacyPolicy = lazy(() => import('./LegalPages').then((m) => ({ default: m.PrivacyPolicy })));
@@ -323,10 +320,9 @@ export const MainApp: React.FC = () => {
           <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/join/:token" element={<JoinFamily />} />
-            <Route path="/" element={<GenesisHome />} />
+            {/* Signed in: straight to the family dashboard. The old showcase home and demo pages are not for customers. */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
-            <Route path="/hackathon" element={<EliteHackathonApp />} />
-            <Route path="/intelligence" element={<GlobalIntelligenceDashboard />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

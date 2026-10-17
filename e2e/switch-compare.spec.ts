@@ -14,8 +14,8 @@ test('the switch guide explains both sites and leads to sign-up', async ({ page 
   await installMockBackend(page, fresh());
   await page.goto('/switch');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Move your tree from Ancestry or MyHeritage in 5 minutes');
-  await expect(page.getByRole('heading', { name: 'From Ancestry' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'From MyHeritage' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'From Ancestry', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'From MyHeritage', exact: true })).toBeVisible();
   await expect(page.getByText(/not inside a GEDCOM file/)).toBeVisible();
   await page.getByRole('link', { name: /Create my free account and import/ }).click();
   await expect(page.getByRole('button', { name: 'Create Account' })).toBeVisible();

@@ -178,10 +178,13 @@ test('record hints: finds likely records for people in the tree, with evidence, 
   }
 });
 
-test('signed-in user lands on home and sees their plan', async ({ page }) => {
+test('signed-in user goes straight to their family dashboard and sees their plan', async ({ page }) => {
   current = 'home';
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /dashboard/i }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByTestId('category-menu')).toBeVisible();
+  // The old showcase page (with made-up numbers) and the demo pages are not shown to customers.
+  await expect(page.getByText('Active Users')).toHaveCount(0);
   await expect(page.getByText('Free', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Upgrade' })).toBeVisible();
 });
