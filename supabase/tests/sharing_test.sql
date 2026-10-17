@@ -145,3 +145,15 @@ do $$ begin
   raise notice 'CHECK stranger cannot merge: FAIL';
 exception when others then raise notice 'CHECK stranger cannot merge: PASS'; end $$;
 reset role;
+
+-- Security hardening: a signed-in person can't search everyone's AI conversations. The test files grant every
+-- function to signed-in users first (like Supabase's defaults), so the hardening is applied again on top, as it is live.
+reset role;
+\ir ../migrations/20250701002400_security_hardening.sql
+set role authenticated;
+set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
+do $$ begin
+  perform public.find_similar_messages(null, 0.5, 5, null);
+  raise notice 'CHECK conversation search blocked for users: FAIL';
+exception when insufficient_privilege then raise notice 'CHECK conversation search blocked for users: PASS'; end $$;
+reset role;
