@@ -232,6 +232,13 @@ export function toGedcom(rows: ExportPerson[]): string {
     }
   }
   const famXref = new Map([...families.keys()].map((k, i) => [k, `@F${i + 1}@`]));
+  // Each person's family links, worked out once (checking every family for every person is far too slow on big trees).
+  const famLinks = new Map<string, string[]>();
+  const addLink = (id: string, line: string) => famLinks.set(id, [...(famLinks.get(id) ?? []), line]);
+  for (const [key, f] of families) {
+    for (const c of f.children) addLink(c, `1 FAMC ${famXref.get(key)}`);
+    for (const p of f.partners) addLink(p, `1 FAMS ${famXref.get(key)}`);
+  }
 
   for (const r of rows) {
     out.push(`0 ${xref.get(r.id)} INDI`);
@@ -249,10 +256,7 @@ export function toGedcom(rows: ExportPerson[]): string {
       if (r.death_location) out.push(`2 PLAC ${oneLine(r.death_location)}`);
     }
     if (r.notes) out.push(...gedLines(1, 'NOTE', r.notes));
-    for (const [key, f] of families) {
-      if (f.children.includes(r.id)) out.push(`1 FAMC ${famXref.get(key)}`);
-      if (f.partners.includes(r.id)) out.push(`1 FAMS ${famXref.get(key)}`);
-    }
+    out.push(...(famLinks.get(r.id) ?? []));
   }
 
   const genderOf = new Map(rows.map((r) => [r.id, r.gender]));

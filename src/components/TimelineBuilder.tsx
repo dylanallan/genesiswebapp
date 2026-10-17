@@ -23,6 +23,7 @@ interface TimelineEvent {
 
 export const TimelineBuilder: React.FC = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [shown, setShown] = useState(200); // big trees have thousands of events; drawing them all at once freezes phones
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [newEvent, setNewEvent] = useState<Partial<TimelineEvent>>({
@@ -231,7 +232,7 @@ export const TimelineBuilder: React.FC = () => {
               Your family timeline will appear here. Add birth and death dates on the family tree, or press "Add event" to record a wedding, a move or any special moment.
             </p>
           )}
-          {events.map((event, index) => (
+          {events.slice(0, shown).map((event, index) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, x: -20 }}
@@ -291,6 +292,12 @@ export const TimelineBuilder: React.FC = () => {
               </div>
             </motion.div>
           ))}
+          {events.length > shown && (
+            <div className="relative text-center">
+              <p className="text-sm text-gray-500 mb-2">Showing {shown.toLocaleString()} of {events.length.toLocaleString()} events.</p>
+              <button onClick={() => setShown((n) => n + 200)} className="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50">Show more</button>
+            </div>
+          )}
         </div>
       </div>
     </div>

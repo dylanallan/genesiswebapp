@@ -127,7 +127,12 @@ export async function installMockBackend(page: Page, state: MockState) {
       }
       if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111', token: 'tok123' }];
       if (wantsObject) return rows.length ? json(route, rows[0]) : json(route, { code: 'PGRST116', message: 'no rows' }, 406);
-      return json(route, rows, 200, { 'content-range': `0-${Math.max(rows.length - 1, 0)}/${rows.length}` });
+      // Page like the real database: ?offset=&limit= (from .range() and .limit()).
+      const total = rows.length;
+      const offset = Number(url.searchParams.get('offset') ?? 0);
+      const limit = url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : total;
+      rows = rows.slice(offset, offset + limit);
+      return json(route, rows, 200, { 'content-range': `${offset}-${Math.max(offset + rows.length - 1, offset)}/${total}` });
     }
     if (path.startsWith('/storage/v1/object/sign/')) return json(route, { signedURL: '/icons/icon-512x512.png' });
     if (path.startsWith('/storage/v1/object/list/')) {

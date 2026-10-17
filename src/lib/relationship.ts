@@ -20,7 +20,23 @@ export interface Relationship {
 
 const MAX_DEPTH = 15;
 
+// Worked-out answers are remembered per family (per lookup table), so asking about thousands of people in a big
+// tree stays fast. A new family list builds a new table, so nothing stale is ever reused.
+const ancestorCache = new WeakMap<Map<string, KinPerson>, Map<string, Map<string, number>>>();
+const childrenCache = new WeakMap<Map<string, KinPerson>, Map<string, string[]>>();
+const tableCache = new WeakMap<KinPerson[], Map<string, KinPerson>>();
+
+function lookup(people: KinPerson[]): Map<string, KinPerson> {
+  let byId = tableCache.get(people);
+  if (!byId) { byId = new Map(people.map((p) => [p.id, p])); tableCache.set(people, byId); }
+  return byId;
+}
+
 function ancestors(id: string, byId: Map<string, KinPerson>): Map<string, number> {
+  let cache = ancestorCache.get(byId);
+  if (!cache) { cache = new Map(); ancestorCache.set(byId, cache); }
+  const known = cache.get(id);
+  if (known) return known;
   const depth = new Map<string, number>([[id, 0]]);
   let frontier = [id];
   for (let d = 1; d <= MAX_DEPTH && frontier.length; d++) {
@@ -32,6 +48,7 @@ function ancestors(id: string, byId: Map<string, KinPerson>): Map<string, number
     }
     frontier = next;
   }
+  cache.set(id, depth);
   return depth;
 }
 
@@ -73,13 +90,16 @@ function blood(me: KinPerson, them: KinPerson, byId: Map<string, KinPerson>): Bl
   const mine = ancestors(me.id, byId);
   const theirs = ancestors(them.id, byId);
   let best: { dm: number; dt: number } | null = null;
-  for (const [id, dm] of mine) {
-    const dt = theirs.get(id);
-    if (dt === undefined) continue;
+  // Walk the smaller of the two ancestor lists (a person deep in a big tree has few ancestors; "me" may have thousands).
+  const pairsOf = mine.size <= theirs.size
+    ? [...mine].map(([id, dm]) => [dm, theirs.get(id)] as const)
+    : [...theirs].map(([id, dt]) => [mine.get(id), dt] as const);
+  for (const [dm, dt] of pairsOf) {
+    if (dm === undefined || dt === undefined) continue;
     if (!best || dm + dt < best.dm + best.dt || (dm + dt === best.dm + best.dt && Math.abs(dm - dt) < Math.abs(best.dm - best.dt))) best = { dm, dt };
   }
   if (!best) return null;
-  const shared = [...mine].filter(([id, d]) => d === best!.dm && theirs.get(id) === best!.dt).map(([id]) => id);
+  const shared = [...(mine.size <= theirs.size ? mine : theirs).keys()].filter((id) => mine.get(id) === best!.dm && theirs.get(id) === best!.dt);
   // Through one shared ancestor instead of a couple: half relatives. Only say "half" when both lines are fully known.
   const half = best.dm > 0 && best.dt > 0 && shared.length === 1 && hasBothParents(me.id, shared[0], byId) && hasBothParents(them.id, shared[0], byId);
   // Each shared ancestor passes on 0.5^(steps) of DNA. Assume a full couple unless we know it's a half relationship;
@@ -140,7 +160,7 @@ const SPOUSE_OF_RELATIVE: Record<string, (g: string | null) => string> = {
 };
 
 export function findRelationship(meId: string, themId: string, people: KinPerson[]): Relationship | null {
-  const byId = new Map(people.map((p) => [p.id, p]));
+  const byId = lookup(people);
   const me = byId.get(meId), them = byId.get(themId);
   if (!me || !them) return null;
   if (me.id === them.id) return { label: 'you', path: [me.name], sharedAncestors: [], dnaPercent: 100, kind: 'self' };
@@ -199,8 +219,13 @@ export function findRelationship(meId: string, themId: string, people: KinPerson
 }
 
 function marriageChain(from: string, to: string, byId: Map<string, KinPerson>): string[] | null {
-  const children = new Map<string, string[]>();
-  for (const p of byId.values()) for (const par of p.parentIds) children.set(par, [...(children.get(par) ?? []), p.id]);
+  let children = childrenCache.get(byId);
+  if (!children) {
+    const built = new Map<string, string[]>();
+    for (const p of byId.values()) for (const par of p.parentIds) { const list = built.get(par); if (list) list.push(p.id); else built.set(par, [p.id]); }
+    childrenCache.set(byId, built);
+    children = built;
+  }
   const prev = new Map<string, string | null>([[from, null]]);
   let frontier = [from];
   for (let step = 0; step < 12 && frontier.length && !prev.has(to); step++) {
