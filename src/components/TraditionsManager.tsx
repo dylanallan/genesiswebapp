@@ -157,7 +157,7 @@ export const TraditionsManager: React.FC = () => {
               participants: []
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>Add Tradition</span>
@@ -190,7 +190,7 @@ export const TraditionsManager: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add Tradition
@@ -417,7 +417,7 @@ export const TraditionsManager: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {isEditing ? 'Update Tradition' : 'Save Tradition'}
                   </button>

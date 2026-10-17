@@ -159,7 +159,7 @@ export const VoiceCloning: React.FC = () => {
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isProcessing}
               aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isRecording ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'} disabled:opacity-50`}
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isRecording ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'} disabled:opacity-50`}
             >
               {isProcessing ? <Loader2 className="w-8 h-8 animate-spin" /> : <Mic className="w-8 h-8" />}
             </button>

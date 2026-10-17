@@ -399,6 +399,8 @@ What would you like to find out?`,
             </div>
             <button
               type="submit"
+              aria-label="Send"
+              title="Send"
               disabled={isLoading || !input.trim()}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
             >

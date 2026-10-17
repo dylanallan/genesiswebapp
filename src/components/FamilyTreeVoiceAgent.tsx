@@ -381,6 +381,9 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowFamilyTree(!showFamilyTree)}
+              aria-label={showFamilyTree ? 'Hide the family tree' : 'Show the family tree'}
+              aria-pressed={showFamilyTree}
+              title={showFamilyTree ? 'Hide the family tree' : 'Show the family tree'}
               className={`p-2 rounded-lg transition-colors ${
                 showFamilyTree 
                   ? 'bg-blue-100 text-blue-600' 
@@ -391,6 +394,9 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
             </button>
             <button
               onClick={toggleMute}
+              aria-label={isMuted ? 'Turn spoken replies on' : 'Turn spoken replies off'}
+              aria-pressed={isMuted}
+              title={isMuted ? 'Turn spoken replies on' : 'Turn spoken replies off'}
               className={`p-2 rounded-lg transition-colors ${
                 isMuted 
                   ? 'bg-red-100 text-red-600' 
@@ -558,10 +564,12 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
               whileTap={{ scale: 0.95 }}
               onClick={toggleListening}
               disabled={isProcessing}
+              aria-label={isListening ? 'Stop listening' : 'Start talking'}
+              title={isListening ? 'Stop listening' : 'Start talking'}
               className={`w-24 h-24 rounded-full flex items-center justify-center transition-colors ${
                 isListening
                   ? 'bg-red-500 text-white'
-                  : 'bg-blue-500 text-white'
+                  : 'bg-blue-600 text-white'
               } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isProcessing ? (

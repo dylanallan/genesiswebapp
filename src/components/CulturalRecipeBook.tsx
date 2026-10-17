@@ -233,7 +233,7 @@ export const CulturalRecipeBook: React.FC = () => {
         </div>
         <button
           onClick={handleAddRecipe}
-          className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>Add Recipe</span>
@@ -379,7 +379,7 @@ export const CulturalRecipeBook: React.FC = () => {
                 <ol className="space-y-3">
                   {selectedRecipe.instructions.map((instruction, index) => (
                     <li key={index} className="flex space-x-3">
-                      <span className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                      <span className="flex-shrink-0 w-6 h-6 bg-orange-700 text-white rounded-full flex items-center justify-center text-sm font-medium">
                         {index + 1}
                       </span>
                       <span className="text-gray-700">{instruction}</span>
@@ -517,7 +517,7 @@ export const CulturalRecipeBook: React.FC = () => {
               <button type="button" onClick={closeForm} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Cancel
               </button>
-              <button type="submit" disabled={isLoading} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
+              <button type="submit" disabled={isLoading} className="px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 disabled:opacity-50">
                 {isLoading ? 'Saving...' : 'Save recipe'}
               </button>
             </div>

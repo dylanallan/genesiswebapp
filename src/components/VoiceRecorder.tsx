@@ -179,10 +179,12 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               <button
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isProcessing}
+                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                title={isRecording ? 'Stop recording' : 'Start recording'}
                 className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
                   isRecording 
                     ? 'bg-red-500 text-white animate-pulse' 
-                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                 } transition-colors`}
               >
                 {isProcessing ? (
@@ -217,7 +219,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 <div className="flex items-center justify-center space-x-4 mb-4">
                   <button
                     onClick={playRecording}
-                    className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                    className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
                   >
                     {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                   </button>
@@ -231,7 +233,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                   <button
                     onClick={saveRecording}
                     disabled={isProcessing}
-                    className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                    className="flex items-center space-x-1 px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50"
                   >
                     {isProcessing ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

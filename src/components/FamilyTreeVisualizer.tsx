@@ -247,6 +247,8 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
               downloadAnchorNode.remove();
               toast.success('Family tree exported successfully');
             }}
+            aria-label="Download this list"
+            title="Download this list"
             className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Download className="w-5 h-5" />
