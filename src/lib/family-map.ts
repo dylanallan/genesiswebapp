@@ -1,5 +1,6 @@
 // Turns a family tree plus place coordinates into map pins (who was born or died where) and migration
 // lines (from a parent's birthplace to their child's), so a family's journey can be drawn over time.
+import { t } from './i18n';
 
 export interface MapPersonInput {
   id: string;
@@ -56,7 +57,7 @@ export function buildFamilyMap(people: MapPersonInput[], coords: Record<string, 
       const k = `${placeKey(parent.birthPlace!)}>${placeKey(child.birthPlace!)}`;
       if (seen.has(k)) continue;
       seen.add(k);
-      moves.push({ childId: child.id, from, to, year: child.birthYear, label: `${parent.birthPlace} → ${child.birthPlace}${child.birthYear ? ` (by ${child.birthYear})` : ''}` });
+      moves.push({ childId: child.id, from, to, year: child.birthYear, label: `${parent.birthPlace} → ${child.birthPlace}${child.birthYear ? ` ${t('(by {year})', { year: child.birthYear })}` : ''}` });
     }
   }
 

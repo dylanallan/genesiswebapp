@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { ShieldCheck, Download, Trash2, Archive } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
-import { downloadFile, exportTreeAsGedcom, treeAsGedcom } from './TreeImport';
 import { t, useLang } from '../lib/i18n';
-import { listAllFiles, makeZip, MEDIA_BUCKETS, README, zipPath, type ListFn } from '../lib/full-export';
+import type { ListFn } from '../lib/full-export';
+
+// The home page shows the privacy promises from this file, so the download tools load only when a download starts.
+const exportTools = () => import('./TreeImport');
+const zipTools = () => import('../lib/full-export');
 
 export const PRIVACY_PROMISES = [
   'We never sell your data or your family\'s data. Not to advertisers, not to insurers, not to anyone.',
@@ -30,6 +33,7 @@ export const PrivacyCenter: React.FC = () => {
       setZipProgress(t('Gathering your saved data…'));
       const { data, error } = await supabase.rpc('export_my_data');
       if (error) throw error;
+      const [{ treeAsGedcom, downloadFile }, { listAllFiles, makeZip, MEDIA_BUCKETS, README, zipPath }] = await Promise.all([exportTools(), zipTools()]);
       const tree = await treeAsGedcom();
       const files: Record<string, Uint8Array | string> = {
         'README.txt': README,
@@ -70,6 +74,7 @@ export const PrivacyCenter: React.FC = () => {
     try {
       const { data, error } = await supabase.rpc('export_my_data');
       if (error) throw error;
+      const { downloadFile } = await exportTools();
       downloadFile(`genesis-heritage-my-data-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2), 'application/json');
       toast.success(t('Your data has been downloaded'));
     } catch (e) {
@@ -82,7 +87,7 @@ export const PrivacyCenter: React.FC = () => {
   const exportTree = async () => {
     setBusy('gedcom');
     try {
-      const n = await exportTreeAsGedcom();
+      const n = await (await exportTools()).exportTreeAsGedcom();
       toast.success(t('Downloaded {n} people as a GEDCOM file', { n }));
     } catch (e) {
       toast.error(`${t('Could not export your tree:')} ${(e as Error).message}`);

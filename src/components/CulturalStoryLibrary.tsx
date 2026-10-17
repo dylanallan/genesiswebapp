@@ -212,7 +212,7 @@ export const CulturalStoryLibrary: React.FC = () => {
               verification_status: 'unverified'
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
         >
           <Plus className="w-5 h-5" />
           <span>{t('Add Story')}</span>
@@ -245,7 +245,7 @@ export const CulturalStoryLibrary: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 min-h-[44px]"
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('Add Story')}
@@ -387,10 +387,10 @@ export const CulturalStoryLibrary: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="story-field-1" className="block text-sm font-medium text-gray-700 mb-1">
                     {t('Title')} *
                   </label>
-                  <input
+                  <input id="story-field-1"
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -401,10 +401,10 @@ export const CulturalStoryLibrary: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="story-field-2" className="block text-sm font-medium text-gray-700 mb-1">
                     {t('Story Content')} *
                   </label>
-                  <textarea
+                  <textarea id="story-field-2"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -416,10 +416,10 @@ export const CulturalStoryLibrary: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="story-field-3" className="block text-sm font-medium text-gray-700 mb-1">
                       {t('Storyteller')}
                     </label>
-                    <input
+                    <input id="story-field-3"
                       type="text"
                       value={formData.storyteller}
                       onChange={(e) => setFormData({ ...formData, storyteller: e.target.value })}
@@ -429,10 +429,10 @@ export const CulturalStoryLibrary: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="story-field-4" className="block text-sm font-medium text-gray-700 mb-1">
                       {t('Date Recorded')}
                     </label>
-                    <input
+                    <input id="story-field-4"
                       type="date"
                       value={formData.date_recorded ? new Date(formData.date_recorded).toISOString().split('T')[0] : ''}
                       onChange={(e) => setFormData({ ...formData, date_recorded: e.target.value })}
@@ -443,10 +443,10 @@ export const CulturalStoryLibrary: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="story-field-5" className="block text-sm font-medium text-gray-700 mb-1">
                       {t('Location')}
                     </label>
-                    <input
+                    <input id="story-field-5"
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
@@ -456,10 +456,10 @@ export const CulturalStoryLibrary: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="story-field-6" className="block text-sm font-medium text-gray-700 mb-1">
                       {t('Language')}
                     </label>
-                    <input
+                    <input id="story-field-6"
                       type="text"
                       value={formData.language}
                       onChange={(e) => setFormData({ ...formData, language: e.target.value })}
@@ -470,10 +470,10 @@ export const CulturalStoryLibrary: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="story-field-7" className="block text-sm font-medium text-gray-700 mb-1">
                     {t('Themes (comma separated)')}
                   </label>
-                  <input
+                  <input id="story-field-7"
                     type="text"
                     value={formData.themes?.join(', ') || ''}
                     onChange={(e) => setFormData({ 
@@ -486,10 +486,10 @@ export const CulturalStoryLibrary: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="story-field-8" className="block text-sm font-medium text-gray-700 mb-1">
                     {t('Translation (if applicable)')}
                   </label>
-                  <textarea
+                  <textarea id="story-field-8"
                     value={formData.translation}
                     onChange={(e) => setFormData({ ...formData, translation: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -499,10 +499,10 @@ export const CulturalStoryLibrary: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="story-field-9" className="block text-sm font-medium text-gray-700 mb-1">
                     {t('Verification Status')}
                   </label>
-                  <select
+                  <select id="story-field-9"
                     value={formData.verification_status}
                     onChange={(e) => setFormData({ ...formData, verification_status: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -517,13 +517,13 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors min-h-[44px]"
                   >
                     {t('Cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
                   >
                     {t(isEditing ? 'Update Story' : 'Save Story')}
                   </button>

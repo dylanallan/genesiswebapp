@@ -1,6 +1,7 @@
 // Plans a family storybook: groups what the user has saved into chapters and the AI job for each.
 // The AI is only ever asked to retell facts we give it, never to invent ancestors.
 import type { AITask } from '../api/chat';
+import { getLang, t } from './i18n';
 
 export interface StoryPerson {
   name: string;
@@ -87,12 +88,12 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 /** A standalone, printable web page of the book. */
 export function storybookHtml(title: string, chapters: Chapter[]): string {
   const body = chapters
-    .map((c) => `<section><h2>${esc(c.heading)}</h2>${c.body.split(/\n{2,}/).map((p) => `<p>${esc(p.trim())}</p>`).join('')}</section>`)
+    .map((c) => `<section><h2>${esc(t(c.heading))}</h2>${c.body.split(/\n{2,}/).map((p) => `<p>${esc(p.trim())}</p>`).join('')}</section>`)
     .join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title>
+  return `<!doctype html><html lang="${getLang() === 'fr' ? 'fr-CA' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title>
 <style>body{font-family:Georgia,'Times New Roman',serif;max-width:42rem;margin:3rem auto;padding:0 1rem;line-height:1.7;color:#222;background:#fffdf8}
 h1{text-align:center;font-size:2.2rem;margin-bottom:.2rem}.sub{text-align:center;color:#777;margin-bottom:3rem}
 h2{margin-top:3rem;border-bottom:1px solid #ddd;padding-bottom:.3rem}section{page-break-before:always}section:first-of-type{page-break-before:auto}
 @media print{body{margin:0;background:#fff}}</style></head><body><h1>${esc(title)}</h1>
-<p class="sub">A family history, made with Genesis Heritage · ${new Date().getFullYear()}</p>${body}</body></html>`;
+<p class="sub">${esc(t('A family history, made with Genesis Heritage'))} · ${new Date().getFullYear()}</p>${body}</body></html>`;
 }

@@ -31,20 +31,17 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Only the app shell is downloaded ahead of time (the first page, shared libraries, French text, icons), so a
+        // phone on mobile data is not made to fetch every screen. Other screens are kept once they have been opened.
+        // Family data is never cached by the service worker.
+        globPatterns: ['index.html', 'assets/index-*.{js,css}', 'assets/*-vendor-*.js', 'assets/i18n-fr-*.js', 'icons/*.png', '*.ico'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              }
-            }
-          }
-        ]
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
+            handler: 'CacheFirst', // file names change with every release, so a kept copy is never stale
+            options: { cacheName: 'genesis-screens', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 60 } },
+          },
+        ],
       }
     })
   ],
@@ -55,10 +52,11 @@ export default defineConfig({
     target: 'esnext',
     rollupOptions: {
       output: {
+        // Libraries every screen needs, in their own long-cached files. Everything else is split per screen and loads
+        // only when that screen opens.
         manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'ai-vendor': ['@tensorflow/tfjs'],
-          'ui-vendor': ['framer-motion', 'lucide-react']
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase-vendor': ['@supabase/supabase-js']
         }
       }
     },

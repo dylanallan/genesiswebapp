@@ -108,7 +108,7 @@ export async function installMockBackend(page: Page, state: MockState) {
       (state.posted ??= {}).answer_memory_request = [...(state.posted.answer_memory_request ?? []), JSON.parse(req.postData() ?? 'null')];
       return json(route, true);
     }
-    if (path === '/rest/v1/rpc/join_waitlist') {
+    if (path === '/rest/v1/rpc/join_waitlist' || path === '/rest/v1/rpc/join_waitlist_v2') {
       const body = JSON.parse(req.postData() ?? '{}');
       (state.posted ??= {}).join_waitlist = [...(state.posted.join_waitlist ?? []), body];
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(String(body.p_email ?? '').trim())) return json(route, { ok: false, reason: 'Please enter a valid email address.' });

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Users, Link2, Copy, Mail, MessageCircle, Eye, BookOpen, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { t, useLang } from '../lib/i18n';
 
 interface Invite { id: string; invitee_name: string | null; member_name: string | null; role: 'viewer' | 'contributor'; status: 'pending' | 'active' | 'revoked'; token: string; created_at: string }
 interface SharedFamily { owner_id: string; owner_name: string; role: 'viewer' | 'contributor' }
@@ -10,7 +11,7 @@ interface SnapshotStory { id: string; title: string; content: string; storytelle
 interface Snapshot { owner_name: string; role: string; members: SnapshotMember[]; stories: SnapshotStory[]; storybooks: Array<{ id: string; title: string; chapters: Array<{ heading: string; body: string }> }> }
 
 export const inviteLink = (token: string) => `${window.location.origin}/join/${token}`;
-const fullName = (m: SnapshotMember) => [m.first_name, m.middle_name, m.last_name].filter(Boolean).join(' ') || 'Unknown';
+const fullName = (m: SnapshotMember) => [m.first_name, m.middle_name, m.last_name].filter(Boolean).join(' ') || t('Unknown');
 const years = (m: SnapshotMember) => {
   const b = m.birth_date?.slice(0, 4);
   const d = m.death_date?.slice(0, 4);
@@ -18,6 +19,7 @@ const years = (m: SnapshotMember) => {
 };
 
 const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> = ({ family, onBack }) => {
+  useLang();
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [story, setStory] = useState({ title: '', content: '' });
   const [saving, setSaving] = useState(false);
@@ -35,20 +37,20 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
     const { error } = await supabase.rpc('add_shared_story', { p_owner: family.owner_id, p_title: story.title, p_content: story.content });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(`Memory added to ${family.owner_name}'s family`);
+    toast.success(t("Memory added to {name}'s family", { name: family.owner_name }));
     setStory({ title: '', content: '' });
     load();
   };
 
-  if (!snap) return <p className="text-gray-500">Loading {family.owner_name}'s family...</p>;
+  if (!snap) return <p className="text-gray-500">{t("Loading {name}'s family…", { name: family.owner_name })}</p>;
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="text-genesis-600 hover:text-genesis-700">← Back</button>
-      <h3 className="text-lg font-semibold">{snap.owner_name}'s family</h3>
+      <button onClick={onBack} className="text-genesis-600 hover:text-genesis-700">← {t('Back')}</button>
+      <h3 className="text-lg font-semibold">{t("{name}'s family", { name: snap.owner_name })}</h3>
 
       <section>
-        <h4 className="font-medium mb-2">People ({snap.members.length})</h4>
-        {snap.members.length === 0 ? <p className="text-gray-500 text-sm">No one has been added yet.</p> : (
+        <h4 className="font-medium mb-2">{t('People ({n})', { n: snap.members.length })}</h4>
+        {snap.members.length === 0 ? <p className="text-gray-500 text-sm">{t('No one has been added yet.')}</p> : (
           <ul className="grid sm:grid-cols-2 gap-2">
             {snap.members.slice(0, 500).map((m) => (
               <li key={m.id} className="border rounded-lg p-3">
@@ -62,7 +64,7 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
 
       {snap.storybooks.length > 0 && (
         <section>
-          <h4 className="font-medium mb-2">Storybooks</h4>
+          <h4 className="font-medium mb-2">{t('Storybooks')}</h4>
           {snap.storybooks.map((b) => (
             <details key={b.id} className="border rounded-lg p-3 mb-2">
               <summary className="cursor-pointer font-medium">{b.title}</summary>
@@ -73,10 +75,10 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
       )}
 
       <section>
-        <h4 className="font-medium mb-2">Stories and memories</h4>
-        {snap.stories.length === 0 ? <p className="text-gray-500 text-sm">No stories yet.</p> : snap.stories.map((s) => (
+        <h4 className="font-medium mb-2">{t('Stories and memories')}</h4>
+        {snap.stories.length === 0 ? <p className="text-gray-500 text-sm">{t('No stories yet.')}</p> : snap.stories.map((s) => (
           <details key={s.id} className="border rounded-lg p-3 mb-2">
-            <summary className="cursor-pointer font-medium">{s.title}{s.storyteller ? ` — told by ${s.storyteller}` : ''}</summary>
+            <summary className="cursor-pointer font-medium">{s.title}{s.storyteller ? ` — ${t('told by {name}', { name: s.storyteller })}` : ''}</summary>
             <p className="whitespace-pre-line text-gray-700 mt-2">{s.content}</p>
           </details>
         ))}
@@ -84,10 +86,10 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
 
       {family.role === 'contributor' && (
         <form onSubmit={addStory} className="border rounded-lg p-4 space-y-3 bg-genesis-50">
-          <h4 className="font-medium">Add a memory to this family</h4>
-          <input required value={story.title} onChange={(e) => setStory({ ...story, title: e.target.value })} placeholder="Title, e.g. Sundays at Grandma's" className="w-full px-3 py-2 border rounded-lg" aria-label="Memory title" />
-          <textarea required rows={4} value={story.content} onChange={(e) => setStory({ ...story, content: e.target.value })} placeholder="What do you remember?" className="w-full px-3 py-2 border rounded-lg" aria-label="Memory" />
-          <button disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-genesis-600 text-white rounded-lg disabled:opacity-50"><Send className="w-4 h-4" /> {saving ? 'Saving...' : 'Add memory'}</button>
+          <h4 className="font-medium">{t('Add a memory to this family')}</h4>
+          <input required value={story.title} onChange={(e) => setStory({ ...story, title: e.target.value })} placeholder={t('Title, e.g. Sundays at Grandma’s')} className="w-full px-3 py-2 border rounded-lg" aria-label={t('Memory title')} />
+          <textarea required rows={4} value={story.content} onChange={(e) => setStory({ ...story, content: e.target.value })} placeholder={t('What do you remember?')} className="w-full px-3 py-2 border rounded-lg" aria-label={t('Memory')} />
+          <button disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-genesis-600 text-white rounded-lg disabled:opacity-50"><Send className="w-4 h-4" /> {saving ? t('Saving…') : t('Add memory')}</button>
         </form>
       )}
     </div>
@@ -95,6 +97,7 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
 };
 
 export const FamilySharing: React.FC = () => {
+  useLang();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [shared, setShared] = useState<SharedFamily[]>([]);
   const [name, setName] = useState('');
@@ -116,7 +119,7 @@ export const FamilySharing: React.FC = () => {
     setCreating(false);
     if (error) { toast.error(error.message); return; }
     await navigator.clipboard?.writeText(inviteLink(data.token)).catch(() => undefined);
-    toast.success('Invite link created and copied. Send it to your relative.');
+    toast.success(t('Invite link created and copied. Send it to your relative.'));
     setName('');
     load();
   };
@@ -128,27 +131,27 @@ export const FamilySharing: React.FC = () => {
 
   if (viewing) return <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"><SharedFamilyView family={viewing} onBack={() => setViewing(null)} /></div>;
 
-  const message = (token: string) => encodeURIComponent(`I'm building our family history on Genesis Heritage. Join me and add your memories: ${inviteLink(token)}`);
+  const message = (token: string) => encodeURIComponent(t('I’m building our family history on Genesis Heritage. Join me and add your memories: {link}', { link: inviteLink(token) }));
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
       <div>
-        <h2 className="text-xl font-semibold flex items-center gap-2"><Users className="w-6 h-6 text-genesis-600" /> Share with family</h2>
-        <p className="text-gray-600 mt-1">Invite relatives to see your family tree and stories, and to add their own memories. Joining is free for them.</p>
+        <h2 className="text-xl font-semibold flex items-center gap-2"><Users className="w-6 h-6 text-genesis-600" /> {t('Share with family')}</h2>
+        <p className="text-gray-600 mt-1">{t('Invite relatives to see your family tree and stories, and to add their own memories. Joining is free for them.')}</p>
       </div>
 
       <form onSubmit={create} className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">Who is it for? (optional)
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aunt Rosa" className="mt-1 block px-3 py-2 border rounded-lg" />
+        <label className="text-sm">{t('Who is it for? (optional)')}
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Aunt Rosa')} className="mt-1 block px-3 py-2 min-h-[44px] border rounded-lg" />
         </label>
-        <label className="text-sm">They can
-          <select value={role} onChange={(e) => setRole(e.target.value as Invite['role'])} className="mt-1 block px-3 py-2 border rounded-lg">
-            <option value="contributor">view and add memories</option>
-            <option value="viewer">view only</option>
+        <label className="text-sm">{t('They can')}
+          <select value={role} onChange={(e) => setRole(e.target.value as Invite['role'])} className="mt-1 block px-3 py-2 min-h-[44px] border rounded-lg">
+            <option value="contributor">{t('view and add memories')}</option>
+            <option value="viewer">{t('view only')}</option>
           </select>
         </label>
-        <button disabled={creating} className="flex items-center gap-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50">
-          <Link2 className="w-4 h-4" /> {creating ? 'Creating...' : 'Create invite link'}
+        <button disabled={creating} className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50">
+          <Link2 className="w-4 h-4" /> {creating ? t('Creating…') : t('Create invite link')}
         </button>
       </form>
 
@@ -157,20 +160,20 @@ export const FamilySharing: React.FC = () => {
           {invites.map((i) => (
             <li key={i.id} className="p-3 flex flex-wrap items-center gap-3 justify-between">
               <div>
-                <p className="font-medium">{i.member_name ?? i.invitee_name ?? 'Invite link'}</p>
+                <p className="font-medium">{i.member_name ?? i.invitee_name ?? t('Invite link')}</p>
                 <p className="text-sm text-gray-500">
-                  {i.status === 'pending' ? 'Not joined yet' : i.status === 'active' ? 'Joined' : 'Access removed'} · {i.role === 'viewer' ? 'can view' : 'can view and add'}
+                  {t(i.status === 'pending' ? 'Not joined yet' : i.status === 'active' ? 'Joined' : 'Access removed')} · {t(i.role === 'viewer' ? 'can view' : 'can view and add')}
                 </p>
               </div>
               {i.status !== 'revoked' && (
                 <div className="flex flex-wrap gap-2 text-sm">
                   {i.status === 'pending' && <>
-                    <button onClick={() => { navigator.clipboard?.writeText(inviteLink(i.token)); toast.success('Link copied'); }} className="flex items-center gap-1 px-2 py-1 border rounded"><Copy className="w-3 h-3" /> Copy</button>
-                    <a href={`mailto:?subject=${encodeURIComponent('Join our family history')}&body=${message(i.token)}`} className="flex items-center gap-1 px-2 py-1 border rounded"><Mail className="w-3 h-3" /> Email</a>
-                    <a href={`https://wa.me/?text=${message(i.token)}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-2 py-1 border rounded"><MessageCircle className="w-3 h-3" /> WhatsApp</a>
+                    <button onClick={() => { navigator.clipboard?.writeText(inviteLink(i.token)); toast.success(t('Link copied')); }} className="flex items-center gap-1 px-3 py-2 min-h-[44px] border rounded-lg"><Copy className="w-3 h-3" /> {t('Copy')}</button>
+                    <a href={`mailto:?subject=${encodeURIComponent(t('Join our family history'))}&body=${message(i.token)}`} className="flex items-center gap-1 px-3 py-2 min-h-[44px] border rounded-lg"><Mail className="w-3 h-3" /> {t('Email')}</a>
+                    <a href={`https://wa.me/?text=${message(i.token)}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-2 min-h-[44px] border rounded-lg"><MessageCircle className="w-3 h-3" /> WhatsApp</a>
                   </>}
-                  <button onClick={() => setStatus(i.id, { role: i.role === 'viewer' ? 'contributor' : 'viewer' })} className="px-2 py-1 border rounded">{i.role === 'viewer' ? 'Allow adding' : 'Make view only'}</button>
-                  <button onClick={() => setStatus(i.id, { status: 'revoked' })} className="px-2 py-1 border rounded text-red-600">Remove access</button>
+                  <button onClick={() => setStatus(i.id, { role: i.role === 'viewer' ? 'contributor' : 'viewer' })} className="px-3 py-2 min-h-[44px] border rounded-lg">{t(i.role === 'viewer' ? 'Allow adding' : 'Make view only')}</button>
+                  <button onClick={() => setStatus(i.id, { status: 'revoked' })} className="px-3 py-2 min-h-[44px] border rounded-lg text-red-600">{t('Remove access')}</button>
                 </div>
               )}
             </li>
@@ -179,13 +182,13 @@ export const FamilySharing: React.FC = () => {
       )}
 
       <div className="border-t pt-4">
-        <h3 className="font-semibold mb-2">Families shared with me</h3>
-        {shared.length === 0 ? <p className="text-sm text-gray-500">When a relative sends you an invite link, their family will appear here.</p> : (
+        <h3 className="font-semibold mb-2">{t('Families shared with me')}</h3>
+        {shared.length === 0 ? <p className="text-sm text-gray-500">{t('When a relative sends you an invite link, their family will appear here.')}</p> : (
           <ul className="space-y-2">
             {shared.map((f) => (
               <li key={f.owner_id}>
                 <button onClick={() => setViewing(f)} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 w-full text-left">
-                  {f.role === 'viewer' ? <Eye className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />} {f.owner_name}'s family
+                  {f.role === 'viewer' ? <Eye className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />} {t("{name}'s family", { name: f.owner_name })}
                 </button>
               </li>
             ))}

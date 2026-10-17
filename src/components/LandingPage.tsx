@@ -175,7 +175,7 @@ export const LandingPage: React.FC<Props> = ({ onStart, onSignIn }) => {
     </section>
 
     <footer className="max-w-6xl mx-auto px-4 py-8 text-sm text-[#5c6660] space-y-2">
-      <p><a href="/privacy" className="underline">{t('Privacy')}</a> · <a href="/terms" className="underline">{t('Terms')}</a> · © {new Date().getFullYear()} Genesis Heritage. {t('All rights reserved.')}</p>
+      <p><a href="/switch" className="underline">{t('Move from Ancestry or MyHeritage')}</a> · <a href="/compare" className="underline">{t('Compare')}</a> · <a href="/partners" className="underline">{t('Partners & investors')}</a> · <a href="/privacy" className="underline">{t('Privacy')}</a> · <a href="/terms" className="underline">{t('Terms')}</a> · © {new Date().getFullYear()} Genesis Heritage. {t('All rights reserved.')}</p>
       <p className="text-xs">{t('Ancestry and MyHeritage are trademarks of their respective owners. Genesis Heritage is an independent service and is not affiliated with them.')}</p>
     </footer>
   </div>

@@ -71,7 +71,7 @@ test('a visitor joins the waitlist from a family member\'s link and gets their o
   await expect(joined).toContainText('You’re on the list!');
   await expect(joined).toContainText('number 42');
   await expect(joined.getByLabel('Your invite link')).toHaveValue(/\/\?ref=abc12345#waitlist$/);
-  expect(state.posted.join_waitlist?.at(-1)).toEqual({ p_email: 'rosa@example.com', p_name: 'Rosa', p_source: 'home', p_ref: 'fam00001' });
+  expect(state.posted.join_waitlist?.at(-1)).toEqual({ p_email: 'rosa@example.com', p_name: 'Rosa', p_source: 'home', p_ref: 'fam00001', p_interest: 'family', p_organization: null, p_note: null });
 });
 
 test('admin sees the waitlist with invite counts and can download it', async ({ page }) => {
@@ -80,15 +80,22 @@ test('admin sees the waitlist with invite counts and can download it', async ({ 
   state.waitlistRows = [
     { email: 'rosa@example.com', name: 'Rosa', source: 'home', code: 'abc12345', referred_by: null, created_at: new Date().toISOString() },
     { email: 'luis@example.com', name: null, source: 'home', code: 'def67890', referred_by: 'abc12345', created_at: new Date().toISOString() },
+    { email: 'ana@fund.example', name: 'Ana', source: 'partners', code: 'ghi13579', referred_by: null, created_at: new Date().toISOString(), interest: 'investor', organization: 'Heritage Fund', note: 'Would like a call' },
   ];
   try {
     await page.goto('/dashboard?feature=admin-waitlist');
     const panel = page.getByTestId('admin-waitlist');
-    await expect(panel).toContainText('2 people on the waitlist');
+    await expect(panel).toContainText('3 people on the waitlist');
     await expect(panel).toContainText('1 came from an invite link');
-    const [download] = await Promise.all([page.waitForEvent('download'), panel.getByRole('button', { name: 'Download CSV' }).click()]);
-    const csv = fs.readFileSync(await download.path(), 'utf8');
-    expect(csv.split('\n')[1]).toBe('"rosa@example.com","Rosa","home","' + new Date().toISOString().slice(0, 10) + '","1"');
+    const today = new Date().toISOString().slice(0, 10);
+    let [download] = await Promise.all([page.waitForEvent('download'), panel.getByRole('button', { name: 'Download CSV' }).click()]);
+    expect(fs.readFileSync(await download.path(), 'utf8').split('\n')[1]).toBe(`"rosa@example.com","Rosa","Families","","","home","${today}","1"`);
+    // Investors and buyers on their own, with what they said, to follow up personally.
+    await panel.getByRole('button', { name: 'Investors & buyers (1)' }).click();
+    await expect(panel.getByRole('cell', { name: /Heritage Fund/ })).toContainText('Would like a call');
+    await expect(panel).not.toContainText('rosa@example.com');
+    [download] = await Promise.all([page.waitForEvent('download'), panel.getByRole('button', { name: 'Download CSV' }).click()]);
+    expect(fs.readFileSync(await download.path(), 'utf8').trim().split('\n')).toEqual(['"email","name","type","organization","note","source","joined","invited"', `"ana@fund.example","Ana","Investors & buyers","Heritage Fund","Would like a call","partners","${today}","0"`]);
   } finally {
     state.admin = false;
     state.waitlistRows = undefined;

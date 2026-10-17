@@ -1,5 +1,6 @@
 // "On this day in your family": birthdays and remembrance days coming up in the next couple of weeks.
 // Only full dates count. 1 January is skipped because old records often use it as a stand-in for "some time that year".
+import { t } from './i18n';
 
 export interface DayPerson {
   id: string;
@@ -35,12 +36,14 @@ export function upcomingDays(people: DayPerson[], today: Date, windowDays = 14):
         const years = year - d.y;
         if (years <= 0) return;
         const living = kind === 'born' && !p.deathDate && p.isLiving !== false && years < 105;
-        const when = away === 0 ? 'today' : away === 1 ? 'tomorrow' : `in ${away} days`;
+        const v = { name: p.name, first, n: years, days: away, date: monthDay(d.m, d.d), place: p.birthPlace ?? '' };
         const text = living
-          ? `${p.name} turns ${years} ${when}`
+          ? (away === 0 ? t('{name} turns {n} today', v) : away === 1 ? t('{name} turns {n} tomorrow', v) : t('{name} turns {n} in {days} days', v))
           : kind === 'born'
-            ? `${p.name} was born ${years} years ago ${away === 0 ? 'today' : `on ${monthDay(d.m, d.d)}`}${p.birthPlace ? `, in ${p.birthPlace}` : ''}`
-            : `${years} years since ${first} died, ${away === 0 ? 'today' : `on ${monthDay(d.m, d.d)}`}`;
+            ? (away === 0
+              ? (p.birthPlace ? t('{name} was born {n} years ago today, in {place}', v) : t('{name} was born {n} years ago today', v))
+              : (p.birthPlace ? t('{name} was born {n} years ago on {date}, in {place}', v) : t('{name} was born {n} years ago on {date}', v)))
+            : (away === 0 ? t('{n} years since {first} died, today', v) : t('{n} years since {first} died, on {date}', v));
         out.push({ personId: p.id, kind: living ? 'birthday' : kind, daysAway: away, years, text, date: date! });
         return;
       }
@@ -52,4 +55,4 @@ export function upcomingDays(people: DayPerson[], today: Date, windowDays = 14):
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const monthDay = (m: number, d: number) => `${d} ${MONTHS[m - 1]}`;
+const monthDay = (m: number, d: number) => `${d} ${t(MONTHS[m - 1])}`;

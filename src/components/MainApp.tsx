@@ -1,17 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { useSession } from '../lib/session-context';
-import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../lib/error-boundary';
-import GenesisHome from './GenesisHome';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import Dashboard from './Dashboard';
-import EliteHackathonApp from './EliteHackathonApp';
-import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
 import { GlobalDataProvider } from '../lib/GlobalDataContext';
-import PricingPage from './PricingPage';
-import AnswerMemories from './AnswerMemories';
 import LanguageSwitch from './LanguageSwitch';
 import { t, useLang } from '../lib/i18n';
 import AccountBar from './AccountBar';
@@ -19,8 +12,20 @@ import { SetNewPassword } from './SetNewPassword';
 import { TAGLINE } from '../lib/brand';
 import Logo from './Logo';
 import LandingPage from './LandingPage';
-import { PrivacyPolicy, TermsOfService } from './LegalPages';
 import JoinFamily, { pendingInvite, rememberInvite } from './JoinFamily';
+const SwitchGuide = React.lazy(() => import('./SwitchGuide'));
+const ComparePage = React.lazy(() => import('./ComparePage'));
+const PartnersPage = React.lazy(() => import('./PartnersPage'));
+
+// Screens load only when someone opens them, so the first page on a phone downloads as little as possible.
+const GenesisHome = lazy(() => import('./GenesisHome'));
+const Dashboard = lazy(() => import('./Dashboard'));
+const EliteHackathonApp = lazy(() => import('./EliteHackathonApp'));
+const GlobalIntelligenceDashboard = lazy(() => import('./GlobalIntelligenceDashboard'));
+const PricingPage = lazy(() => import('./PricingPage'));
+const AnswerMemories = lazy(() => import('./AnswerMemories').then((m) => ({ default: m.AnswerMemories })));
+const PrivacyPolicy = lazy(() => import('./LegalPages').then((m) => ({ default: m.PrivacyPolicy })));
+const TermsOfService = lazy(() => import('./LegalPages').then((m) => ({ default: m.TermsOfService })));
 
 const inviteFromPath = () => /^\/join\/([\w-]+)/.exec(window.location.pathname)?.[1] ?? null;
 
@@ -277,9 +282,9 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
 const LoadingScreen = () => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center" role="status" aria-live="polite">
     <div className="text-center">
-      <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
+      <div className="w-fit mx-auto animate-spin motion-reduce:animate-none" style={{ animationDuration: '2s' }}>
         <Logo size={48} className="mx-auto mb-4" />
-      </motion.div>
+      </div>
       <p className="text-gray-600 font-medium">{t('Loading Genesis Heritage Pro...')}</p>
     </div>
   </div>
@@ -287,14 +292,19 @@ const LoadingScreen = () => (
 
 export const MainApp: React.FC = () => {
   const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();
-  const [authView, setAuthView] = useState<'signin' | 'signup' | null>(null);
+  // ?start=signup (from the switch guide and comparison pages) opens the sign-up form straight away.
+  const [authView, setAuthView] = useState<'signin' | 'signup' | null>(() => (new URLSearchParams(window.location.search).get('start') === 'signup' ? 'signup' : null));
 
   const path = window.location.pathname;
   // A relative answering an "Ask a relative" link: no account, works whether or not anyone is signed in.
   const memoryToken = /^\/memories\/([A-Za-z0-9]{24,64})\/?$/.exec(path)?.[1];
-  if (memoryToken) return <AnswerMemories token={memoryToken} />;
+  if (memoryToken) return <Suspense fallback={<LoadingScreen />}><AnswerMemories token={memoryToken} /></Suspense>;
+  // Public guides, open to everyone whether or not they are signed in.
+  if (path === '/switch' || path === '/compare' || path === '/partners') {
+    return <React.Suspense fallback={<LoadingScreen />}>{path === '/switch' ? <SwitchGuide /> : path === '/compare' ? <ComparePage /> : <PartnersPage />}</React.Suspense>;
+  }
   if (path === '/privacy' || path === '/terms') {
-    return <Router><Routes><Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} /></Routes></Router>;
+    return <Suspense fallback={<LoadingScreen />}><Router><Routes><Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} /></Routes></Router></Suspense>;
   }
   if (loading) return <LoadingScreen />;
   if (!session) {
@@ -310,6 +320,7 @@ export const MainApp: React.FC = () => {
         <Router>
           <AccountBar />
           <PendingInvite />
+          <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/join/:token" element={<JoinFamily />} />
             <Route path="/" element={<GenesisHome />} />
@@ -319,6 +330,7 @@ export const MainApp: React.FC = () => {
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </Router>
       </ErrorBoundary>
     </GlobalDataProvider>

@@ -1,6 +1,7 @@
 // Builds one person's life timeline from the family tree (births, deaths, children, losses) and adds the
 // world events they lived through, clearly marked as background, like Ancestry's LifeStory but free.
 import type { AITask } from '../api/chat';
+import { t } from './i18n';
 
 export interface LifePerson {
   id: string;
@@ -57,22 +58,30 @@ export function lifeTimeline(focusId: string, people: LifePerson[], thisYear = n
   };
   const first = me.name.split(' ')[0];
 
-  add(me.birthDate, `${first} is born${me.birthPlace ? ` in ${me.birthPlace}` : ''}`);
+  add(me.birthDate, me.birthPlace ? t('{name} is born in {place}', { name: first, place: me.birthPlace }) : t('{name} is born', { name: first }));
   for (const id of me.childrenIds) {
     const c = byId.get(id);
-    if (c) add(c.birthDate, `${c.gender === 'female' ? 'Daughter' : c.gender === 'male' ? 'Son' : 'Child'} ${c.name} is born${c.birthPlace ? ` in ${c.birthPlace}` : ''}`);
+    if (c) {
+      const role = c.gender === 'female' ? 'Daughter' : c.gender === 'male' ? 'Son' : 'Child';
+      add(c.birthDate, c.birthPlace ? t(`${role} {name} is born in {place}`, { name: c.name, place: c.birthPlace }) : t(`${role} {name} is born`, { name: c.name }));
+    }
   }
   for (const id of me.parentIds) {
     const p = byId.get(id);
     const d = yearOf(p?.deathDate ?? null);
-    if (p && d && (!born || d >= born)) add(p.deathDate, `${p.gender === 'female' ? 'Mother' : p.gender === 'male' ? 'Father' : 'Parent'} ${p.name} dies`);
+    if (p && d && (!born || d >= born)) add(p.deathDate, t(`${p.gender === 'female' ? 'Mother' : p.gender === 'male' ? 'Father' : 'Parent'} {name} dies`, { name: p.name }));
   }
   for (const id of me.spouseIds) {
     const s = byId.get(id);
     const d = yearOf(s?.deathDate ?? null);
-    if (s && d && (!born || d >= born) && (!died || d <= died)) add(s.deathDate, `Spouse ${s.name} dies`);
+    if (s && d && (!born || d >= born) && (!died || d <= died)) add(s.deathDate, t('Spouse {name} dies', { name: s.name }));
   }
-  if (died) add(me.deathDate, `${first} dies${me.deathPlace ? ` in ${me.deathPlace}` : ''}${born ? ` at about ${died - born}` : ''}`);
+  if (died) {
+    const vars = { name: first, place: me.deathPlace ?? '', age: born ? died - born : 0 };
+    add(me.deathDate, me.deathPlace
+      ? (born ? t('{name} dies in {place} at about {age}', vars) : t('{name} dies in {place}', vars))
+      : (born ? t('{name} dies at about {age}', vars) : t('{name} dies', vars)));
+  }
 
   if (born && end) {
     const places = `${me.birthPlace ?? ''} ${me.deathPlace ?? ''}`.toLowerCase();
@@ -81,7 +90,7 @@ export function lifeTimeline(focusId: string, people: LifePerson[], thisYear = n
       const relevant = !w.regions || w.regions.some((r) => places.includes(r));
       if (overlaps && relevant) {
         const y = Math.max(w.from, born);
-        events.push({ year: y, date: null, age: age(y), kind: 'world', text: w.to ? `${w.text} (${w.from}–${w.to})` : w.text });
+        events.push({ year: y, date: null, age: age(y), kind: 'world', text: w.to ? `${t(w.text)} (${w.from}–${w.to})` : t(w.text) });
       }
     }
   }

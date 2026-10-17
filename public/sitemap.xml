@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://genesisheritage.netlify.app/</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/switch</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/compare</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/partners</loc><lastmod>2026-10-17</lastmod></url>
   <url><loc>https://genesisheritage.netlify.app/privacy</loc><lastmod>2026-10-17</lastmod></url>
   <url><loc>https://genesisheritage.netlify.app/terms</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/guides/</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/guides/archives-gratuites-canada/</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/guides/archives-quebec/</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/guides/free-records-canada/</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/guides/life-story-questions/</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/guides/quebec-records/</loc><lastmod>2026-10-17</lastmod></url>
+  <url><loc>https://genesisheritage.netlify.app/guides/questions-recit-de-vie/</loc><lastmod>2026-10-17</lastmod></url>
 </urlset>

@@ -5,6 +5,7 @@ import { Map as MapIcon, Play, Pause, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
+import { t, useLang } from '../lib/i18n';
 import { buildFamilyMap, Coords, MapPersonInput, placeKey, uniquePlaces } from '../lib/family-map';
 
 interface Row {
@@ -15,9 +16,10 @@ const year = (d: string | null) => (d ? Number(d.slice(0, 4)) || null : null);
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
 export const FamilyMap: React.FC = () => {
+  useLang();
   const [people, setPeople] = useState<MapPersonInput[] | null>(null);
   const [coords, setCoords] = useState<Record<string, Coords | null>>({});
-  const [status, setStatus] = useState<string | null>('Loading your family…');
+  const [status, setStatus] = useState<string | null>(t('Loading your family…'));
   const [upTo, setUpTo] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const mapDiv = useRef<HTMLDivElement>(null);
@@ -32,7 +34,7 @@ export const FamilyMap: React.FC = () => {
       try {
         const rows = await loadAllFamilyRows<Row>('id,first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location,parent_ids');
         const list: MapPersonInput[] = rows.map((r) => ({
-          id: r.id, name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') || 'Unknown',
+          id: r.id, name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') || t('Unknown'),
           birthYear: year(r.birth_date), deathYear: year(r.death_date), birthPlace: r.birth_location, deathPlace: r.death_location, parentIds: r.parent_ids ?? [],
         }));
         if (cancelled) return;
@@ -43,7 +45,7 @@ export const FamilyMap: React.FC = () => {
         for (let round = 0; round < 40 && !cancelled; round++) {
           const todo = places.filter((p) => !(placeKey(p) in found));
           if (!todo.length) break;
-          setStatus(`Finding ${places.length} places on the map… ${places.length - todo.length} done`);
+          setStatus(t('Finding {n} places on the map… {done} done', { n: places.length, done: places.length - todo.length }));
           const { data, error } = await supabase.functions.invoke('geocode-places', { body: { places: todo.slice(0, 300) } });
           if (error) throw error;
           for (const [k, v] of Object.entries((data?.results ?? {}) as Record<string, { lat: number | null; lon: number | null }>)) {
@@ -54,7 +56,7 @@ export const FamilyMap: React.FC = () => {
         }
         setStatus(null);
       } catch {
-        if (!cancelled) { setStatus(null); toast.error('Could not load the map right now. Please try again later.'); }
+        if (!cancelled) { setStatus(null); toast.error(t('Could not load the map right now. Please try again later.')); }
       }
     })();
     return () => { cancelled = true; };
@@ -82,8 +84,8 @@ export const FamilyMap: React.FC = () => {
         .bindTooltip(esc(m.label)).addTo(layer.current);
     }
     for (const pin of view.pins) {
-      const names = pin.people.slice(0, 12).map((p) => `${esc(p.name)} (${p.event}${p.year ? ` ${p.year}` : ''})`).join('<br>');
-      const more = pin.people.length > 12 ? `<br>…and ${pin.people.length - 12} more` : '';
+      const names = pin.people.slice(0, 12).map((p) => `${esc(p.name)} (${t(p.event)}${p.year ? ` ${p.year}` : ''})`).join('<br>');
+      const more = pin.people.length > 12 ? `<br>${esc(t('…and {n} more', { n: pin.people.length - 12 }))}` : '';
       L.circleMarker([pin.coords.lat, pin.coords.lon], {
         radius: Math.min(22, 6 + Math.sqrt(pin.people.length) * 3), color: '#2E5A44', weight: 2, fillColor: '#2E5A44', fillOpacity: 0.55,
       }).bindPopup(`<strong>${esc(pin.place)}</strong><br>${names}${more}`).addTo(layer.current);
@@ -113,12 +115,12 @@ export const FamilyMap: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2"><MapIcon className="w-6 h-6 text-genesis-600" /> Family map</h2>
-          <p className="text-gray-600 mt-1">Where your family was born and lived, and how they moved from one generation to the next.</p>
+          <h2 className="text-xl font-semibold flex items-center gap-2"><MapIcon className="w-6 h-6 text-genesis-600" /> {t('Family map')}</h2>
+          <p className="text-gray-600 mt-1">{t('Where your family was born and lived, and how they moved from one generation to the next.')}</p>
         </div>
         {full?.span && (
           <button onClick={() => { if (!playing) setUpTo(full.span!.from); setPlaying(!playing); }} className="flex items-center gap-2 px-4 py-2 bg-genesis-600 text-white rounded-lg">
-            {playing ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Play our family's journey</>}
+            {playing ? <><Pause className="w-4 h-4" /> {t('Pause')}</> : <><Play className="w-4 h-4" /> {t("Play our family's journey")}</>}
           </button>
         )}
       </div>
@@ -126,29 +128,29 @@ export const FamilyMap: React.FC = () => {
       {status && <p className="flex items-center gap-2 text-genesis-700" role="status"><Loader2 className="w-4 h-4 animate-spin" /> {status}</p>}
       {full && (
         <p className="text-sm text-gray-700">
-          <strong>{full.pins.length}</strong> {full.pins.length === 1 ? 'place' : 'places'}{countries > 1 ? <> in about <strong>{countries}</strong> countries</> : null},{' '}
-          <strong>{full.moves.length}</strong> {full.moves.length === 1 ? 'move' : 'moves'} between generations
-          {upTo !== null && <> · showing up to <strong>{upTo}</strong></>}
+          <strong>{full.pins.length}</strong> {t(full.pins.length === 1 ? 'place' : 'places')}{countries > 1 ? <> {t('in about')} <strong>{countries}</strong> {t('countries')}</> : null},{' '}
+          <strong>{full.moves.length}</strong> {t(full.moves.length === 1 ? 'move between generations' : 'moves between generations')}
+          {upTo !== null && <> · {t('showing up to')} <strong>{upTo}</strong></>}
         </p>
       )}
 
-      <div ref={mapDiv} className="w-full rounded-lg border" style={{ height: 460 }} aria-label="Map of where your family lived" />
+      <div ref={mapDiv} className="w-full rounded-lg border" style={{ height: 460 }} aria-label={t('Map of where your family lived')} />
 
       {full?.span && (
         <label className="block text-sm">
-          Show the family up to the year <strong>{upTo ?? 'today'}</strong>
+          {t('Show the family up to the year')} <strong>{upTo ?? t('today')}</strong>
           <input type="range" min={full.span.from} max={full.span.to} value={upTo ?? full.span.to}
             onChange={(e) => { setPlaying(false); const v = Number(e.target.value); setUpTo(v >= full.span!.to ? null : v); }} className="w-full mt-1" />
         </label>
       )}
 
       {people && people.length > 0 && uniquePlaces(people).length === 0 && (
-        <p className="text-gray-600">Add birth and death places to people in your tree and they will appear here.</p>
+        <p className="text-gray-600">{t('Add birth and death places to people in your tree and they will appear here.')}</p>
       )}
       {notFound.length > 0 && (
         <details className="text-sm text-gray-600">
-          <summary className="cursor-pointer">{notFound.length} place{notFound.length > 1 ? 's' : ''} could not be found on the map</summary>
-          <p className="mt-1">Try writing them as "Town, Region, Country": {notFound.slice(0, 20).join(' · ')}</p>
+          <summary className="cursor-pointer">{notFound.length > 1 ? t('{n} places could not be found on the map', { n: notFound.length }) : t('1 place could not be found on the map')}</summary>
+          <p className="mt-1">{t('Try writing them as “Town, Region, Country”:')} {notFound.slice(0, 20).join(' · ')}</p>
         </details>
       )}
     </div>

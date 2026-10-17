@@ -113,4 +113,5 @@ export const FR_ACCOUNT: Record<string, string> = {
   'figures in this demo': 'les chiffres de cette démo',
   'metrics and insights': 'les mesures et les analyses',
   'figures in this pitch': 'les chiffres de cette présentation',
+  'Loading…': 'Chargement…',
 };

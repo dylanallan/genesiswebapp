@@ -5,6 +5,13 @@ import { useSaveGuard } from '../lib/use-save-guard';
 import { locale, t, useLang } from '../lib/i18n';
 
 interface Joined { position: number; code: string; invited: number; already: boolean }
+export type Interest = 'family' | 'society' | 'partner' | 'investor';
+const INTERESTS: { id: Interest; label: string }[] = [
+  { id: 'family', label: 'My family' },
+  { id: 'society', label: 'A genealogy society, library or archive' },
+  { id: 'partner', label: 'A business that wants to partner' },
+  { id: 'investor', label: 'An investor or buyer' },
+];
 
 // The referral code from a shared link (?ref=abc12345), if any.
 const refFromUrl = () => {
@@ -12,10 +19,14 @@ const refFromUrl = () => {
 };
 
 /** Pre-launch waitlist: an email (and optional name), then a personal link to share with family. */
-export const WaitlistForm: React.FC<{ source?: string }> = ({ source = 'home' }) => {
+export const WaitlistForm: React.FC<{ source?: string; interest?: Interest; askInterest?: boolean }> = ({ source = 'home', interest: startInterest = 'family', askInterest = false }) => {
   useLang();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [interest, setInterest] = useState<Interest>(startInterest);
+  const [organization, setOrganization] = useState('');
+  const [note, setNote] = useState('');
+  const isOrg = interest !== 'family';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [joined, setJoined] = useState<Joined | null>(null);
@@ -25,7 +36,10 @@ export const WaitlistForm: React.FC<{ source?: string }> = ({ source = 'home' })
   const submit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setError('');
-    const { data, error: rpcError } = await supabase.rpc('join_waitlist', { p_email: email, p_name: name || null, p_source: source, p_ref: refFromUrl() || null });
+    const { data, error: rpcError } = await supabase.rpc('join_waitlist_v2', {
+      p_email: email, p_name: name || null, p_source: source, p_ref: refFromUrl() || null,
+      p_interest: interest, p_organization: isOrg ? organization || null : null, p_note: isOrg ? note || null : null,
+    });
     setBusy(false);
     if (rpcError || !data) { setError(t('We couldn’t add you just now. Please try again.')); return; }
     if (!data.ok) { setError(data.reason ? t(String(data.reason)) : t('Please check your email address.')); return; }
@@ -69,9 +83,32 @@ export const WaitlistForm: React.FC<{ source?: string }> = ({ source = 'home' })
             className="w-full px-3 py-3 border rounded-lg" />
         </div>
       </div>
+      {askInterest && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-[#1f3a2e] mb-1">{t('I’m joining for')}</legend>
+          {INTERESTS.map((o) => (
+            <label key={o.id} className="flex items-center gap-3 min-h-[44px] px-3 border rounded-lg cursor-pointer has-[:checked]:border-[#2E5A44] has-[:checked]:bg-[#f1f6f3]">
+              <input type="radio" name="waitlist-interest" value={o.id} checked={interest === o.id} onChange={() => setInterest(o.id)} className="w-5 h-5" />
+              <span>{t(o.label)}</span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+      {askInterest && isOrg && (
+        <div className="grid gap-3">
+          <div>
+            <label htmlFor="waitlist-org" className="block text-sm font-medium text-[#1f3a2e] mb-1">{t('Organization')} <span className="font-normal text-[#5c6660]">{t('(optional)')}</span></label>
+            <input id="waitlist-org" autoComplete="organization" value={organization} onChange={(e) => setOrganization(e.target.value)} maxLength={120} className="w-full px-3 py-3 border rounded-lg" />
+          </div>
+          <div>
+            <label htmlFor="waitlist-note" className="block text-sm font-medium text-[#1f3a2e] mb-1">{t('What would you like to talk about?')} <span className="font-normal text-[#5c6660]">{t('(optional)')}</span></label>
+            <textarea id="waitlist-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={3} className="w-full px-3 py-3 border rounded-lg" />
+          </div>
+        </div>
+      )}
       {error && <p className="text-red-700" role="alert">{error}</p>}
       <button disabled={busy} className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-[#2E5A44] text-white text-lg font-semibold disabled:opacity-60">
-        {busy && <Loader2 className="w-5 h-5 animate-spin" />} {t('Join the waitlist')}
+        {busy && <Loader2 className="w-5 h-5 animate-spin" />} {t(isOrg ? 'Get in touch' : 'Join the waitlist')}
       </button>
       <p className="text-sm text-[#5c6660]">{t('Just launch news, no spam. We never share or sell your email. Leave any time.')}</p>
     </form>
