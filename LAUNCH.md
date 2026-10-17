@@ -1,5 +1,44 @@
 # Launch checklist
 
+## Start here: your steps, in order (about 1 hour)
+
+Everything else is already done and tested. These are the steps only you can do, because they need your accounts.
+Do them in this order. Tick each box when it's done.
+
+- [ ] **1. Merge the two pull requests.** On GitHub, open pull request #8 and click **Merge**. Then do the same
+      for #9. This puts all the finished work into the main version of the app.
+- [ ] **2. Upgrade Supabase to Pro (about $25 USD a month).** supabase.com → your project → Settings → Billing.
+      This turns on daily backups of every family's data. While you're in the project:
+  - Authentication → Settings: turn on **leaked password protection**, and set the **email code expiry** to
+    under one hour (3600 seconds or less).
+  - Settings → Infrastructure: **upgrade Postgres** (it has security fixes waiting).
+- [ ] **3. Choose the web address.** Tell Claude which one is yours:
+  - genesisheritage.netlify.app (only if it's in a Netlify account you own),
+  - genesiswebapp.vercel.app (if you still have that Vercel account),
+  - the new one Claude made: genesisheritage-r68e.netlify.app,
+  - or your own domain (for example genesisheritage.ca, about $15–25 a year).
+
+  Claude then moves every link to it with one command (`node scripts/set-site-url.mjs <address>`).
+- [ ] **4. Publish the site.** In Netlify, open the project **genesisheritage-r68e** → **Link repository** →
+      GitHub → dylanallan/genesiswebapp → branch `main`. After that, every merge publishes by itself.
+      Then, under Site configuration → Access control, turn off the team-login requirement so the public can see it.
+- [ ] **5. Sign-in addresses.** Supabase → Authentication → URL Configuration: set **Site URL** to the address
+      from step 3 and add it under **Redirect URLs**.
+- [ ] **6. Email sending.** Make a free account at resend.com, add your domain, then in Supabase →
+      Authentication → SMTP Settings paste Resend's SMTP details. Without this, sign-up emails are limited.
+- [ ] **7. Contact details.** Send Claude the contact email and the legal owner's name for the privacy and terms
+      pages.
+- [ ] **8. Make the GitHub repository private.** GitHub → the repo → Settings → scroll to the bottom → Change
+      visibility → Private.
+
+Before posting the comparison page or sending outreach: check Ancestry's and MyHeritage's current prices on their
+own sites, and check the links marked "Check" in `marketing/prospects.md`.
+
+---
+
+# Full technical checklist
+
+
 Follow these steps in order. Each one is small. Tick them off as you go.
 Commands run in a terminal inside this project folder.
 
