@@ -1,4 +1,5 @@
 import { TAGLINE } from '../lib/brand';
+import { t, useLang } from '../lib/i18n';
 import { useEffect, useState } from 'react';
 import { Check, Loader2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ const PRO_FEATURES = [
 ];
 
 export default function PricingPage() {
+  useLang();
   const { subscription, subscriptionLoading, refreshSubscription } = useSession();
   const [busy, setBusy] = useState<string | null>(null);
   const [manual, setManual] = useState<ManualPaymentSettings | null>(null);
@@ -168,10 +170,10 @@ export default function PricingPage() {
       )}
 
       <section aria-labelledby="promises" className="mt-8 rounded-xl border border-gray-200 bg-white p-5" data-testid="billing-promises">
-        <h2 id="promises" className="text-lg font-semibold mb-3">Our promises</h2>
+        <h2 id="promises" className="text-lg font-semibold mb-3">{t('Our promises')}</h2>
         <ul className="space-y-2">
           {PROMISES.map((p) => (
-            <li key={p} className="flex gap-2 text-gray-700"><Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" /><span>{p}</span></li>
+            <li key={p} className="flex gap-2 text-gray-700"><Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" /><span>{t(p)}</span></li>
           ))}
         </ul>
       </section>

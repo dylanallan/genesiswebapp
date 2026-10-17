@@ -156,9 +156,13 @@ Deno.serve(async (req) => {
     // The person's own wishes from "How the helper talks to you" (My account), e.g. a language or a shorter style.
     const { data: pref } = await db.from('ai_custom_instructions').select('instructions').eq('user_id', user.id).eq('is_active', true).maybeSingle()
     const wishes = String(pref?.instructions ?? '').trim().slice(0, 1000)
-    const system = wishes
+    // The app's language: French users get French answers, storybooks and life stories.
+    const language = body.lang === 'fr'
+      ? '\n\nThis person uses the app in French. Write in natural Canadian French (vouvoiement), unless they clearly write to you in another language.'
+      : ''
+    const system = (wishes
       ? `${SYSTEM_PROMPT}\n\nThis person has asked you to always keep the following in mind. Follow it, unless it would mean inventing facts or being unsafe:\n${wishes}`
-      : SYSTEM_PROMPT
+      : SYSTEM_PROMPT) + language
 
     const started = Date.now()
     for (const p of candidates) {

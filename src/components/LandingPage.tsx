@@ -4,6 +4,8 @@ import Logo from './Logo';
 import { TAGLINE } from '../lib/brand';
 import { PRIVACY_PROMISES } from './PrivacyCenter';
 import WaitlistForm from './WaitlistForm';
+import LanguageSwitch from './LanguageSwitch';
+import { t, useLang } from '../lib/i18n';
 
 interface Props { onStart: () => void; onSignIn: () => void }
 
@@ -37,46 +39,49 @@ const FAQ = [
   ['What if I want to leave?', 'Download everything you\'ve saved in one click, then delete your account and everything in it whenever you like.'],
 ];
 
-export const LandingPage: React.FC<Props> = ({ onStart, onSignIn }) => (
+export const LandingPage: React.FC<Props> = ({ onStart, onSignIn }) => {
+  useLang(); // re-render when the language changes
+  return (
   <div className="min-h-screen bg-[#F5EEDF] text-[#1E2A23]">
     <header className="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
       <a href="/" className="flex items-center gap-2 font-serif text-xl font-bold"><Logo size={36} /> Genesis Heritage</a>
       <nav className="flex items-center gap-4 text-sm">
-        <a href="#features" className="hidden sm:inline hover:underline">Features</a>
-        <a href="#pricing" className="hidden sm:inline hover:underline">Pricing</a>
-        <a href="#faq" className="hidden sm:inline hover:underline">Questions</a>
-        <button onClick={onSignIn} className="hover:underline">Sign in</button>
-        <button onClick={onStart} className="px-4 py-2 rounded-full bg-[#2E5A44] text-white font-semibold hover:opacity-90">Start free</button>
+        <a href="#features" className="hidden sm:inline hover:underline">{t('Features')}</a>
+        <a href="#pricing" className="hidden sm:inline hover:underline">{t('Pricing')}</a>
+        <a href="#faq" className="hidden sm:inline hover:underline">{t('Questions')}</a>
+        <LanguageSwitch />
+        <button onClick={onSignIn} className="hover:underline">{t('Sign in')}</button>
+        <button onClick={onStart} className="px-4 py-2 rounded-full bg-[#2E5A44] text-white font-semibold hover:opacity-90">{t('Start free')}</button>
       </nav>
     </header>
 
     <section className="max-w-6xl mx-auto px-4 pt-10 pb-16 grid lg:grid-cols-2 gap-10 items-center">
       <div>
-        <p className="uppercase tracking-widest text-sm font-semibold text-[#2E5A44]">Family history, kept alive</p>
-        <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight mt-3">{TAGLINE}</h1>
-        <p className="mt-5 text-lg text-[#4a554e]">Your family tree, your relatives' voices, their stories, recipes and photos, and free historical records, all in one private place you can share with the people who matter.</p>
+        <p className="uppercase tracking-widest text-sm font-semibold text-[#2E5A44]">{t('Family history, kept alive')}</p>
+        <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight mt-3">{t(TAGLINE)}</h1>
+        <p className="mt-5 text-lg text-[#4a554e]">{t('Your family tree, your relatives\' voices, their stories, recipes and photos, and free historical records, all in one private place you can share with the people who matter.')}</p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <button onClick={onStart} className="px-6 py-3 rounded-full bg-[#2E5A44] text-white text-lg font-semibold shadow hover:opacity-90">Start your family's story, free</button>
-          <a href="#move" className="px-6 py-3 rounded-full border border-[#2E5A44] text-[#2E5A44] text-lg font-semibold hover:bg-white/50">Moving from Ancestry?</a>
+          <button onClick={onStart} className="px-6 py-3 rounded-full bg-[#2E5A44] text-white text-lg font-semibold shadow hover:opacity-90">{t('Start your family\'s story, free')}</button>
+          <a href="#move" className="px-6 py-3 rounded-full border border-[#2E5A44] text-[#2E5A44] text-lg font-semibold hover:bg-white/50">{t('Moving from Ancestry?')}</a>
         </div>
-        <p className="mt-4 text-sm text-[#5c6660]">Free to start · No credit card · We never sell your data · <a href="#waitlist" className="underline">Not ready yet? Join the waitlist</a></p>
+        <p className="mt-4 text-sm text-[#5c6660]">{t('Free to start · No credit card · We never sell your data')} · <a href="#waitlist" className="underline">{t('Not ready yet? Join the waitlist')}</a></p>
       </div>
-      <img src="/screens/tree.png" alt="A Genesis family tree with four generations" className="w-full rounded-xl shadow-xl border border-black/5 bg-white" loading="eager" />
+      <img src="/screens/tree.png" alt={t('A Genesis family tree with four generations')} className="w-full rounded-xl shadow-xl border border-black/5 bg-white" loading="eager" />
     </section>
 
     <section id="move" className="bg-white/60 border-y border-black/5">
       <div className="max-w-6xl mx-auto px-4 py-12">
-        <h2 className="font-serif text-3xl font-bold">Bring your tree over in about two minutes</h2>
+        <h2 className="font-serif text-3xl font-bold">{t('Bring your tree over in about two minutes')}</h2>
         <ol className="mt-6 grid sm:grid-cols-3 gap-6">
           {[
             ['Download your tree', 'On Ancestry or MyHeritage, use the "Export tree" option to download a GEDCOM (.ged) file.'],
             ['Upload it to Genesis', 'Choose the file. Everyone comes across, with parents, children and spouses linked, even old files with accented names.'],
             ['Keep the journey going', 'Check your tree for mistakes, research ancestors with evidence, record interviews and make your storybook.'],
-          ].map(([t, d], i) => (
-            <li key={t} className="bg-white rounded-xl p-5 shadow-sm">
+          ].map(([title, d], i) => (
+            <li key={title} className="bg-white rounded-xl p-5 shadow-sm">
               <span className="inline-flex w-8 h-8 items-center justify-center rounded-full bg-[#B5843A] text-white font-bold">{i + 1}</span>
-              <h3 className="mt-3 font-semibold text-lg">{t}</h3>
-              <p className="mt-1 text-[#4a554e]">{d}</p>
+              <h3 className="mt-3 font-semibold text-lg">{t(title)}</h3>
+              <p className="mt-1 text-[#4a554e]">{t(d)}</p>
             </li>
           ))}
         </ol>
@@ -88,21 +93,21 @@ export const LandingPage: React.FC<Props> = ({ onStart, onSignIn }) => (
         <div key={f.title} className={`grid lg:grid-cols-2 gap-10 items-center ${i % 2 ? 'lg:[&>*:first-child]:order-2' : ''}`}>
           <div>
             <f.icon className="w-9 h-9 text-[#2E5A44]" />
-            <h2 className="font-serif text-3xl font-bold mt-3">{f.title}</h2>
-            <p className="mt-3 text-lg text-[#4a554e]">{f.text}</p>
+            <h2 className="font-serif text-3xl font-bold mt-3">{t(f.title)}</h2>
+            <p className="mt-3 text-lg text-[#4a554e]">{t(f.text)}</p>
           </div>
-          <img src={f.img} alt={f.title} loading="lazy" className="w-full rounded-xl shadow-lg border border-black/5 bg-white" />
+          <img src={f.img} alt={t(f.title)} loading="lazy" className="w-full rounded-xl shadow-lg border border-black/5 bg-white" />
         </div>
       ))}
 
       <div>
-        <h2 className="font-serif text-3xl font-bold">And everything else your family's story needs</h2>
+        <h2 className="font-serif text-3xl font-bold">{t('And everything else your family\'s story needs')}</h2>
         <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {MORE.map((f) => (
             <div key={f.title} className="bg-white rounded-xl p-5 shadow-sm">
               <f.icon className="w-7 h-7 text-[#2E5A44]" />
-              <h3 className="mt-2 font-semibold">{f.title}</h3>
-              <p className="mt-1 text-sm text-[#4a554e]">{f.text}</p>
+              <h3 className="mt-2 font-semibold">{t(f.title)}</h3>
+              <p className="mt-1 text-sm text-[#4a554e]">{t(f.text)}</p>
             </div>
           ))}
         </div>
@@ -113,67 +118,68 @@ export const LandingPage: React.FC<Props> = ({ onStart, onSignIn }) => (
       <div className="max-w-6xl mx-auto px-4 py-14 grid lg:grid-cols-2 gap-8 items-center">
         <div>
           <ShieldCheck className="w-10 h-10 text-[#E9C98B]" />
-          <h2 className="font-serif text-3xl font-bold mt-3">Your family's story is not for sale.</h2>
-          <p className="mt-3 text-white/80">Family history is personal. Here is our promise, in plain words.</p>
+          <h2 className="font-serif text-3xl font-bold mt-3">{t('Your family\'s story is not for sale.')}</h2>
+          <p className="mt-3 text-white/80">{t('Family history is personal. Here is our promise, in plain words.')}</p>
         </div>
         <ul className="space-y-2">
-          {PRIVACY_PROMISES.map((p) => <li key={p} className="flex gap-2"><Check className="w-5 h-5 shrink-0 text-[#E9C98B]" />{p}</li>)}
+          {PRIVACY_PROMISES.map((p) => <li key={p} className="flex gap-2"><Check className="w-5 h-5 shrink-0 text-[#E9C98B]" />{t(p)}</li>)}
         </ul>
       </div>
     </section>
 
     <section id="pricing" className="max-w-6xl mx-auto px-4 py-16">
-      <h2 className="font-serif text-3xl font-bold text-center">Simple, fair pricing</h2>
+      <h2 className="font-serif text-3xl font-bold text-center">{t('Simple, fair pricing')}</h2>
       <div className="mt-8 grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl p-6 shadow-sm border">
-          <h3 className="text-xl font-semibold">Free</h3>
+          <h3 className="text-xl font-semibold">{t('Free')}</h3>
           <p className="text-4xl font-bold mt-2">$0</p>
           <ul className="mt-4 space-y-2 text-sm">
-            {['Unlimited family tree, import and export', 'Free records search, no paywall', 'Interviews, stories, recipes and photos', 'Share with family for free', 'AI helper with a daily allowance'].map((x) => <li key={x} className="flex gap-2"><Check className="w-4 h-4 text-[#2E5A44] shrink-0 mt-0.5" />{x}</li>)}
+            {['Unlimited family tree, import and export', 'Free records search, no paywall', 'Interviews, stories, recipes and photos', 'Share with family for free', 'AI helper with a daily allowance'].map((x) => <li key={x} className="flex gap-2"><Check className="w-4 h-4 text-[#2E5A44] shrink-0 mt-0.5" />{t(x)}</li>)}
           </ul>
-          <button onClick={onStart} className="mt-6 w-full py-3 rounded-full border border-[#2E5A44] text-[#2E5A44] font-semibold">Start free</button>
+          <button onClick={onStart} className="mt-6 w-full py-3 rounded-full border border-[#2E5A44] text-[#2E5A44] font-semibold">{t('Start free')}</button>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-[#2E5A44]">
           <h3 className="text-xl font-semibold">Pro</h3>
-          <p className="text-4xl font-bold mt-2">$19 <span className="text-base font-normal text-[#5c6660]">CAD / month, or $190 / year</span></p>
+          <p className="text-4xl font-bold mt-2">$19 <span className="text-base font-normal text-[#5c6660]">{t('CAD / month, or $190 / year')}</span></p>
           <ul className="mt-4 space-y-2 text-sm">
-            {['Everything in Free', 'Much higher AI limits: storybooks, life stories, research', 'Restore and colourise 10 old photos a day', 'Priority support'].map((x) => <li key={x} className="flex gap-2"><Check className="w-4 h-4 text-[#2E5A44] shrink-0 mt-0.5" />{x}</li>)}
+            {['Everything in Free', 'Much higher AI limits: storybooks, life stories, research', 'Restore and colourise 10 old photos a day', 'Priority support'].map((x) => <li key={x} className="flex gap-2"><Check className="w-4 h-4 text-[#2E5A44] shrink-0 mt-0.5" />{t(x)}</li>)}
           </ul>
-          <button onClick={onStart} className="mt-6 w-full py-3 rounded-full bg-[#2E5A44] text-white font-semibold">Start free, upgrade any time</button>
+          <button onClick={onStart} className="mt-6 w-full py-3 rounded-full bg-[#2E5A44] text-white font-semibold">{t('Start free, upgrade any time')}</button>
         </div>
       </div>
     </section>
 
     <section id="waitlist" className="bg-[#efe8da] border-t border-black/5">
       <div className="max-w-2xl mx-auto px-4 py-14 text-center space-y-5">
-        <h2 className="font-serif text-3xl font-bold">Not ready to start? Join the waitlist.</h2>
-        <p className="text-lg text-[#4a554e]">Be first to hear when new features open, from printed family books to the French version. Share your link and bring the whole family.</p>
+        <h2 className="font-serif text-3xl font-bold">{t('Not ready to start? Join the waitlist.')}</h2>
+        <p className="text-lg text-[#4a554e]">{t('Be first to hear when new features open, from printed family books to the French version. Share your link and bring the whole family.')}</p>
         <WaitlistForm source="home" />
       </div>
     </section>
 
     <section id="faq" className="bg-white/60 border-t border-black/5">
       <div className="max-w-3xl mx-auto px-4 py-14">
-        <h2 className="font-serif text-3xl font-bold">Questions families ask</h2>
+        <h2 className="font-serif text-3xl font-bold">{t('Questions families ask')}</h2>
         <div className="mt-6 space-y-3">
           {FAQ.map(([q, a]) => (
             <details key={q} className="bg-white rounded-xl p-4 shadow-sm">
-              <summary className="cursor-pointer font-semibold">{q}</summary>
-              <p className="mt-2 text-[#4a554e]">{a}</p>
+              <summary className="cursor-pointer font-semibold">{t(q)}</summary>
+              <p className="mt-2 text-[#4a554e]">{t(a)}</p>
             </details>
           ))}
         </div>
         <div className="mt-10 text-center">
-          <button onClick={onStart} className="px-8 py-3 rounded-full bg-[#2E5A44] text-white text-lg font-semibold shadow">Start your family's story, free</button>
+          <button onClick={onStart} className="px-8 py-3 rounded-full bg-[#2E5A44] text-white text-lg font-semibold shadow">{t('Start your family\'s story, free')}</button>
         </div>
       </div>
     </section>
 
     <footer className="max-w-6xl mx-auto px-4 py-8 text-sm text-[#5c6660] space-y-2">
-      <p><a href="/privacy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a> · © {new Date().getFullYear()} Genesis Heritage. All rights reserved.</p>
-      <p className="text-xs">Ancestry and MyHeritage are trademarks of their respective owners. Genesis Heritage is an independent service and is not affiliated with them.</p>
+      <p><a href="/privacy" className="underline">{t('Privacy')}</a> · <a href="/terms" className="underline">{t('Terms')}</a> · © {new Date().getFullYear()} Genesis Heritage. {t('All rights reserved.')}</p>
+      <p className="text-xs">{t('Ancestry and MyHeritage are trademarks of their respective owners. Genesis Heritage is an independent service and is not affiliated with them.')}</p>
     </footer>
   </div>
-);
+  );
+};
 
 export default LandingPage;

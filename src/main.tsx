@@ -1,3 +1,4 @@
+import { applyLang } from './lib/i18n';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
@@ -9,6 +10,7 @@ import { applyTextSize } from './lib/text-size';
 
 installErrorReporting();
 applyTextSize();
+applyLang();
 
 console.log('🚀 Starting React app...');
 console.log('📁 Current directory:', window.location.href);

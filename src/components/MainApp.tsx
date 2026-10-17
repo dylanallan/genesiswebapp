@@ -12,6 +12,8 @@ import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
 import { GlobalDataProvider } from '../lib/GlobalDataContext';
 import PricingPage from './PricingPage';
 import AnswerMemories from './AnswerMemories';
+import LanguageSwitch from './LanguageSwitch';
+import { t, useLang } from '../lib/i18n';
 import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
 import { TAGLINE } from '../lib/brand';
@@ -43,6 +45,7 @@ const SELLING_POINTS = [
 
 
 const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => void }> = ({ startMode, onBack }) => {
+  useLang();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,15 +66,15 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
       });
 
       if (error) throw error;
-      toast.success('Successfully signed in!');
+      toast.success(t('Successfully signed in!'));
     } catch (error: any) {
       console.error('Sign in error:', error);
       if (/invalid login credentials/i.test(error.message ?? '')) {
-        toast.error('That email and password do not match. If you forgot your password, use "Forgot password?" below.');
+        toast.error(t('That email and password do not match. If you forgot your password, use "Forgot password?" below.'));
       } else if (/email not confirmed/i.test(error.message ?? '')) {
-        toast.error('Please confirm your email first: open the link we emailed you.');
+        toast.error(t('Please confirm your email first: open the link we emailed you.'));
       } else {
-        toast.error(error.message || 'Failed to sign in');
+        toast.error(error.message || t('Failed to sign in'));
       }
     } finally {
       setIsLoading(false);
@@ -92,21 +95,21 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
       if (error) {
         // Handle specific case where user already exists
         if (error.message === 'User already registered') {
-          toast.error('This email is already registered. Please sign in instead or use a different email.');
+          toast.error(t('This email is already registered. Please sign in instead or use a different email.'));
           setAuthMode('signin'); // Switch to sign in mode
           return;
         }
         throw error;
       }
-      toast.success('Account created! Please check your email to verify.');
+      toast.success(t('Account created! Please check your email to verify.'));
     } catch (error: any) {
       console.error('Sign up error:', error);
       // More specific error handling
       if (error.message === 'User already registered') {
-        toast.error('This email is already registered. Please sign in instead.');
+        toast.error(t('This email is already registered. Please sign in instead.'));
         setAuthMode('signin');
       } else {
-        toast.error(error.message || 'Failed to create account');
+        toast.error(error.message || t('Failed to create account'));
       }
     } finally {
       setIsLoading(false);
@@ -120,11 +123,11 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
       if (error) throw error;
-      toast.success('If that email has an account, a reset link is on its way. Check your inbox (and spam).');
+      toast.success(t('If that email has an account, a reset link is on its way. Check your inbox (and spam).'));
       setAuthMode('signin');
     } catch (error: any) {
       console.error('Password reset error:', error);
-      toast.error(error.message || 'Could not send the reset email. Please try again.');
+      toast.error(error.message || t('Could not send the reset email. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +146,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
       if (error) throw error;
     } catch (error: any) {
       console.error('Google auth error:', error);
-      toast.error(error.message || 'Failed to sign in with Google');
+      toast.error(error.message || t('Failed to sign in with Google'));
       setIsLoading(false);
     }
   };
@@ -151,27 +154,30 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col lg:flex-row items-center justify-center gap-10 p-4">
       <section className="max-w-md w-full order-2 lg:order-1">
-        <h1 className="text-3xl font-bold text-gray-900">{TAGLINE}</h1>
-        <p className="mt-2 text-gray-600">Keep your family's story alive: tree, voices, stories and records in one private place, shared with the people who matter.</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t(TAGLINE)}</h1>
+        <p className="mt-2 text-gray-600">{t("Keep your family's story alive: tree, voices, stories and records in one private place, shared with the people who matter.")}</p>
         <ul className="mt-6 space-y-3">
           {SELLING_POINTS.map(([title, text]) => (
-            <li key={title} className="flex gap-3"><span className="text-green-600 font-bold">✓</span><span><strong>{title}.</strong> {text}</span></li>
+            <li key={title} className="flex gap-3"><span className="text-green-600 font-bold" aria-hidden="true">✓</span><span><strong>{t(title)}.</strong> {t(text)}</span></li>
           ))}
         </ul>
-        <p className="mt-6 text-sm text-gray-500"><a href="/privacy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a> · © {new Date().getFullYear()} Genesis Heritage. All rights reserved.</p>
+        <p className="mt-6 text-sm text-gray-500"><a href="/privacy" className="underline">{t('Privacy')}</a> · <a href="/terms" className="underline">{t('Terms')}</a> · © {new Date().getFullYear()} Genesis Heritage. {t('All rights reserved.')}</p>
       </section>
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 order-1 lg:order-2">
-        {onBack && <button type="button" onClick={onBack} className="mb-4 text-sm text-blue-700 hover:underline">← Back to the home page</button>}
+        <div className="mb-4 flex items-center justify-between gap-3 text-sm">
+          {onBack ? <button type="button" onClick={onBack} className="text-blue-700 hover:underline">{t('← Back to the home page')}</button> : <span />}
+          <LanguageSwitch className="text-gray-700" />
+        </div>
         {invite && (
           <p className="mb-6 rounded-lg bg-green-50 border border-green-200 p-3 text-green-800">
-            You've been invited to join your family's history. Create a free account (or sign in) to see it.
+            {t("You've been invited to join your family's history. Create a free account (or sign in) to see it.")}
           </p>
         )}
         <div className="text-center mb-8">
           <Logo size={64} className="mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900">Welcome to Genesis Heritage</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('Welcome to Genesis Heritage')}</h2>
           <p className="text-gray-600">
-            {authMode === 'signin' ? 'Sign in to your account' : authMode === 'signup' ? 'Create your account' : 'Reset your password'}
+            {t(authMode === 'signin' ? 'Sign in to your account' : authMode === 'signup' ? 'Create your account' : 'Reset your password')}
           </p>
         </div>
 
@@ -187,7 +193,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          <span>Continue with Google</span>
+          <span>{t('Continue with Google')}</span>
         </button>
 
         <div className="relative mb-6">
@@ -195,14 +201,14 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
             <div className="w-full border-t border-gray-300" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+            <span className="px-2 bg-white text-gray-500">{t('Or continue with email')}</span>
           </div>
         </div>
 
         <form onSubmit={authMode === 'signin' ? handleSignIn : authMode === 'signup' ? handleSignUp : handleResetRequest} className="space-y-4">
           <div>
             <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('Email')}
             </label>
             <input
               id="auth-email"
@@ -219,7 +225,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
 
           {authMode !== 'reset' && <div>
             <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              {t('Password')}
             </label>
             <input
               id="auth-password"
@@ -235,7 +241,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
             />
             {authMode === 'signin' && (
               <button type="button" onClick={() => setAuthMode('reset')} className="mt-1 text-sm text-blue-600 hover:text-blue-700">
-                Forgot password?
+                {t('Forgot password?')}
               </button>
             )}
           </div>}
@@ -246,8 +252,8 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {isLoading
-              ? (authMode === 'signin' ? 'Signing in...' : authMode === 'signup' ? 'Creating account...' : 'Sending...')
-              : (authMode === 'signin' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Email me a reset link')}
+              ? t(authMode === 'signin' ? 'Signing in...' : authMode === 'signup' ? 'Creating account...' : 'Sending...')
+              : t(authMode === 'signin' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Email me a reset link')}
           </button>
         </form>
 
@@ -257,9 +263,9 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
             onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
             className="text-gray-600 hover:text-gray-700 text-sm"
           >
-            {authMode === 'signin'
+            {t(authMode === 'signin'
               ? "Don't have an account? Sign up"
-              : authMode === 'signup' ? 'Already have an account? Sign in' : 'Back to sign in'}
+              : authMode === 'signup' ? 'Already have an account? Sign in' : 'Back to sign in')}
           </button>
         </div>
       </div>
@@ -274,7 +280,7 @@ const LoadingScreen = () => (
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
         <Logo size={48} className="mx-auto mb-4" />
       </motion.div>
-      <p className="text-gray-600 font-medium">Loading Genesis Heritage Pro...</p>
+      <p className="text-gray-600 font-medium">{t('Loading Genesis Heritage Pro...')}</p>
     </div>
   </div>
 );

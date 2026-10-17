@@ -109,6 +109,7 @@ import {
   Send
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { t, useLang } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
 import { useSession } from '../lib/session-context';
@@ -968,6 +969,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
 ];
 
 export const Dashboard: React.FC<DashboardProps> = () => {
+  useLang(); // menus follow the chosen language
   const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -1042,7 +1044,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Category Filter */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="category-menu" role="navigation" aria-label="Sections">
+          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="category-menu" role="navigation" aria-label={t('Sections')}>
             {categories.map(category => {
               const Icon = category.icon;
               return (
@@ -1058,7 +1060,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                   whileTap={{ scale: 0.98 }}
                 >
                   <Icon className={`w-4 h-4 ${selectedCategory === category.id ? 'text-genesis-600' : ''}`} />
-                  <span className="text-sm font-medium">{category.name}</span>
+                  <span className="text-sm font-medium">{t(category.name)}</span>
                 </motion.button>
               );
             })}
@@ -1069,7 +1071,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Feature Navigation */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="feature-menu" role="navigation" aria-label="Pages in this section">
+          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="feature-menu" role="navigation" aria-label={t('Pages in this section')}>
             {filteredFeatures.map(feature => {
               const Icon = feature.icon;
               return (
@@ -1085,7 +1087,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                   whileTap={{ scale: 0.98 }}
                 >
                   <Icon className={`w-4 h-4 ${activeFeature === feature.id ? 'text-genesis-600' : ''}`} />
-                  <span className="text-sm font-medium">{feature.name}</span>
+                  <span className="text-sm font-medium">{t(feature.name)}</span>
                   {activeFeature === feature.id && (
                     <motion.div
                       layoutId="activeFeatureIndicator"

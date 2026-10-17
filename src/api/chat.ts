@@ -1,3 +1,4 @@
+import { getLang } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 
 // Type Definitions
@@ -72,7 +73,7 @@ async function sendMessage(
   const now = () => new Date().toISOString();
 
   const { data, error } = await supabase.functions.invoke('ai-router', {
-    body: { ...(typeof message === 'string' ? { message } : message), ...(provider && provider !== 'auto' ? { provider } : {}) },
+    body: { ...(typeof message === 'string' ? { message } : message), lang: getLang(), ...(provider && provider !== 'auto' ? { provider } : {}) },
   });
 
   if (error || data?.error) {
