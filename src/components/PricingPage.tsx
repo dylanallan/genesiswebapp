@@ -1,7 +1,8 @@
 import { TAGLINE } from '../lib/brand';
 import { t, useLang } from '../lib/i18n';
 import { useEffect, useState } from 'react';
-import { Check, Loader2, Copy } from 'lucide-react';
+import { Check, Gift, Loader2 } from 'lucide-react';
+import PaymentInstructions from './PaymentInstructions';
 import { toast } from 'sonner';
 import { useSession } from '../lib/session-context';
 import {
@@ -83,6 +84,7 @@ export default function PricingPage() {
             {endDate && <> — {renewing ? `renews ${endDate}` : `paid through ${endDate}`}</>}
             {subscription.provider === 'etransfer' && ' (e-Transfer, does not renew automatically)'}
             {subscription.provider === 'paypal_link' && ' (PayPal one-time payment, does not renew automatically)'}
+            {subscription.provider === 'gift' && ` (${t('a gift, does not renew automatically')})`}
           </span>
           {renewing && (
             <span className="flex gap-2">
@@ -144,30 +146,14 @@ export default function PricingPage() {
         ))}
       </div>
 
-      {request && manual && (
-        <section className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-6 text-blue-950" aria-live="polite">
-          <h2 className="text-lg font-semibold mb-2">{request.method === 'paypal_link' ? 'Pay with PayPal' : 'Send your Interac e-Transfer'}</h2>
-          <ol className="list-decimal pl-5 space-y-1 text-sm">
-            <li>
-              Your reference code:{' '}
-              <code className="rounded bg-white px-2 py-0.5 font-mono">{request.reference_code}</code>{' '}
-              <button className="inline-flex items-center gap-1 underline" onClick={() => navigator.clipboard.writeText(request.reference_code).then(() => toast.success('Copied'))}>
-                <Copy className="h-3 w-3" />copy
-              </button>
-            </li>
-            {request.method === 'paypal_link' ? (
-              <li>
-                <a className="font-semibold underline" href={manual.paypalLinks[request.plan]} target="_blank" rel="noopener noreferrer">Open PayPal checkout</a>{' '}
-                and pay <strong>{formatCad(request.amount_cents)}</strong> with your PayPal account or a card. Paste the reference code into the note box at checkout.
-              </li>
-            ) : (
-              <li>Send <strong>{formatCad(request.amount_cents)}</strong> to <strong>{manual.etransferEmail}</strong> and put the reference code in the message.</li>
-            )}
-            <li>We'll switch on Pro as soon as the payment arrives (usually within one business day). This page will show it.</li>
-          </ol>
-          <p className="mt-3 text-xs text-blue-800">One-time payments do not renew automatically. Pay again any time to extend; days are never lost.</p>
-        </section>
-      )}
+      {request && manual && <PaymentInstructions request={request} manual={manual} />}
+
+      <p className="mt-6 text-center">
+        <a href="/gift" className="inline-flex items-center gap-2 rounded-full border border-genesis-600 px-4 py-2 text-genesis-700 hover:bg-genesis-50">
+          <Gift className="h-4 w-4" aria-hidden /> {t('Give Pro as a gift')}
+        </a>{' '}
+        <a href="/redeem" className="ml-2 text-sm text-gray-600 underline">{t('Have a gift code?')}</a>
+      </p>
 
       <section aria-labelledby="promises" className="mt-8 rounded-xl border border-gray-200 bg-white p-5" data-testid="billing-promises">
         <h2 id="promises" className="text-lg font-semibold mb-3">{t('Our promises')}</h2>

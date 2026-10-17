@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const site = (process.env.SITE_URL || process.env.URL || 'https://genesisheritage.netlify.app').replace(/\/$/, ''); // Netlify sets URL
-const pages = ['/', '/switch', '/compare', '/partners', '/privacy', '/terms'];
+const pages = ['/', '/switch', '/compare', '/partners', '/gift', '/privacy', '/terms'];
 // Static guide pages: public/guides/<slug>/index.html, served at /guides/<slug>/.
 const guidesDir = join(root, 'public', 'guides');
 if (existsSync(guidesDir)) {

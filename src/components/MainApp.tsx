@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { rememberNextStep } from '../lib/next-step';
+import { rememberNextStep, takeNextPath } from '../lib/next-step';
 import { useSession } from '../lib/session-context';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -17,6 +17,8 @@ import JoinFamily, { pendingInvite, rememberInvite } from './JoinFamily';
 const SwitchGuide = React.lazy(() => import('./SwitchGuide'));
 const ComparePage = React.lazy(() => import('./ComparePage'));
 const PartnersPage = React.lazy(() => import('./PartnersPage'));
+const GiftPage = React.lazy(() => import('./GiftPage'));
+const RedeemPage = React.lazy(() => import('./RedeemPage'));
 
 // Screens load only when someone opens them, so the first page on a phone downloads as little as possible.
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -290,6 +292,14 @@ const LoadingScreen = () => (
 
 rememberNextStep();
 
+// Signed in at "/": the dashboard, or a public page they were on before signing up (buying or redeeming a gift).
+// Those pages are drawn outside the app's router, so they are opened with a full page load.
+const AfterSignIn: React.FC = () => {
+  const next = takeNextPath();
+  useEffect(() => { if (next && !next.startsWith('/dashboard')) window.location.replace(next); }, [next]);
+  return next && !next.startsWith('/dashboard') ? <LoadingScreen /> : <Navigate to="/dashboard" replace />;
+};
+
 export const MainApp: React.FC = () => {
   const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();
   // ?start=signup (from the switch guide and comparison pages) opens the sign-up form straight away.
@@ -300,6 +310,9 @@ export const MainApp: React.FC = () => {
   const memoryToken = /^\/memories\/([A-Za-z0-9]{24,64})\/?$/.exec(path)?.[1];
   if (memoryToken) return <Suspense fallback={<LoadingScreen />}><AnswerMemories token={memoryToken} /></Suspense>;
   // Public guides, open to everyone whether or not they are signed in.
+  if (path === '/gift' || path === '/redeem') {
+    return <React.Suspense fallback={<LoadingScreen />}>{path === '/gift' ? <GiftPage /> : <RedeemPage />}</React.Suspense>;
+  }
   if (path === '/switch' || path === '/compare' || path === '/partners') {
     return <React.Suspense fallback={<LoadingScreen />}>{path === '/switch' ? <SwitchGuide /> : path === '/compare' ? <ComparePage /> : <PartnersPage />}</React.Suspense>;
   }
@@ -324,7 +337,7 @@ export const MainApp: React.FC = () => {
           <Routes>
             <Route path="/join/:token" element={<JoinFamily />} />
             {/* Signed in: straight to the family dashboard. The old showcase home and demo pages are not for customers. */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<AfterSignIn />} />
             <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

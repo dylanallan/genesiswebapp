@@ -33,6 +33,10 @@ export interface MockState {
   posted?: Record<string, unknown[]>; // bodies of POSTs, by table
   storageFiles?: Record<string, string[]>;
   waitlistRows?: unknown[];
+  gifts?: unknown[];        // what my_gifts returns (gifts the user bought)
+  giftRows?: unknown[];     // rows returned for gift_codes (admin view)
+  redeem?: unknown;         // what redeem_gift_code returns
+  adminPayments?: unknown[]; // rows returned by admin_list_manual_payments
   memoryRequest?: { token: string; view: unknown }; // what get_memory_request returns for that token  // rows returned for waitlist_signups (admin view) // files in each storage bucket, as paths under the user's folder
 }
 
@@ -100,6 +104,30 @@ export async function installMockBackend(page: Page, state: MockState) {
         currency: 'CAD', reference_code: 'GEN-TEST01', status: 'pending', created_at: '2026-01-01T00:00:00Z',
       });
     }
+    if (path === '/rest/v1/rpc/create_gift_request') {
+      const body = JSON.parse(req.postData() ?? '{}');
+      (state.posted ??= {}).create_gift_request = [...(state.posted.create_gift_request ?? []), body];
+      return json(route, {
+        gift_id: '33333333-3333-4333-8333-333333333333',
+        payment: {
+          id: '22222222-2222-4222-8222-222222222223', method: body.p_method, plan: body.p_plan, amount_cents: body.p_plan === 'monthly' ? 1900 : 19000,
+          currency: 'CAD', reference_code: 'GIFT-TEST01', status: 'pending', purpose: 'gift', created_at: '2026-01-01T00:00:00Z',
+        },
+      });
+    }
+    if (path === '/rest/v1/rpc/admin_list_manual_payments') {
+      if (!state.admin) return json(route, { message: 'Admins only' }, 403);
+      return json(route, state.adminPayments ?? []);
+    }
+    if (path === '/rest/v1/rpc/review_manual_payment') {
+      (state.posted ??= {}).review_manual_payment = [...(state.posted.review_manual_payment ?? []), JSON.parse(req.postData() ?? 'null')];
+      return json(route, { status: 'confirmed' });
+    }
+    if (path === '/rest/v1/rpc/my_gifts') return json(route, state.gifts ?? []);
+    if (path === '/rest/v1/rpc/redeem_gift_code') {
+      (state.posted ??= {}).redeem_gift_code = [...(state.posted.redeem_gift_code ?? []), JSON.parse(req.postData() ?? 'null')];
+      return json(route, state.redeem ?? { ok: false, reason: 'That code doesn’t match a gift. Check it and try again.' });
+    }
     if (path === '/rest/v1/rpc/get_memory_request') {
       const { p_token } = JSON.parse(req.postData() ?? '{}');
       return json(route, p_token === state.memoryRequest?.token ? state.memoryRequest.view : null);
@@ -129,6 +157,7 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (table === 'family_members' && ['GET', 'HEAD'].includes(req.method()) && state.familyRows) rows = state.familyRows;
       if (table === 'cultural_stories' && req.method() === 'GET' && state.storyRows) rows = state.storyRows;
       if (table === 'waitlist_signups' && req.method() === 'GET' && state.waitlistRows) rows = state.waitlistRows;
+      if (table === 'gift_codes' && req.method() === 'GET' && state.giftRows) rows = state.giftRows;
       // Hints the page saved come back when it reloads, as the database would return them.
       if (table === 'record_hints' && req.method() === 'GET') {
         rows = (state.posted?.record_hints ?? []).map((h, i) => ({ id: `hint-${i}`, status: 'new', ...(h as object) }));

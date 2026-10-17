@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCircle, KeyRound, LogOut, Type, MessageCircle, ShieldCheck } from 'lucide-react';
+import { UserCircle, KeyRound, LogOut, Type, MessageCircle, ShieldCheck, Gift as GiftIcon } from 'lucide-react';
+import { myGifts, type Gift } from '../lib/gifts';
+import { GiftsGiven } from './GiftPage';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { SetNewPassword } from './SetNewPassword';
@@ -21,6 +23,9 @@ export const MyAccount: React.FC = () => {
   const [changingPassword, setChangingPassword] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false); // fields stay locked until your saved details arrive, so typing is never overwritten
+  const [gifts, setGifts] = useState<Gift[]>([]);
+
+  useEffect(() => { myGifts().then(setGifts, () => setGifts([])); }, []);
 
   useEffect(() => {
     let current = true; // a load that was superseded never overwrites the fields
@@ -125,6 +130,12 @@ export const MyAccount: React.FC = () => {
           </button>
         </div>
         <p className="text-xs text-gray-500">{t('Use “Sign out on all my devices” if you used Genesis on someone else’s phone or computer.')}</p>
+      </section>
+
+      <section className={section} data-testid="account-gifts">
+        <h3 className="font-semibold flex items-center gap-2"><GiftIcon className="w-5 h-5 text-genesis-600" /> {t('Gifts you’ve given')}</h3>
+        {gifts.length ? <GiftsGiven gifts={gifts} /> : <p className="text-sm text-gray-600">{t('Give a month or a year of Pro to someone you love.')}</p>}
+        <a href="/gift" className="inline-block px-4 py-2 border rounded-lg hover:bg-gray-50">{t('Give Pro as a gift')}</a>
       </section>
 
       <section className={section}>
