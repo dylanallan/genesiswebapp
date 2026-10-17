@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Search, Plus, Edit, Trash, MapPin, Users, Info, X, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface Celebration {
   id: string;
@@ -52,7 +53,8 @@ export const CelebrationManager: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
       toast.error('Name is required');
@@ -93,7 +95,7 @@ export const CelebrationManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const handleEdit = (celebration: Celebration) => {
     setFormData({

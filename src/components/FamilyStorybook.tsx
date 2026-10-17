@@ -6,6 +6,7 @@ import { chatApi } from '../api/chat';
 import { Chapter, StoryPerson, chapterRequest, planChapters, storybookHtml } from '../lib/storybook';
 import { downloadFile } from './TreeImport';
 import { loadAllFamilyRows } from '../lib/family';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface SavedBook { id: string; title: string; chapters: Chapter[]; created_at: string }
 
@@ -96,13 +97,14 @@ export const FamilyStorybook: React.FC = () => {
     }
   };
 
-  const save = async () => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const save = guard(async () => {
     const { data, error } = await supabase.from('storybooks').insert({ title, chapters }).select('id').single();
     if (error) { toast.error(error.message); return; }
     setSavedId(data.id);
     toast.success('Saved. Relatives you share your family with can read it too.');
     loadSaved();
-  };
+  });
 
   const print = (bookTitle: string, bookChapters: Chapter[]) => {
     const w = window.open('', '_blank');

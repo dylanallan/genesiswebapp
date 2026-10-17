@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Globe, Calendar, Users, MapPin, Clock, Plus, Edit, Trash, Search, Filter, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface Tradition {
   id: string;
@@ -54,7 +55,8 @@ export const TraditionsManager: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
       toast.error('Name is required');
@@ -96,7 +98,7 @@ export const TraditionsManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const handleEdit = (tradition: Tradition) => {
     setFormData({

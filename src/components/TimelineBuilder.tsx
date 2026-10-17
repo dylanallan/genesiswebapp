@@ -4,6 +4,7 @@ import { Plus, Calendar, MapPin, Users, Image, Video, FileText, Edit, Trash } fr
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface TimelineEvent {
   id: string;
@@ -68,7 +69,8 @@ export const TimelineBuilder: React.FC = () => {
     }
   };
 
-  const addEvent = async () => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const addEvent = guard(async () => {
     if (!newEvent.date || !newEvent.title) {
       toast.error('Please fill in required fields');
       return;
@@ -96,7 +98,7 @@ export const TimelineBuilder: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const deleteEvent = async (id: string) => {
     setIsLoading(true);

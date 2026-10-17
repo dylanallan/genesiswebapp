@@ -91,7 +91,6 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
 
     onAddMember?.(newMember);
     resetForm();
-    toast.success(`Added ${newMember.name} to your family tree`);
   };
 
   const handleUpdateMember = () => {
@@ -113,13 +112,11 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
 
     onUpdateMember?.(updatedMember);
     resetForm();
-    toast.success(`Updated ${updatedMember.name}`);
   };
 
   const handleDeleteMember = (memberId: string) => {
     if (confirm('Are you sure you want to delete this family member?')) {
       onDeleteMember?.(memberId);
-      toast.success('Family member deleted');
     }
   };
 

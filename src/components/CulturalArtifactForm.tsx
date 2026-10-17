@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 const artifactSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -63,7 +64,8 @@ export const CulturalArtifactForm: React.FC<CulturalArtifactFormProps> = ({
     setValue('tags', newTags);
   };
 
-  const onSubmit = async (data: ArtifactFormData) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const onSubmit = guard(async (data: ArtifactFormData) => {
     setIsSubmitting(true);
     
     try {
@@ -99,7 +101,7 @@ export const CulturalArtifactForm: React.FC<CulturalArtifactFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

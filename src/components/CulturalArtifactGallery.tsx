@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Globe, Image, FileText, Music, Video, Search, Filter, Plus, Info, ExternalLink, Tag, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface CulturalArtifact {
   id: string;
@@ -159,7 +160,8 @@ export const CulturalArtifactGallery: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleFormSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.category) {
       toast.error('Title and category are required');
@@ -200,7 +202,7 @@ export const CulturalArtifactGallery: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {

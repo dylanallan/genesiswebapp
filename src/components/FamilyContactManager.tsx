@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Users, Search, Plus, Edit, Trash, Phone, Mail, MapPin, Calendar, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface FamilyContact {
   id: string;
@@ -59,7 +60,8 @@ export const FamilyContactManager: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
       toast.error('Name is required');
@@ -103,7 +105,7 @@ export const FamilyContactManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const handleEdit = (contact: FamilyContact) => {
     setFormData({

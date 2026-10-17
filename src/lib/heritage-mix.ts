@@ -44,7 +44,29 @@ const COUNTRY_CODES: Record<string, string> = {
   gr: 'Greece', tr: 'Turkey', lb: 'Lebanon', eg: 'Egypt', is: 'Iceland', lt: 'Lithuania', lv: 'Latvia', ee: 'Estonia', sk: 'Slovakia', hr: 'Croatia',
 };
 
-const titleCase = (s: string) => s.replace(/(^|[\s-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase());
+// Places that are (or were) countries but aren't in today's list of country codes.
+const HISTORIC = ['England', 'Scotland', 'Wales', 'Northern Ireland', 'Prussia', 'Bohemia', 'Moravia', 'Galicia', 'Austria-Hungary',
+  'Ottoman Empire', 'Soviet Union', 'USSR', 'Yugoslavia', 'Persia', 'Burma', 'Ceylon', 'Siam', 'Bavaria', 'Saxony', 'Württemberg',
+  'Hanover', 'Baden', 'Hesse', 'Kingdom of Hungary', 'Holy Roman Empire', 'Kosovo', 'Palestine', 'Taiwan', 'Hong Kong', 'Macau'];
+let known: Map<string, string> | null = null;
+/** Every country name we recognise, by lower-case name, from the browser's own list plus historic countries. */
+function countries(): Map<string, string> {
+  if (known) return known;
+  known = new Map(HISTORIC.map((c) => [c.toLowerCase(), c]));
+  try {
+    const names = new Intl.DisplayNames(['en'], { type: 'region' });
+    const A = 65;
+    for (let i = 0; i < 26; i++) for (let j = 0; j < 26; j++) {
+      const code = String.fromCharCode(A + i, A + j);
+      const name = names.of(code);
+      if (name && name !== code && !/unknown/i.test(name)) known.set(name.toLowerCase(), name);
+    }
+  } catch { /* very old browsers: aliases, states and codes still work */ }
+  for (const v of Object.values(ALIASES)) known.set(v.toLowerCase(), v);
+  for (const v of Object.values(COUNTRY_CODES)) known.set(v.toLowerCase(), v);
+  return known;
+}
+
 
 /** The country part of a place such as "Cork, County Cork, Ireland" or "Toronto, ON". */
 export function countryOf(place: string | null): string | null {
@@ -56,8 +78,9 @@ export function countryOf(place: string | null): string | null {
   if (CANADA.includes(last)) return 'Canada';
   if (US_STATES.includes(last)) return 'United States';
   if (last.length === 2 && COUNTRY_CODES[last]) return COUNTRY_CODES[last];
-  if (/^\d+$/.test(last)) return null;
-  return titleCase(parts[parts.length - 1]);
+  // Only a recognised country counts; a town on its own, a typo or "unknown" is left as not known rather than
+  // shown as a made-up country.
+  return countries().get(last) ?? null;
 }
 
 export function heritageMix(focusId: string, people: MixPerson[]): HeritageMix | null {

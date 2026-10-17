@@ -4,6 +4,7 @@ import { BookOpen, Search, Plus, Edit, Trash, Globe, Calendar, User, Check, X, T
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { signedUrl } from '../lib/storage';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface CulturalStory {
   id: string;
@@ -71,7 +72,8 @@ export const CulturalStoryLibrary: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     // An empty date field must be saved as "no date", not as an empty string (the database rejects '').
     const row = { ...formData, date_recorded: formData.date_recorded || null };
@@ -115,7 +117,7 @@ export const CulturalStoryLibrary: React.FC = () => {
       console.error('Error saving story:', error);
       toast.error('Failed to save story');
     }
-  };
+  });
 
   const handleEdit = (story: CulturalStory) => {
     setFormData({
