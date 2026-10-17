@@ -61,6 +61,8 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<PhotoAnalysis | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // The stored file path identifies the photo for good; the on-screen preview link changes on every visit.
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, reset } = useForm();
@@ -75,8 +77,9 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
 
       // Upload to Supabase storage
       // Private upload into the user's own folder
-      const photoPath = await uploadOwnFile('family-photos', file.name, file);
-      const uploadData = { path: photoPath };
+      const storedPath = await uploadOwnFile('family-photos', file.name, file);
+      setPhotoPath(storedPath);
+      const uploadData = { path: storedPath };
 
       // Call Google Vision AI through Edge Function
       const { data: analysisData, error: analysisError } = await supabase.functions
@@ -128,13 +131,16 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
     setAnalysis(updatedAnalysis);
 
     try {
-      await supabase
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
         .from('face_names')
         .upsert({
-          face_id: `${selectedImage}-${faceIndex}`,
+          user_id: auth?.user?.id,
+          face_id: `${photoPath ?? selectedImage}-${faceIndex}`,
           name,
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'user_id,face_id' });
+      if (error) throw error;
 
       toast.success(`Name updated to ${name}`);
     } catch (error) {
@@ -153,7 +159,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             disabled={isAnalyzing}
           >
             {isAnalyzing ? (

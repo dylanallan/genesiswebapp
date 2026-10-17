@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from '../lib/session-context';
-import { Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../lib/error-boundary';
 import GenesisHome from './GenesisHome';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import EliteHackathonApp from './EliteHackathonApp';
 import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
@@ -14,16 +13,43 @@ import { GlobalDataProvider } from '../lib/GlobalDataContext';
 import PricingPage from './PricingPage';
 import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
+import { TAGLINE } from '../lib/brand';
+import Logo from './Logo';
+import LandingPage from './LandingPage';
+import { PrivacyPolicy, TermsOfService } from './LegalPages';
+import JoinFamily, { pendingInvite, rememberInvite } from './JoinFamily';
 
-// A shared demo login is only offered when a demo account is explicitly configured at build time.
-const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
-const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
+const inviteFromPath = () => /^\/join\/([\w-]+)/.exec(window.location.pathname)?.[1] ?? null;
 
-const SimpleAuth: React.FC = () => {
+// After signing in somewhere else (e.g. from the email confirmation link), finish joining the family.
+const PendingInvite: React.FC = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const token = pendingInvite();
+    if (token && !window.location.pathname.startsWith('/join/')) navigate(`/join/${token}`, { replace: true });
+  }, [navigate]);
+  return null;
+};
+
+const SELLING_POINTS = [
+  ['Bring your Ancestry tree', 'Import your GEDCOM file in two minutes. Download it again any time.'],
+  ['Stories, not just dates', 'Record interviews with grandparents and keep recipes, photos and traditions together.'],
+  ['An AI family storybook', 'Turn your tree and stories into a book to print or share.'],
+  ['Free records, no paywall', 'Search open archives and official records from Canada, the US, Europe and beyond.'],
+  ['Private by design', 'We never sell your data. Delete everything in one click.'],
+  ['Fair price', 'Free to start. Pro is $19 CAD a month, a fraction of the big sites.'],
+];
+
+
+const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => void }> = ({ startMode, onBack }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const invite = inviteFromPath();
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>(invite ? 'signup' : startMode ?? 'signin');
+  useEffect(() => {
+    if (invite) rememberInvite(invite);
+  }, [invite]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +85,7 @@ const SimpleAuth: React.FC = () => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: { emailRedirectTo: window.location.href },
       });
 
       if (error) {
@@ -120,29 +147,27 @@ const SimpleAuth: React.FC = () => {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: DEMO_EMAIL!,
-        password: DEMO_PASSWORD!,
-      });
-
-      if (error) throw error;
-      toast.success('Demo login successful!');
-    } catch (error: any) {
-      console.error('Demo login error:', error);
-      toast.error('Demo login failed. Please try manual signup.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col lg:flex-row items-center justify-center gap-10 p-4">
+      <section className="max-w-md w-full order-2 lg:order-1">
+        <h1 className="text-3xl font-bold text-gray-900">{TAGLINE}</h1>
+        <p className="mt-2 text-gray-600">Keep your family's story alive: tree, voices, stories and records in one private place, shared with the people who matter.</p>
+        <ul className="mt-6 space-y-3">
+          {SELLING_POINTS.map(([title, text]) => (
+            <li key={title} className="flex gap-3"><span className="text-green-600 font-bold">✓</span><span><strong>{title}.</strong> {text}</span></li>
+          ))}
+        </ul>
+        <p className="mt-6 text-sm text-gray-500"><a href="/privacy" className="underline">Privacy</a> · <a href="/terms" className="underline">Terms</a> · © {new Date().getFullYear()} Genesis Heritage. All rights reserved.</p>
+      </section>
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 order-1 lg:order-2">
+        {onBack && <button type="button" onClick={onBack} className="mb-4 text-sm text-blue-700 hover:underline">← Back to the home page</button>}
+        {invite && (
+          <p className="mb-6 rounded-lg bg-green-50 border border-green-200 p-3 text-green-800">
+            You've been invited to join your family's history. Create a free account (or sign in) to see it.
+          </p>
+        )}
         <div className="text-center mb-8">
-          <Brain className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+          <Logo size={64} className="mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900">Welcome to Genesis Heritage</h2>
           <p className="text-gray-600">
             {authMode === 'signin' ? 'Sign in to your account' : authMode === 'signup' ? 'Create your account' : 'Reset your password'}
@@ -225,17 +250,6 @@ const SimpleAuth: React.FC = () => {
           </button>
         </form>
 
-        {/* Demo Login Button */}
-        {DEMO_EMAIL && DEMO_PASSWORD && <div className="mt-6 text-center">
-          <button
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-            className="text-blue-600 hover:text-blue-700 text-sm disabled:opacity-50"
-          >
-            Try Demo Account
-          </button>
-        </div>}
-
         {/* Toggle Auth Mode */}
         <div className="mt-4 text-center">
           <button
@@ -257,7 +271,7 @@ const LoadingScreen = () => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center" role="status" aria-live="polite">
     <div className="text-center">
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
-        <Brain className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+        <Logo size={48} className="mx-auto mb-4" />
       </motion.div>
       <p className="text-gray-600 font-medium">Loading Genesis Heritage Pro...</p>
     </div>
@@ -266,9 +280,18 @@ const LoadingScreen = () => (
 
 export const MainApp: React.FC = () => {
   const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();
+  const [authView, setAuthView] = useState<'signin' | 'signup' | null>(null);
 
+  const path = window.location.pathname;
+  if (path === '/privacy' || path === '/terms') {
+    return <Router><Routes><Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} /></Routes></Router>;
+  }
   if (loading) return <LoadingScreen />;
-  if (!session) return <SimpleAuth />;
+  if (!session) {
+    // Visitors see the home page; invite links and "Sign in"/"Start free" go straight to the account form.
+    if (authView || path.startsWith('/join/')) return <SimpleAuth startMode={authView ?? undefined} onBack={path.startsWith('/join/') ? undefined : () => setAuthView(null)} />;
+    return <LandingPage onStart={() => setAuthView('signup')} onSignIn={() => setAuthView('signin')} />;
+  }
   if (passwordRecovery) return <SetNewPassword onDone={finishPasswordRecovery} />;
 
   return (
@@ -276,7 +299,9 @@ export const MainApp: React.FC = () => {
       <ErrorBoundary>
         <Router>
           <AccountBar />
+          <PendingInvite />
           <Routes>
+            <Route path="/join/:token" element={<JoinFamily />} />
             <Route path="/" element={<GenesisHome />} />
             <Route path="/dashboard" element={<Dashboard onViewModeChange={() => {}} />} />
             <Route path="/hackathon" element={<EliteHackathonApp />} />

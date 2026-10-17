@@ -10,7 +10,7 @@ interface SEOProps {
 }
 
 export function SEO({
-  title = 'Genesis Heritage - Automate your business and unlock your roots',
+  title = 'Genesis Heritage – Family tree, stories and voices, kept private',
   description = 'Genesis Heritage helps businesses automate their operations and discover their roots through advanced AI technology.',
   image = '/images/og-image.jpg',
   url = typeof window !== 'undefined' ? window.location.href : '',

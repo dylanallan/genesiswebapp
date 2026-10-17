@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { FamilyTreeVisualizer } from '../FamilyTreeVisualizer';
-import { fromRow, toRow, type TreeMember } from '../../lib/family';
+import { loadFamilyMembers, toRow, type TreeMember } from '../../lib/family';
 import { EnterpriseROICalculator } from '../EnterpriseROICalculator';
 import EnterpriseMetricsPanel from '../EnterpriseMetricsPanel';
 import { VideoPlayer } from '../VideoPlayer';
@@ -20,9 +20,11 @@ export function FamilyTreeFeature() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from('family_members').select('*').order('birth_date', { ascending: true, nullsFirst: false });
-    if (error) toast.error('Could not load your family tree.');
-    setMembers((data ?? []).map(fromRow));
+    try {
+      setMembers(await loadFamilyMembers());
+    } catch {
+      toast.error('Could not load your family tree.');
+    }
     setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -85,7 +87,7 @@ export function MetricsFeature() {
       };
       const started = performance.now();
       const [family, saved, artifacts, workflows] = await Promise.all([
-        count('family_members'), count('saved_records'), count('cultural_artifacts'), count('workflows'),
+        count('family_members'), count('saved_records'), count('cultural_artifacts'), count('automation_workflows'),
       ]);
       const responseTime = Math.round(performance.now() - started);
       const today = new Date().toISOString().slice(0, 10);
@@ -229,7 +231,7 @@ export function SavedRecordsTableFeature() {
 // ---------- Search & sharing preview for the public site ----------
 export function SEOFeature() {
   const site = typeof window !== 'undefined' ? window.location.origin : '';
-  const title = 'Genesis Heritage - Automate your business and unlock your roots';
+  const title = 'Genesis Heritage – Family tree, stories and voices, kept private';
   const description = 'Genesis Heritage helps businesses automate their operations and discover their roots through advanced AI technology.';
   return (
     <div className="space-y-4 rounded-xl border bg-white p-6">

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Users, Search, Plus, Edit, Trash, Phone, Mail, MapPin, Calendar, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface FamilyContact {
   id: string;
@@ -59,19 +60,22 @@ export const FamilyContactManager: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
       toast.error('Name is required');
       return;
     }
     setIsLoading(true);
+    // An empty date field must be saved as "no date", not as an empty string (the database rejects '').
+    const row = { ...formData, birth_date: formData.birth_date || null };
     try {
       if (isEditing && selectedContact) {
         // Update
         const { error } = await supabase
           .from('family_contacts')
-          .update(formData)
+          .update(row)
           .eq('id', selectedContact.id);
         if (error) throw error;
         toast.success('Contact updated successfully');
@@ -79,7 +83,7 @@ export const FamilyContactManager: React.FC = () => {
         // Add
         const { error } = await supabase
           .from('family_contacts')
-          .insert([{ ...formData }]);
+          .insert([row]);
         if (error) throw error;
         toast.success('Contact added successfully');
       }
@@ -101,7 +105,7 @@ export const FamilyContactManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const handleEdit = (contact: FamilyContact) => {
     setFormData({
@@ -183,7 +187,7 @@ export const FamilyContactManager: React.FC = () => {
               related_names: []
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>Add Contact</span>
@@ -216,7 +220,7 @@ export const FamilyContactManager: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add Contact
@@ -488,7 +492,7 @@ export const FamilyContactManager: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {isEditing ? 'Update Contact' : 'Save Contact'}
                   </button>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BookmarkPlus, ExternalLink, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { archiveLinks } from '../lib/archive-links';
 
 interface RecordHit {
   source: string; sourceLabel: string; sourceId: string; title: string;
@@ -54,7 +55,7 @@ export default function RecordsSearch() {
   return (
     <section className="rounded-xl bg-white p-6 shadow border">
       <h2 className="text-xl font-bold mb-1">Historical Records Search</h2>
-      <p className="text-sm text-gray-600 mb-4">Searches open archives at once — newspapers, books, people databases and library collections — and shows where each result comes from.</p>
+      <p className="text-sm text-gray-600 mb-4">Free to search, no paywall. Searches open archives at once (WikiTree's world family tree, newspapers, books and library collections) and shows where each result comes from.</p>
 
       <form onSubmit={search} className="grid gap-3 sm:grid-cols-4">
         <input aria-label="Name" className="border rounded px-3 py-2 sm:col-span-2" placeholder="Name (e.g. Maria Gonzalez)" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -93,6 +94,29 @@ export default function RecordsSearch() {
             </ul>
           )}
         </div>
+      )}
+
+      {hits && (
+        <details className="mt-6 rounded-lg border p-4" open={hits.length < 5}>
+          <summary className="cursor-pointer font-medium">Search more free archives for "{name}"</summary>
+          <p className="mt-1 mb-3 text-sm text-gray-600">These official archives are free to search on their own websites. Each link opens a search for this name.</p>
+          {Object.entries(archiveLinks(name, place, year).reduce<Record<string, ReturnType<typeof archiveLinks>>>((acc, l) => {
+            (acc[l.region] ??= []).push(l);
+            return acc;
+          }, {})).map(([region, links]) => (
+            <div key={region} className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">{region}</h3>
+              <ul className="mt-1 space-y-1">
+                {links.map((l) => (
+                  <li key={l.label} className="text-sm">
+                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline inline-flex items-center gap-1">{l.label}<ExternalLink className="h-3 w-3" /></a>
+                    {l.note && <span className="ml-2 text-gray-500">{l.note}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </details>
       )}
     </section>
   );

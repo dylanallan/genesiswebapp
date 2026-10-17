@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Search, Plus, Edit, Trash, MapPin, Users, Info, X, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface Celebration {
   id: string;
@@ -52,7 +53,8 @@ export const CelebrationManager: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
       toast.error('Name is required');
@@ -93,7 +95,7 @@ export const CelebrationManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
   const handleEdit = (celebration: Celebration) => {
     setFormData({
@@ -165,7 +167,7 @@ export const CelebrationManager: React.FC = () => {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>Add Celebration</span>
@@ -198,7 +200,7 @@ export const CelebrationManager: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add Celebration
@@ -435,7 +437,7 @@ export const CelebrationManager: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {showEditForm ? 'Update Celebration' : 'Save Celebration'}
                   </button>

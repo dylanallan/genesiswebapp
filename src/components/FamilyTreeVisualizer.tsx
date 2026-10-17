@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { findRelationship, relationCategory } from '../lib/relationship';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -22,6 +23,7 @@ interface FamilyMember {
   id: string;
   name: string;
   relationship: string;
+  gender?: string | null;
   birthDate?: string;
   birthPlace?: string;
   deathDate?: string;
@@ -89,7 +91,6 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
 
     onAddMember?.(newMember);
     resetForm();
-    toast.success(`Added ${newMember.name} to your family tree`);
   };
 
   const handleUpdateMember = () => {
@@ -111,13 +112,11 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
 
     onUpdateMember?.(updatedMember);
     resetForm();
-    toast.success(`Updated ${updatedMember.name}`);
   };
 
   const handleDeleteMember = (memberId: string) => {
     if (confirm('Are you sure you want to delete this family member?')) {
       onDeleteMember?.(memberId);
-      toast.success('Family member deleted');
     }
   };
 
@@ -153,10 +152,30 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
     setExpandedMemberId(expandedMemberId === memberId ? null : memberId);
   };
 
+  // Imported trees can hold thousands of people; draw them in batches so the page stays fast.
+  const [visibleCount, setVisibleCount] = useState(100);
+  useEffect(() => setVisibleCount(100), [searchTerm, filterRelationship]);
+
+  // Work out how each person is related to you from the tree links, so imported people and people added on the
+  // tree chart get a relationship too, not only those whose relationship was typed in.
+  const relationOf = useMemo(() => {
+    const isSelf = (r: string) => /^(self|me|myself)$/i.test(r.trim());
+    const self = familyMembers.find((m) => isSelf(m.relationship));
+    const kin = familyMembers.map((m) => ({ id: m.id, name: m.name, gender: m.gender ?? null, parentIds: m.parentIds ?? [], spouseIds: m.spouseIds ?? [] }));
+    const labels = new Map<string, string>();
+    familyMembers.forEach((m, i) => {
+      if (isSelf(m.relationship)) labels.set(m.id, 'You');
+      else if (self && i < 3000) labels.set(m.id, findRelationship(self.id, m.id, kin)?.label ?? m.relationship);
+      else labels.set(m.id, m.relationship);
+    });
+    return labels;
+  }, [familyMembers]);
+  const labelOf = (m: FamilyMember) => relationOf.get(m.id) || m.relationship;
+
   const filteredMembers = familyMembers.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (member.notes && member.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesFilter = !filterRelationship || member.relationship.toLowerCase().includes(filterRelationship.toLowerCase());
+    const matchesFilter = !filterRelationship || relationCategory(labelOf(member)).toLowerCase() === filterRelationship;
     return matchesSearch && matchesFilter;
   });
 
@@ -201,6 +220,8 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
     'Parent',
     'Sibling',
     'Child',
+    'Grandchild',
+    'Spouse',
     'Cousin',
     'Aunt/Uncle',
     'Other'
@@ -211,7 +232,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Users className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-semibold text-gray-900">Family Tree</h2>
+          <h2 className="text-xl font-semibold text-gray-900">People in your tree</h2>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -226,6 +247,8 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
               downloadAnchorNode.remove();
               toast.success('Family tree exported successfully');
             }}
+            aria-label="Download this list"
+            title="Download this list"
             className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Download className="w-5 h-5" />
@@ -259,7 +282,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
               onClick={() => setFilterRelationship(category === 'All' ? null : category.toLowerCase())}
               className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
                 (category === 'All' && !filterRelationship) || 
-                (filterRelationship && category.toLowerCase().includes(filterRelationship))
+                filterRelationship === category.toLowerCase()
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -291,7 +314,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
             )}
           </div>
         ) : (
-          filteredMembers.map(member => (
+          filteredMembers.slice(0, visibleCount).map(member => (
             <motion.div
               key={member.id}
               initial={{ opacity: 0, y: 20 }}
@@ -300,15 +323,17 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3">
-                  <div className="pt-1">
-                    {getConfidenceIndicator(member.confidence)}
-                  </div>
+                  {member.source === 'ai' && (
+                    <div className="pt-1">
+                      {getConfidenceIndicator(member.confidence)}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center space-x-2">
                       <h3 className="font-medium text-gray-900">{member.name}</h3>
-                      {getSourceBadge(member.source)}
+                      {member.source !== 'user' && getSourceBadge(member.source)}
                     </div>
-                    <p className="text-sm text-blue-600">{member.relationship}</p>
+                    {labelOf(member) && <p className="text-sm text-blue-600">{labelOf(member)}</p>}
                   </div>
                 </div>
                 <div className="flex space-x-1">
@@ -373,17 +398,21 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                       <p className="text-sm text-gray-700">{member.notes}</p>
                     </div>
                   )}
-                  
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>Added: {new Date().toLocaleDateString()}</span>
-                    <span>Confidence: {Math.round(member.confidence * 100)}%</span>
-                  </div>
+
                 </motion.div>
               )}
             </motion.div>
           ))
         )}
       </div>
+      {filteredMembers.length > visibleCount && (
+        <div className="text-center mb-6">
+          <p className="text-sm text-gray-500 mb-2">Showing {visibleCount} of {filteredMembers.length} people. Use search to find someone quickly.</p>
+          <button onClick={() => setVisibleCount((n) => n + 200)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Show more
+          </button>
+        </div>
+      )}
 
       {/* Pending Members Section */}
       {pendingMembers.length > 0 && (

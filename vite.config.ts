@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Genesis Heritage',
         short_name: 'Genesis',
-        description: 'Automate your business and unlock your roots',
+        description: 'Your family tree, voices, stories and records in one private place.',
         theme_color: '#0c8ee8',
         background_color: '#ffffff',
         display: 'standalone',
@@ -62,13 +62,15 @@ export default defineConfig({
         }
       }
     },
-    sourcemap: true,
+    sourcemap: false, // no source maps in production: they would hand out readable source code
     minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true,
         drop_debugger: true
-      }
+      },
+      mangle: { toplevel: true }, // shorter, less readable names everywhere, not only inside functions
+      format: { comments: false }
     }
   },
   server: {

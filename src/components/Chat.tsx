@@ -379,7 +379,7 @@ export const Chat: React.FC<ChatProps> = () => {
                   </div>
                   <div className={`rounded-lg px-4 py-2 ${
                     msg.role === 'user' 
-                      ? 'bg-blue-500 text-white' 
+                      ? 'bg-blue-600 text-white' 
                       : 'bg-gray-100 text-gray-900'
                   }`}>
                     <div className="whitespace-pre-wrap">{msg.content}</div>

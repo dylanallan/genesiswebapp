@@ -330,7 +330,7 @@ const EnterpriseDemo: React.FC = () => {
           
           <button
             onClick={handlePlayPause}
-            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>

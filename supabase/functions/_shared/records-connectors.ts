@@ -19,6 +19,7 @@ export interface RecordHit {
   url: string
   license?: string // license or rights statement when the source provides one
   attribution: string
+  facts?: { birthYear?: number | null; deathYear?: number | null; birthPlace?: string | null; deathPlace?: string | null } // structured, when the source has them
 }
 
 export interface Connector {
@@ -86,6 +87,59 @@ const internetArchive: Connector = {
   },
 }
 
+// WikiTree: a free, collaborative world family tree (40M+ profiles) with an open, keyless API.
+const wikitree: Connector = {
+  id: 'wikitree',
+  label: 'WikiTree',
+  async search(q, signal) {
+    const parts = q.name.trim().split(/\s+/)
+    const last = parts.length > 1 ? parts.pop()! : parts[0]!
+    const first = parts.length && parts[0] !== last ? parts.join(' ') : ''
+    const params = new URLSearchParams({
+      action: 'searchPerson', appId: 'GenesisHeritage', limit: '8', LastName: last,
+      fields: 'Id,Name,FirstName,LastNameAtBirth,LastNameCurrent,BirthDate,DeathDate,BirthLocation,DeathLocation',
+    })
+    if (first) params.set('FirstName', first)
+    if (q.place) params.set('BirthLocation', q.place)
+    if (q.year) { params.set('BirthDate', `${q.year}-01-01`); params.set('dateSpread', '10'); params.set('dateInclude', 'both') }
+    const data = await getJson(`https://api.wikitree.com/api.php?${params}`, signal)
+    const matches = (Array.isArray(data) ? data[0]?.matches : data?.matches) ?? []
+    const year = (d: unknown) => (typeof d === 'string' && !d.startsWith('0000') ? d.slice(0, 4) : '')
+    return matches.filter((m: any) => m?.Name).map((m: any): RecordHit => {
+      const life = [year(m.BirthDate), year(m.DeathDate)]
+      return {
+        source: 'wikitree', sourceLabel: 'WikiTree', sourceId: String(m.Id ?? m.Name),
+        title: `${m.FirstName ?? ''} ${m.LastNameAtBirth ?? m.LastNameCurrent ?? ''}`.trim() + (life.some(Boolean) ? ` (${life[0] || '?'}–${life[1]})` : ''),
+        snippet: clip([m.BirthLocation && `Born: ${m.BirthLocation}`, m.DeathLocation && `Died: ${m.DeathLocation}`].filter(Boolean).join(' · ')),
+        date: year(m.BirthDate), url: `https://www.wikitree.com/wiki/${encodeURIComponent(m.Name)}`,
+        license: 'See WikiTree terms', attribution: 'WikiTree contributors',
+        facts: {
+          birthYear: Number(life[0]) || null, deathYear: Number(life[1]) || null,
+          birthPlace: m.BirthLocation || null, deathPlace: m.DeathLocation || null,
+        },
+      }
+    })
+  },
+}
+
+// Trove (free key): National Library of Australia newspapers, gazettes and family notices.
+const trove: Connector = {
+  id: 'trove',
+  label: 'Trove (National Library of Australia)',
+  needsKey: 'TROVE_API_KEY',
+  async search(q, signal) {
+    const url = `https://api.trove.nla.gov.au/v3/result?category=newspaper&n=8&encoding=json&q=${encodeURIComponent(terms(q))}`
+    const data = await getJson(url, signal, { 'X-API-KEY': cfg('TROVE_API_KEY') ?? '' })
+    const records = data.category?.[0]?.records?.article ?? []
+    return records.map((a: any): RecordHit => ({
+      source: 'trove', sourceLabel: 'Trove', sourceId: String(a.id),
+      title: text(a.heading) || 'Newspaper article', snippet: clip(text(a.snippet).replace(/<[^>]+>/g, '')),
+      date: text(a.date), url: text(a.troveUrl) || `https://trove.nla.gov.au/newspaper/article/${a.id}`,
+      license: 'See item page', attribution: text(a.title?.title) || 'National Library of Australia',
+    }))
+  },
+}
+
 // Digital Public Library of America (free key): US libraries, archives, museums.
 const dpla: Connector = {
   id: 'dpla',
@@ -120,7 +174,7 @@ const europeana: Connector = {
   },
 }
 
-export const CONNECTORS: Connector[] = [wikidata, chroniclingAmerica, internetArchive, dpla, europeana]
+export const CONNECTORS: Connector[] = [wikitree, wikidata, chroniclingAmerica, internetArchive, dpla, europeana, trove]
 
 export interface SearchOutcome {
   hits: RecordHit[]

@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { BookOpen, Search, Plus, Edit, Trash, Globe, Calendar, User, Check, X, Tag, Info, Clock, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { signedUrl } from '../lib/storage';
+import { useSaveGuard } from '../lib/use-save-guard';
 
 interface CulturalStory {
   id: string;
@@ -17,7 +19,17 @@ interface CulturalStory {
   verification_status: string;
   created_at: string;
   updated_at: string;
+  audio_path?: string | null;
 }
+
+// Interview recordings are private files, so they are played through a short-lived link.
+const RecordingPlayer: React.FC<{ path: string }> = ({ path }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    signedUrl('voice-recordings', path).then(setUrl).catch(() => setUrl(null));
+  }, [path]);
+  return url ? <audio controls src={url} className="w-full mb-4" aria-label="Interview recording" /> : null;
+};
 
 export const CulturalStoryLibrary: React.FC = () => {
   const [stories, setStories] = useState<CulturalStory[]>([]);
@@ -60,15 +72,17 @@ export const CulturalStoryLibrary: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    // An empty date field must be saved as "no date", not as an empty string (the database rejects '').
+    const row = { ...formData, date_recorded: formData.date_recorded || null };
     try {
       if (isEditing && selectedStory) {
         // Update existing story
         const { error } = await supabase
           .from('cultural_stories')
-          .update(formData)
+          .update(row)
           .eq('id', selectedStory.id);
 
         if (error) throw error;
@@ -77,7 +91,7 @@ export const CulturalStoryLibrary: React.FC = () => {
         // Create new story
         const { error } = await supabase
           .from('cultural_stories')
-          .insert([formData]);
+          .insert([row]);
 
         if (error) throw error;
         toast.success('Story added successfully');
@@ -103,7 +117,7 @@ export const CulturalStoryLibrary: React.FC = () => {
       console.error('Error saving story:', error);
       toast.error('Failed to save story');
     }
-  };
+  });
 
   const handleEdit = (story: CulturalStory) => {
     setFormData({
@@ -196,7 +210,7 @@ export const CulturalStoryLibrary: React.FC = () => {
               verification_status: 'unverified'
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>Add Story</span>
@@ -229,7 +243,7 @@ export const CulturalStoryLibrary: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add Story
@@ -322,11 +336,12 @@ export const CulturalStoryLibrary: React.FC = () => {
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-4 pt-4 border-t border-gray-200"
                 >
+                  {story.audio_path && <RecordingPlayer path={story.audio_path} />}
                   <div className="prose prose-sm max-w-none">
-                    <p>{story.content}</p>
+                    <p className="whitespace-pre-line">{story.content}</p>
                   </div>
                   
-                  {story.language && story.language !== 'english' && (
+                  {story.language && !/^en/i.test(story.language) && (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Original Language: {story.language}</h4>
                       {story.translation && (
@@ -503,7 +518,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {isEditing ? 'Update Story' : 'Save Story'}
                   </button>

@@ -26,6 +26,12 @@ export interface MockState {
   chatQuotaExceeded: boolean;
   manualPayments?: boolean; // e-Transfer email and PayPal payment links are configured
   autoPayPal?: boolean;     // automatic PayPal subscriptions are configured (default true)
+  admin?: boolean;          // the signed-in user is an admin
+  familyRows?: unknown[];   // rows returned for family_members
+  recordHits?: unknown[];   // hits returned by records-search
+  storyRows?: unknown[];    // rows returned for cultural_stories
+  posted?: Record<string, unknown[]>; // bodies of POSTs, by table
+  storageFiles?: Record<string, string[]>; // files in each storage bucket, as paths under the user's folder
 }
 
 export async function signIn(context: BrowserContext) {
@@ -34,7 +40,7 @@ export async function signIn(context: BrowserContext) {
 
 export async function installMockBackend(page: Page, state: MockState) {
   const json = (route: Route, body: unknown, status = 200, headers: Record<string, string> = {}) =>
-    route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', ...headers }, body: JSON.stringify(body) });
+    route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', ...headers }, body: JSON.stringify(body) });
 
   await page.route(`${MOCK_URL}/**`, async (route) => {
     const req = route.request();
@@ -59,8 +65,17 @@ export async function installMockBackend(page: Page, state: MockState) {
     if (path.startsWith('/functions/v1/')) {
       const fn = path.split('/')[3];
       if (fn === 'ai-router') {
+        (state.posted ??= {})['ai-router'] = [...(state.posted['ai-router'] ?? []), JSON.parse(req.postData() ?? 'null')];
         if (state.chatQuotaExceeded) return json(route, { error: 'Free daily limit reached. Upgrade to keep chatting.', code: 'UPGRADE_REQUIRED' }, 429);
         return json(route, { response: 'Hello from the mock AI.', provider: 'mock', model: 'mock-1', remaining: 9 });
+      }
+      if (fn === 'records-search' && state.recordHits) return json(route, { hits: state.recordHits, sources: [] });
+      if (fn === 'restore-photo') return json(route, { bucket: 'family-photos', path: `${USER.id}/restored-1.png` });
+      if (fn === 'geocode-places') {
+        const known: Record<string, { lat: number; lon: number }> = { 'oaxaca, méxico': { lat: 17.07, lon: -96.72 }, 'toronto, canada': { lat: 43.65, lon: -79.38 } };
+        const places: string[] = JSON.parse(req.postData() ?? '{}').places ?? [];
+        const results = Object.fromEntries(places.map((p) => [p.trim().toLowerCase(), known[p.trim().toLowerCase()] ?? { lat: null, lon: null }]));
+        return json(route, { results, pending: 0 });
       }
       if (fn === 'voice-synthesis') {
         return route.fulfill({ status: 200, contentType: 'audio/mpeg', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from([0xff, 0xfb, 0x90, 0x00]) });
@@ -73,12 +88,19 @@ export async function installMockBackend(page: Page, state: MockState) {
     }
 
     if (path === '/rest/v1/rpc/has_pro_access') return json(route, state.subscribed);
+    if (path === '/rest/v1/rpc/is_admin') return json(route, state.admin === true);
+    if (path === '/rest/v1/rpc/preview_family_invite') return json(route, { owner_name: 'Rosa', role: 'contributor', own: false, joined: false });
+    if (path === '/rest/v1/rpc/accept_family_invite') return json(route, { owner_id: USER.id, owner_name: 'Rosa', role: 'contributor' });
     if (path === '/rest/v1/rpc/create_manual_payment_request') {
       const { p_plan, p_method } = JSON.parse(req.postData() ?? '{}');
       return json(route, {
         id: '22222222-2222-4222-8222-222222222222', method: p_method, plan: p_plan, amount_cents: p_plan === 'monthly' ? 1900 : 19000,
         currency: 'CAD', reference_code: 'GEN-TEST01', status: 'pending', created_at: '2026-01-01T00:00:00Z',
       });
+    }
+    if (path === '/rest/v1/rpc/merge_family_members' || path === '/rest/v1/rpc/undo_family_merge') {
+      (state.posted ??= {})[path.slice(13)] = [...(state.posted[path.slice(13)] ?? []), JSON.parse(req.postData() ?? 'null')];
+      return json(route, '44444444-4444-4444-8444-444444444444');
     }
     if (path.startsWith('/rest/v1/rpc/')) return json(route, []);
     if (path.startsWith('/rest/v1/')) {
@@ -88,6 +110,8 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (table === 'subscriptions' && state.subscribed) {
         rows = [{ user_id: USER.id, status: 'active', provider: 'paypal', current_period_end: '2030-01-01T00:00:00Z', cancel_at_period_end: false }];
       }
+      if (table === 'family_members' && ['GET', 'HEAD'].includes(req.method()) && state.familyRows) rows = state.familyRows;
+      if (table === 'cultural_stories' && req.method() === 'GET' && state.storyRows) rows = state.storyRows;
       if (table === 'app_settings' && state.manualPayments) {
         rows = [
           { key: 'etransfer_email', value: 'pay@example.com' },
@@ -97,10 +121,37 @@ export async function installMockBackend(page: Page, state: MockState) {
           { key: 'paypal_link_yearly_url', value: 'https://www.paypal.com/ncp/payment/TESTYEAR' },
         ];
       }
-      if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111' }];
+      if (req.method() === 'POST') {
+        const body = JSON.parse(req.postData() ?? 'null');
+        (state.posted ??= {})[table] = [...(state.posted[table] ?? []), ...(Array.isArray(body) ? body : [body])];
+      }
+      if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111', token: 'tok123' }];
       if (wantsObject) return rows.length ? json(route, rows[0]) : json(route, { code: 'PGRST116', message: 'no rows' }, 406);
-      return json(route, rows, 200, { 'content-range': `0-${Math.max(rows.length - 1, 0)}/${rows.length}` });
+      // Page like the real database: ?offset=&limit= (from .range() and .limit()).
+      const total = rows.length;
+      const offset = Number(url.searchParams.get('offset') ?? 0);
+      const limit = url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : total;
+      rows = rows.slice(offset, offset + limit);
+      return json(route, rows, 200, { 'content-range': `${offset}-${Math.max(offset + rows.length - 1, offset)}/${total}` });
     }
+    if (path.startsWith('/storage/v1/object/sign/')) return json(route, { signedURL: '/icons/icon-512x512.png' });
+    if (path.startsWith('/storage/v1/object/list/')) {
+      const bucket = path.split('/')[5];
+      const prefix = (JSON.parse(req.postData() ?? '{}').prefix ?? '') as string;
+      const under = prefix.split('/').slice(1).join('/');
+      const names = new Map<string, boolean>(); // name -> is a file
+      for (const f of state.storageFiles?.[bucket] ?? []) {
+        if (under && !f.startsWith(`${under}/`)) continue;
+        const rest = under ? f.slice(under.length + 1) : f;
+        const [head, ...tail] = rest.split('/');
+        names.set(head, tail.length === 0);
+      }
+      return json(route, [...names].map(([name, file]) => ({ name, id: file ? `id-${name}` : null })));
+    }
+    if (path.startsWith('/storage/v1/object/') && req.method() === 'GET' && state.storageFiles) {
+      return route.fulfill({ status: 200, contentType: 'application/octet-stream', headers: { 'access-control-allow-origin': '*' }, body: Buffer.from(`file:${path.split('/').pop()}`) });
+    }
+    if (path.startsWith('/storage/v1/object/') && req.method() === 'POST') return json(route, { Key: path.replace('/storage/v1/object/', ''), Id: 'mock-file' });
     if (path.startsWith('/storage/v1/')) return json(route, []);
     return json(route, {});
   });

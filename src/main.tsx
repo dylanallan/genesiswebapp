@@ -4,6 +4,11 @@ import App from './App';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'sonner';
 import './index.css';
+import { installErrorReporting } from './lib/error-report';
+import { applyTextSize } from './lib/text-size';
+
+installErrorReporting();
+applyTextSize();
 
 console.log('🚀 Starting React app...');
 console.log('📁 Current directory:', window.location.href);

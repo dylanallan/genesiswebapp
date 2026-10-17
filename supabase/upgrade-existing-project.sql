@@ -2014,4 +2014,770 @@ insert into public.app_settings (key, value, category, data_type, description) v
   ('site_url', '""'::jsonb, 'site', 'string', 'Main web address, used for PayPal return links')
 on conflict (key) do nothing;
 
+
+-- ===== 20250701001300_family_and_face_fixes.sql =====
+-- Found by testing every screen against the live project as a signed-in user.
+-- Older projects' family_members lacks is_living (the family tree writes it), so adding a person failed.
+alter table public.family_members add column if not exists is_living boolean not null default true;
+
+-- Naming a face again updates it: the app upserts on (user_id, face_id). Fresh projects have that as the
+-- primary key; older projects only had a global unique face_id, so give them the matching unique index too.
+create unique index if not exists face_names_user_face_idx on public.face_names (user_id, face_id);
+
+
+-- ===== 20250701001400_sharing_storybooks_privacy.sql =====
+-- Family sharing, storybooks, interview recordings and "download all my data".
+-- Written add-only so it can be applied safely to the live project.
+
+-- Interviews and stories can belong to a person in the tree and carry their recording.
+alter table public.cultural_stories
+  add column if not exists family_member_id uuid,
+  add column if not exists audio_path text;
+
+-- Saved AI family storybooks.
+create table if not exists public.storybooks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  title text not null,
+  focus text,
+  chapters jsonb not null default '[]'::jsonb, -- [{ heading, body }]
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists storybooks_user_idx on public.storybooks (user_id);
+alter table public.storybooks enable row level security;
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'storybooks' and policyname = 'Owner access') then
+    create policy "Owner access" on public.storybooks for all to authenticated
+      using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+end $do$;
+
+-- Invite links that let relatives see (viewer) or add memories to (contributor) someone's family.
+create table if not exists public.family_shares (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  token text not null unique default (md5(gen_random_uuid()::text) || md5(gen_random_uuid()::text)),
+  invitee_name text,
+  role text not null default 'viewer' check (role in ('viewer', 'contributor')),
+  member_id uuid references auth.users(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'active', 'revoked')),
+  created_at timestamptz not null default now(),
+  accepted_at timestamptz
+);
+create index if not exists family_shares_owner_idx on public.family_shares (owner_id);
+create index if not exists family_shares_member_idx on public.family_shares (member_id);
+alter table public.family_shares enable row level security;
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'family_shares' and policyname = 'Owners manage their invites') then
+    create policy "Owners manage their invites" on public.family_shares for all to authenticated
+      using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'family_shares' and policyname = 'Members see their invites') then
+    create policy "Members see their invites" on public.family_shares for select to authenticated
+      using (auth.uid() = member_id);
+  end if;
+end $do$;
+
+create or replace function public._display_name(p_user uuid)
+returns text language sql stable security definer set search_path = public, auth as $$
+  select coalesce(nullif(p.full_name, ''), split_part(u.email::text, '@', 1), 'A relative')
+  from auth.users u left join public.profiles p on p.id = u.id where u.id = p_user;
+$$;
+revoke all on function public._display_name(uuid) from public, anon, authenticated;
+
+create or replace function public._share_role(p_owner uuid)
+returns text language sql stable security definer set search_path = public as $$
+  select case when auth.uid() = p_owner then 'owner' else
+    (select role from public.family_shares where owner_id = p_owner and member_id = auth.uid() and status = 'active' limit 1) end;
+$$;
+revoke all on function public._share_role(uuid) from public, anon, authenticated;
+
+create or replace function public.accept_family_invite(p_token text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  s public.family_shares;
+begin
+  if auth.uid() is null then raise exception 'Please sign in first' using errcode = '42501'; end if;
+  select * into s from public.family_shares where token = p_token for update;
+  if not found or s.status = 'revoked' then raise exception 'This invite link is no longer valid'; end if;
+  if s.owner_id = auth.uid() then raise exception 'This is your own invite link. Send it to a relative.'; end if;
+  if s.status = 'active' and s.member_id <> auth.uid() then raise exception 'This invite link has already been used'; end if;
+  update public.family_shares set member_id = auth.uid(), status = 'active', accepted_at = coalesce(accepted_at, now())
+    where id = s.id returning * into s;
+  return jsonb_build_object('owner_id', s.owner_id, 'owner_name', public._display_name(s.owner_id), 'role', s.role);
+end;
+$$;
+
+create or replace function public.my_shared_families()
+returns table (owner_id uuid, owner_name text, role text) language sql stable security definer set search_path = public as $$
+  select s.owner_id, public._display_name(s.owner_id), s.role
+  from public.family_shares s where s.member_id = auth.uid() and s.status = 'active';
+$$;
+
+create or replace function public.my_family_members_shared()
+returns table (id uuid, invitee_name text, member_name text, role text, status text, token text, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select s.id, s.invitee_name, case when s.member_id is null then null else public._display_name(s.member_id) end,
+         s.role, s.status, s.token, s.created_at
+  from public.family_shares s where s.owner_id = auth.uid() order by s.created_at desc;
+$$;
+
+-- Read-only copy of a family for someone it has been shared with.
+create or replace function public.shared_family_snapshot(p_owner uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  r text := public._share_role(p_owner);
+begin
+  if r is null then raise exception 'This family has not been shared with you' using errcode = '42501'; end if;
+  return jsonb_build_object(
+    'owner_name', public._display_name(p_owner),
+    'role', r,
+    'members', coalesce((select jsonb_agg(to_jsonb(m) - 'user_id' order by m.birth_date nulls last)
+                         from public.family_members m where m.user_id = p_owner), '[]'::jsonb),
+    'stories', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'title', s.title, 'content', s.content,
+                           'storyteller', s.storyteller, 'family_member_id', s.family_member_id, 'created_at', s.created_at)
+                           order by s.created_at desc)
+                         from public.cultural_stories s where s.user_id = p_owner), '[]'::jsonb),
+    'storybooks', coalesce((select jsonb_agg(jsonb_build_object('id', b.id, 'title', b.title, 'chapters', b.chapters, 'created_at', b.created_at)
+                           order by b.created_at desc)
+                         from public.storybooks b where b.user_id = p_owner), '[]'::jsonb)
+  );
+end;
+$$;
+
+-- Contributors add memories to the family they were invited to; the owner keeps ownership.
+create or replace function public.add_shared_story(p_owner uuid, p_title text, p_content text, p_storyteller text default null, p_member uuid default null)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  new_id uuid;
+begin
+  if public._share_role(p_owner) not in ('owner', 'contributor') then
+    raise exception 'You can view this family but not add to it' using errcode = '42501';
+  end if;
+  if coalesce(trim(p_title), '') = '' or coalesce(trim(p_content), '') = '' then raise exception 'Please add a title and the story'; end if;
+  insert into public.cultural_stories (user_id, title, content, storyteller, family_member_id, verification_details)
+  values (p_owner, left(p_title, 200), left(p_content, 20000), p_storyteller, p_member,
+          jsonb_build_object('contributed_by', public._display_name(auth.uid())))
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+-- Every row the signed-in person owns, from every table that has a user_id column.
+create or replace function public.export_my_data()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  t record;
+  rows jsonb;
+  result jsonb := jsonb_build_object('exported_at', now());
+begin
+  if auth.uid() is null then raise exception 'Not signed in' using errcode = '42501'; end if;
+  for t in
+    select c.table_name from information_schema.columns c
+    join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name and tb.table_type = 'BASE TABLE'
+    where c.table_schema = 'public' and c.column_name = 'user_id'
+      and c.table_name not in ('admin_roles', 'manual_payments_audit')
+    order by c.table_name
+  loop
+    execute format('select coalesce(jsonb_agg(to_jsonb(x)), ''[]''::jsonb) from public.%I x where x.user_id = $1', t.table_name)
+      into rows using auth.uid();
+    if rows <> '[]'::jsonb then result := result || jsonb_build_object(t.table_name, rows); end if;
+  end loop;
+  result := result || jsonb_build_object('profile', (select to_jsonb(p) from public.profiles p where p.id = auth.uid()));
+  return result;
+end;
+$$;
+
+-- Used by the account-removal function (service role only) to find every table holding a user's rows.
+create or replace function public.user_data_tables()
+returns setof text language sql stable security definer set search_path = public as $$
+  select c.table_name::text from information_schema.columns c
+  join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name and tb.table_type = 'BASE TABLE'
+  where c.table_schema = 'public' and c.column_name = 'user_id';
+$$;
+
+revoke all on function public.accept_family_invite(text) from public, anon;
+revoke all on function public.my_shared_families() from public, anon;
+revoke all on function public.my_family_members_shared() from public, anon;
+revoke all on function public.shared_family_snapshot(uuid) from public, anon;
+revoke all on function public.add_shared_story(uuid, text, text, text, uuid) from public, anon;
+revoke all on function public.export_my_data() from public, anon;
+revoke all on function public.user_data_tables() from public, anon, authenticated;
+grant execute on function public.accept_family_invite(text) to authenticated;
+grant execute on function public.my_shared_families() to authenticated;
+grant execute on function public.my_family_members_shared() to authenticated;
+grant execute on function public.shared_family_snapshot(uuid) to authenticated;
+grant execute on function public.add_shared_story(uuid, text, text, text, uuid) to authenticated;
+grant execute on function public.export_my_data() to authenticated;
+grant execute on function public.user_data_tables() to service_role;
+
+
+-- ===== 20250701001500_sharing_hardening.sql =====
+-- Hardening for family sharing (review findings). Add-only, safe on the live project.
+
+-- 1. Strangers have no role (NULL); "NULL not in (...)" is NULL, which IF treats as false. Compare safely.
+create or replace function public.add_shared_story(p_owner uuid, p_title text, p_content text, p_storyteller text default null, p_member uuid default null)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  new_id uuid;
+begin
+  if coalesce(public._share_role(p_owner), '') not in ('owner', 'contributor') then
+    raise exception 'You can view this family but not add to it' using errcode = '42501';
+  end if;
+  if coalesce(trim(p_title), '') = '' or coalesce(trim(p_content), '') = '' then raise exception 'Please add a title and the story'; end if;
+  insert into public.cultural_stories (user_id, title, content, storyteller, family_member_id, verification_details)
+  values (p_owner, left(p_title, 200), left(p_content, 20000), p_storyteller, p_member,
+          jsonb_build_object('contributed_by', public._display_name(auth.uid())))
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+-- 2. Owners may create invites and change an invite's role or revoke it, but never attach a member themselves
+--    (only the invitee can, by accepting). Enforced with a trigger so the existing policy can stay in place.
+create or replace function public._guard_family_share()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    new.member_id := null;
+    new.status := 'pending';
+    new.accepted_at := null;
+    return new;
+  end if;
+  -- Updates made while signed in as the owner: role changes and revoking only.
+  if auth.uid() is not null and auth.uid() = old.owner_id then
+    if new.member_id is distinct from old.member_id or new.owner_id is distinct from old.owner_id
+       or new.token is distinct from old.token or new.accepted_at is distinct from old.accepted_at
+       or (new.status is distinct from old.status and new.status <> 'revoked') then
+      raise exception 'Only the role can be changed, or access removed' using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+do $do$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'family_shares_guard' and tgrelid = 'public.family_shares'::regclass) then
+    create trigger family_shares_guard before insert or update on public.family_shares
+      for each row execute function public._guard_family_share();
+  end if;
+end $do$;
+
+-- One active link per owner and relative, so a relative's role is never ambiguous.
+create unique index if not exists family_shares_one_active_member
+  on public.family_shares (owner_id, member_id) where status = 'active';
+
+-- Accepting a second invite from the same family keeps the existing membership.
+create or replace function public.accept_family_invite(p_token text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  s public.family_shares;
+  existing public.family_shares;
+begin
+  if auth.uid() is null then raise exception 'Please sign in first' using errcode = '42501'; end if;
+  select * into s from public.family_shares where token = p_token for update;
+  if not found or s.status = 'revoked' then raise exception 'This invite link is no longer valid'; end if;
+  if s.owner_id = auth.uid() then raise exception 'This is your own invite link. Send it to a relative.'; end if;
+  if s.status = 'active' and s.member_id <> auth.uid() then raise exception 'This invite link has already been used'; end if;
+  select * into existing from public.family_shares
+    where owner_id = s.owner_id and member_id = auth.uid() and status = 'active' and id <> s.id limit 1;
+  if found then
+    return jsonb_build_object('owner_id', existing.owner_id, 'owner_name', public._display_name(existing.owner_id), 'role', existing.role);
+  end if;
+  update public.family_shares set member_id = auth.uid(), status = 'active', accepted_at = coalesce(accepted_at, now())
+    where id = s.id returning * into s;
+  return jsonb_build_object('owner_id', s.owner_id, 'owner_name', public._display_name(s.owner_id), 'role', s.role);
+end;
+$$;
+
+-- 3. Lets the join page ask "Join Rosa's family?" before anything is accepted.
+create or replace function public.preview_family_invite(p_token text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  s public.family_shares;
+begin
+  if auth.uid() is null then raise exception 'Please sign in first' using errcode = '42501'; end if;
+  select * into s from public.family_shares where token = p_token;
+  if not found or s.status = 'revoked' or (s.status = 'active' and s.member_id <> auth.uid()) then
+    raise exception 'This invite link is no longer valid';
+  end if;
+  return jsonb_build_object('owner_name', public._display_name(s.owner_id), 'role', s.role,
+                            'own', s.owner_id = auth.uid(), 'joined', s.member_id = auth.uid());
+end;
+$$;
+
+revoke all on function public.preview_family_invite(text) from public, anon;
+grant execute on function public.preview_family_invite(text) to authenticated;
+revoke all on function public._guard_family_share() from public, anon, authenticated;
+
+
+-- ===== 20250701001600_usage_limits.sql =====
+-- Per-person daily usage counters, so no one (or no bot) can use the app to bulk-copy data or run up costs.
+create table if not exists public.daily_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  kind text not null,
+  day date not null default current_date,
+  count integer not null default 0,
+  primary key (user_id, kind, day)
+);
+alter table public.daily_usage enable row level security;
+do $do$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'daily_usage' and policyname = 'Users read their own usage') then
+    create policy "Users read their own usage" on public.daily_usage for select to authenticated using (auth.uid() = user_id);
+  end if;
+end $do$;
+
+-- Adds one use and says whether it is still within today's limit. Called by Edge Functions (service role) only.
+create or replace function public.consume_daily_quota(p_user uuid, p_kind text, p_limit integer)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  used integer;
+begin
+  insert into public.daily_usage as u (user_id, kind, day, count) values (p_user, p_kind, current_date, 1)
+  on conflict (user_id, kind, day) do update set count = u.count + 1
+  returning count into used;
+  return used <= p_limit;
+end;
+$$;
+revoke all on function public.consume_daily_quota(uuid, text, integer) from public, anon, authenticated;
+grant execute on function public.consume_daily_quota(uuid, text, integer) to service_role;
+
+
+-- ===== 20250701001700_place_geocodes.sql =====
+-- Shared cache of place-name coordinates for the family map. Holds only place names (no people or users),
+-- and is read and written by the geocode-places Edge Function only.
+create table if not exists public.place_geocodes (
+  place_key text primary key,          -- lower-cased, trimmed place text
+  place text not null,
+  lat double precision,                -- null = looked up but not found
+  lon double precision,
+  display_name text,
+  country_code text,
+  looked_up_at timestamptz not null default now()
+);
+alter table public.place_geocodes enable row level security;
+-- No policies: only the service role (Edge Functions) can read or write it.
+
+
+-- ===== 20250701001800_review_fixes.sql =====
+-- Fixes from code review: atomic "add a parent", quota refunds, and a global rate limit for place lookups.
+
+-- Adds a father or mother to someone in one step, so quick repeated adds or two open tabs never lose a link.
+-- Runs with the caller's own permissions (row-level security applies), so it can only touch their own tree.
+create or replace function public.add_parent(
+  p_child uuid, p_role text, p_first text, p_middle text default null, p_last text default '',
+  p_birth_date date default null, p_birth_place text default null
+) returns uuid language plpgsql security invoker set search_path = public as $$
+declare
+  child public.family_members;
+  other public.family_members;
+  new_id uuid := gen_random_uuid();
+  siblings uuid[];
+begin
+  if p_role not in ('father', 'mother') then raise exception 'Unknown role'; end if;
+  if coalesce(trim(p_first), '') = '' then raise exception 'Please enter a name'; end if;
+  select * into child from public.family_members where id = p_child for update;
+  if not found then raise exception 'That person was not found'; end if;
+  if coalesce(array_length(child.parent_ids, 1), 0) >= 2 then raise exception 'This person already has two parents'; end if;
+
+  select * into other from public.family_members where id = any(child.parent_ids) limit 1;
+  -- Children of the other parent are this parent's children too.
+  siblings := array(select distinct x from unnest(array[p_child] || coalesce(other.children_ids, '{}')) x);
+
+  insert into public.family_members (id, first_name, middle_name, last_name, gender, birth_date, birth_location,
+                                     children_ids, spouse_ids, parent_ids, source, confidence, is_living)
+  values (new_id, trim(p_first), nullif(trim(p_middle), ''), coalesce(trim(p_last), ''),
+          case when p_role = 'father' then 'male' else 'female' end, p_birth_date, nullif(trim(p_birth_place), ''),
+          siblings, case when other.id is null then '{}' else array[other.id] end, '{}', 'user', 100,
+          -- Someone born over 100 years ago (or the parent of someone born over 60 years ago) is very likely not living.
+          coalesce(p_birth_date > current_date - interval '100 years', child.birth_date > current_date - interval '60 years', true));
+
+  update public.family_members set parent_ids = array_append(parent_ids, new_id) where id = any(siblings) and not (new_id = any(parent_ids));
+  if other.id is not null then
+    update public.family_members set spouse_ids = array_append(spouse_ids, new_id) where id = other.id and not (new_id = any(spouse_ids));
+  end if;
+  return new_id;
+end;
+$$;
+revoke all on function public.add_parent(uuid, text, text, text, text, date, text) from public, anon;
+grant execute on function public.add_parent(uuid, text, text, text, text, date, text) to authenticated;
+
+-- Gives back one use when the work failed (e.g. the photo service refused), so people aren't charged for errors.
+create or replace function public.refund_daily_quota(p_user uuid, p_kind text)
+returns void language sql security definer set search_path = public as $$
+  update public.daily_usage set count = greatest(count - 1, 0) where user_id = p_user and kind = p_kind and day = current_date;
+$$;
+revoke all on function public.refund_daily_quota(uuid, text) from public, anon, authenticated;
+grant execute on function public.refund_daily_quota(uuid, text) to service_role;
+
+-- OpenStreetMap allows at most one lookup per second from us in total, across all users.
+create table if not exists public.rate_slots (name text primary key, last_at timestamptz not null default 'epoch');
+alter table public.rate_slots enable row level security;
+insert into public.rate_slots (name) values ('nominatim') on conflict do nothing;
+
+create or replace function public.claim_rate_slot(p_name text, p_gap_ms integer)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  claimed boolean;
+begin
+  update public.rate_slots set last_at = clock_timestamp()
+    where name = p_name and last_at <= clock_timestamp() - make_interval(secs => p_gap_ms / 1000.0)
+    returning true into claimed;
+  return coalesce(claimed, false);
+end;
+$$;
+revoke all on function public.claim_rate_slot(text, integer) from public, anon, authenticated;
+grant execute on function public.claim_rate_slot(text, integer) to service_role;
+
+
+-- ===== 20250701001900_client_errors.sql =====
+-- Error reports from people's browsers, so problems can be found and fixed without anyone having to report them.
+-- Add-only. People can only add reports through report_client_error (capped per person per day); only admins can read them.
+create table if not exists public.client_errors (
+  id bigint generated always as identity primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  message text not null,
+  location text,
+  page text,
+  user_agent text,
+  created_at timestamptz not null default now()
+);
+create index if not exists client_errors_created_idx on public.client_errors (created_at desc);
+create index if not exists client_errors_user_day_idx on public.client_errors (user_id, created_at);
+alter table public.client_errors enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'client_errors' and policyname = 'Admins can read client errors') then
+    create policy "Admins can read client errors" on public.client_errors for select to authenticated using (public.is_admin());
+  end if;
+end $$;
+revoke insert, update, delete on public.client_errors from anon, authenticated;
+
+create or replace function public.report_client_error(p_message text, p_location text default null, p_page text default null, p_user_agent text default null)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+begin
+  if me is null or coalesce(trim(p_message), '') = '' then
+    return false;
+  end if;
+  -- At most 30 reports per person per day, and never the same message twice in ten minutes.
+  if (select count(*) from public.client_errors where user_id = me and created_at > now() - interval '1 day') >= 30 then
+    return false;
+  end if;
+  if exists (select 1 from public.client_errors where user_id = me and message = left(p_message, 500) and created_at > now() - interval '10 minutes') then
+    return false;
+  end if;
+  insert into public.client_errors (user_id, message, location, page, user_agent)
+  values (me, left(p_message, 500), left(p_location, 2000), left(p_page, 300), left(p_user_agent, 300));
+  return true;
+end;
+$$;
+revoke all on function public.report_client_error(text, text, text, text) from public, anon;
+grant execute on function public.report_client_error(text, text, text, text) to authenticated;
+
+
+-- ===== 20250701002000_ai_usage_refund.sql =====
+-- Give a chat message back to someone's daily allowance when no AI service could answer it. Add-only; server use only.
+create or replace function public.refund_ai_usage(p_user uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.ai_usage_daily set count = count - 1
+  where user_id = p_user and day = (now() at time zone 'utc')::date and count > 0;
+$$;
+revoke all on function public.refund_ai_usage(uuid) from public, anon, authenticated;
+grant execute on function public.refund_ai_usage(uuid) to service_role;
+
+
+-- ===== 20250701002100_audit_fixes.sql =====
+-- Fixes from the live-database audit. Add-only.
+-- photo_analyses has an updated_at trigger but no such column, so any edit of a photo analysis failed.
+alter table public.photo_analyses add column if not exists updated_at timestamptz default now();
+
+-- A story linked to a person should lose the link (not point at nobody) when that person is removed.
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'cultural_stories_family_member_fk') then
+    alter table public.cultural_stories
+      add constraint cultural_stories_family_member_fk foreign key (family_member_id)
+      references public.family_members(id) on delete set null not valid;
+  end if;
+end $$;
+
+
+-- ===== 20250701002200_family_merges.sql =====
+-- Guided merge of two records for the same person, with one-click undo. Add-only.
+-- merge_family_members moves every link and story to the kept person and records what it changed;
+-- the app then removes the duplicate row. undo_family_merge puts everything back.
+create table if not exists public.family_merges (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  kept_id uuid not null,
+  removed_id uuid not null,
+  kept_before jsonb not null,
+  removed_row jsonb not null,
+  touched jsonb not null default '[]'::jsonb,
+  stories_moved uuid[] not null default '{}',
+  created_at timestamptz not null default now(),
+  undone_at timestamptz
+);
+create index if not exists family_merges_user_idx on public.family_merges (user_id, created_at desc);
+alter table public.family_merges enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'family_merges' and policyname = 'Owners manage their merges') then
+    create policy "Owners manage their merges" on public.family_merges for all to authenticated
+      using (user_id = auth.uid()) with check (user_id = auth.uid());
+  end if;
+end $$;
+
+-- Every id in an array, with one id swapped for another and repeats removed (order kept).
+create or replace function public._swap_id(p_ids uuid[], p_from uuid, p_to uuid, p_drop uuid default null)
+returns uuid[] language sql immutable as $$
+  select coalesce(array_agg(x order by first_pos), '{}')
+  from (
+    select x, min(pos) as first_pos
+    from unnest(array_replace(coalesce(p_ids, '{}'), p_from, p_to)) with ordinality as t(x, pos)
+    where x is distinct from p_drop
+    group by x
+  ) s;
+$$;
+
+create or replace function public.merge_family_members(p_keep uuid, p_remove uuid, p_fields jsonb default '{}'::jsonb)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  k public.family_members;
+  r public.family_members;
+  log_id uuid;
+  v_touched jsonb;
+  v_stories uuid[];
+  v_parents uuid[];
+begin
+  if me is null then raise exception 'Please sign in again.'; end if;
+  if p_keep is null or p_remove is null or p_keep = p_remove then raise exception 'Choose two different people to merge.'; end if;
+  select * into k from public.family_members where id = p_keep and user_id = me for update;
+  select * into r from public.family_members where id = p_remove and user_id = me for update;
+  if k.id is null or r.id is null then raise exception 'Both people must be in your own tree.'; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object('id', f.id, 'parent_ids', f.parent_ids, 'children_ids', f.children_ids, 'spouse_ids', f.spouse_ids)), '[]'::jsonb)
+    into v_touched
+    from public.family_members f
+   where f.user_id = me and f.id not in (p_keep, p_remove)
+     and (p_remove = any(coalesce(f.parent_ids, '{}')) or p_remove = any(coalesce(f.children_ids, '{}')) or p_remove = any(coalesce(f.spouse_ids, '{}')));
+  select coalesce(array_agg(id), '{}') into v_stories from public.cultural_stories where user_id = me and family_member_id = p_remove;
+
+  insert into public.family_merges (user_id, kept_id, removed_id, kept_before, removed_row, touched, stories_moved)
+  values (me, p_keep, p_remove, to_jsonb(k), to_jsonb(r), v_touched, v_stories)
+  returning id into log_id;
+
+  -- Everyone who pointed at the duplicate now points at the kept person.
+  update public.family_members f set
+    parent_ids = public._swap_id(f.parent_ids, p_remove, p_keep, f.id),
+    children_ids = public._swap_id(f.children_ids, p_remove, p_keep, f.id),
+    spouse_ids = public._swap_id(f.spouse_ids, p_remove, p_keep, f.id)
+  where f.user_id = me and f.id not in (p_keep, p_remove)
+    and (p_remove = any(coalesce(f.parent_ids, '{}')) or p_remove = any(coalesce(f.children_ids, '{}')) or p_remove = any(coalesce(f.spouse_ids, '{}')));
+
+  -- The kept person gets both records' links (never more than two parents) and the chosen details.
+  v_parents := public._swap_id(coalesce(k.parent_ids, '{}') || coalesce(r.parent_ids, '{}'), p_remove, p_keep, p_keep);
+  update public.family_members set
+    parent_ids = v_parents[1:2],
+    children_ids = public._swap_id(coalesce(k.children_ids, '{}') || coalesce(r.children_ids, '{}'), p_remove, p_keep, p_keep),
+    spouse_ids = public._swap_id(coalesce(k.spouse_ids, '{}') || coalesce(r.spouse_ids, '{}'), p_remove, p_keep, p_keep),
+    first_name = case when p_fields ? 'first_name' then coalesce(nullif(p_fields->>'first_name', ''), first_name) else first_name end,
+    middle_name = case when p_fields ? 'middle_name' then nullif(p_fields->>'middle_name', '') else middle_name end,
+    last_name = case when p_fields ? 'last_name' then coalesce(p_fields->>'last_name', '') else last_name end,
+    gender = case when p_fields ? 'gender' then nullif(p_fields->>'gender', '') else gender end,
+    birth_date = case when p_fields ? 'birth_date' then nullif(p_fields->>'birth_date', '')::date else birth_date end,
+    birth_location = case when p_fields ? 'birth_location' then nullif(p_fields->>'birth_location', '') else birth_location end,
+    death_date = case when p_fields ? 'death_date' then nullif(p_fields->>'death_date', '')::date else death_date end,
+    death_location = case when p_fields ? 'death_location' then nullif(p_fields->>'death_location', '') else death_location end,
+    notes = case when p_fields ? 'notes' then nullif(p_fields->>'notes', '') else notes end,
+    is_living = coalesce(k.is_living, true) and coalesce(r.is_living, true)
+                and (case when p_fields ? 'death_date' then nullif(p_fields->>'death_date', '') is null else death_date is null end)
+  where id = p_keep;
+
+  update public.cultural_stories set family_member_id = p_keep where user_id = me and family_member_id = p_remove;
+  return log_id;
+end;
+$$;
+revoke all on function public.merge_family_members(uuid, uuid, jsonb) from public, anon;
+grant execute on function public.merge_family_members(uuid, uuid, jsonb) to authenticated;
+
+create or replace function public.undo_family_merge(p_merge uuid)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  m public.family_merges;
+  t jsonb;
+  b public.family_members;
+begin
+  select * into m from public.family_merges where id = p_merge and user_id = me and undone_at is null for update;
+  if m.id is null then raise exception 'That merge was already undone or is not yours.'; end if;
+
+  -- Bring back the removed record exactly as it was (if the app already removed it).
+  if not exists (select 1 from public.family_members where id = m.removed_id) then
+    insert into public.family_members select * from jsonb_populate_record(null::public.family_members, m.removed_row);
+  end if;
+
+  -- Put the kept person's details and links back.
+  b := jsonb_populate_record(null::public.family_members, m.kept_before);
+  update public.family_members set
+    first_name = b.first_name, middle_name = b.middle_name, last_name = b.last_name, gender = b.gender,
+    birth_date = b.birth_date, birth_location = b.birth_location, death_date = b.death_date, death_location = b.death_location,
+    notes = b.notes, is_living = b.is_living, parent_ids = b.parent_ids, children_ids = b.children_ids, spouse_ids = b.spouse_ids
+  where id = m.kept_id and user_id = me;
+
+  -- Restore everyone else's links.
+  for t in select * from jsonb_array_elements(m.touched) loop
+    update public.family_members set
+      parent_ids = coalesce((select array_agg(v::uuid) from jsonb_array_elements_text(coalesce(t->'parent_ids', '[]'::jsonb)) v), '{}'),
+      children_ids = coalesce((select array_agg(v::uuid) from jsonb_array_elements_text(coalesce(t->'children_ids', '[]'::jsonb)) v), '{}'),
+      spouse_ids = coalesce((select array_agg(v::uuid) from jsonb_array_elements_text(coalesce(t->'spouse_ids', '[]'::jsonb)) v), '{}')
+    where id = (t->>'id')::uuid and user_id = me;
+  end loop;
+
+  update public.cultural_stories set family_member_id = m.removed_id where user_id = me and id = any(m.stories_moved);
+  update public.family_merges set undone_at = now() where id = m.id;
+  return m.removed_id;
+end;
+$$;
+revoke all on function public.undo_family_merge(uuid) from public, anon;
+grant execute on function public.undo_family_merge(uuid) to authenticated;
+
+
+-- ===== 20250701002300_family_merges_records.sql =====
+-- Merging two records of the same person also moves the records saved to the duplicate (and undo moves them back). Add-only.
+alter table public.family_merges add column if not exists records_moved uuid[] not null default '{}';
+
+create or replace function public.merge_family_members(p_keep uuid, p_remove uuid, p_fields jsonb default '{}'::jsonb)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  k public.family_members;
+  r public.family_members;
+  log_id uuid;
+  v_touched jsonb;
+  v_stories uuid[];
+  v_records uuid[];
+  v_parents uuid[];
+begin
+  if me is null then raise exception 'Please sign in again.'; end if;
+  if p_keep is null or p_remove is null or p_keep = p_remove then raise exception 'Choose two different people to merge.'; end if;
+  select * into k from public.family_members where id = p_keep and user_id = me for update;
+  select * into r from public.family_members where id = p_remove and user_id = me for update;
+  if k.id is null or r.id is null then raise exception 'Both people must be in your own tree.'; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object('id', f.id, 'parent_ids', f.parent_ids, 'children_ids', f.children_ids, 'spouse_ids', f.spouse_ids)), '[]'::jsonb)
+    into v_touched
+    from public.family_members f
+   where f.user_id = me and f.id not in (p_keep, p_remove)
+     and (p_remove = any(coalesce(f.parent_ids, '{}')) or p_remove = any(coalesce(f.children_ids, '{}')) or p_remove = any(coalesce(f.spouse_ids, '{}')));
+  select coalesce(array_agg(id), '{}') into v_stories from public.cultural_stories where user_id = me and family_member_id = p_remove;
+  select coalesce(array_agg(id), '{}') into v_records from public.saved_records where user_id = me and family_member_id = p_remove;
+
+  insert into public.family_merges (user_id, kept_id, removed_id, kept_before, removed_row, touched, stories_moved, records_moved)
+  values (me, p_keep, p_remove, to_jsonb(k), to_jsonb(r), v_touched, v_stories, v_records)
+  returning id into log_id;
+
+  -- Everyone who pointed at the duplicate now points at the kept person.
+  update public.family_members f set
+    parent_ids = public._swap_id(f.parent_ids, p_remove, p_keep, f.id),
+    children_ids = public._swap_id(f.children_ids, p_remove, p_keep, f.id),
+    spouse_ids = public._swap_id(f.spouse_ids, p_remove, p_keep, f.id)
+  where f.user_id = me and f.id not in (p_keep, p_remove)
+    and (p_remove = any(coalesce(f.parent_ids, '{}')) or p_remove = any(coalesce(f.children_ids, '{}')) or p_remove = any(coalesce(f.spouse_ids, '{}')));
+
+  -- The kept person gets both records' links (never more than two parents) and the chosen details.
+  v_parents := public._swap_id(coalesce(k.parent_ids, '{}') || coalesce(r.parent_ids, '{}'), p_remove, p_keep, p_keep);
+  update public.family_members set
+    parent_ids = v_parents[1:2],
+    children_ids = public._swap_id(coalesce(k.children_ids, '{}') || coalesce(r.children_ids, '{}'), p_remove, p_keep, p_keep),
+    spouse_ids = public._swap_id(coalesce(k.spouse_ids, '{}') || coalesce(r.spouse_ids, '{}'), p_remove, p_keep, p_keep),
+    first_name = case when p_fields ? 'first_name' then coalesce(nullif(p_fields->>'first_name', ''), first_name) else first_name end,
+    middle_name = case when p_fields ? 'middle_name' then nullif(p_fields->>'middle_name', '') else middle_name end,
+    last_name = case when p_fields ? 'last_name' then coalesce(p_fields->>'last_name', '') else last_name end,
+    gender = case when p_fields ? 'gender' then nullif(p_fields->>'gender', '') else gender end,
+    birth_date = case when p_fields ? 'birth_date' then nullif(p_fields->>'birth_date', '')::date else birth_date end,
+    birth_location = case when p_fields ? 'birth_location' then nullif(p_fields->>'birth_location', '') else birth_location end,
+    death_date = case when p_fields ? 'death_date' then nullif(p_fields->>'death_date', '')::date else death_date end,
+    death_location = case when p_fields ? 'death_location' then nullif(p_fields->>'death_location', '') else death_location end,
+    notes = case when p_fields ? 'notes' then nullif(p_fields->>'notes', '') else notes end,
+    is_living = coalesce(k.is_living, true) and coalesce(r.is_living, true)
+                and (case when p_fields ? 'death_date' then nullif(p_fields->>'death_date', '') is null else death_date is null end)
+  where id = p_keep;
+
+  update public.cultural_stories set family_member_id = p_keep where user_id = me and family_member_id = p_remove;
+  update public.saved_records set family_member_id = p_keep where user_id = me and family_member_id = p_remove;
+  return log_id;
+end;
+$$;
+revoke all on function public.merge_family_members(uuid, uuid, jsonb) from public, anon;
+grant execute on function public.merge_family_members(uuid, uuid, jsonb) to authenticated;
+
+create or replace function public.undo_family_merge(p_merge uuid)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  m public.family_merges;
+  t jsonb;
+  b public.family_members;
+begin
+  select * into m from public.family_merges where id = p_merge and user_id = me and undone_at is null for update;
+  if m.id is null then raise exception 'That merge was already undone or is not yours.'; end if;
+
+  -- Bring back the removed record exactly as it was (if the app already removed it).
+  if not exists (select 1 from public.family_members where id = m.removed_id) then
+    insert into public.family_members select * from jsonb_populate_record(null::public.family_members, m.removed_row);
+  end if;
+
+  -- Put the kept person's details and links back.
+  b := jsonb_populate_record(null::public.family_members, m.kept_before);
+  update public.family_members set
+    first_name = b.first_name, middle_name = b.middle_name, last_name = b.last_name, gender = b.gender,
+    birth_date = b.birth_date, birth_location = b.birth_location, death_date = b.death_date, death_location = b.death_location,
+    notes = b.notes, is_living = b.is_living, parent_ids = b.parent_ids, children_ids = b.children_ids, spouse_ids = b.spouse_ids
+  where id = m.kept_id and user_id = me;
+
+  -- Restore everyone else's links.
+  for t in select * from jsonb_array_elements(m.touched) loop
+    update public.family_members set
+      parent_ids = coalesce((select array_agg(v::uuid) from jsonb_array_elements_text(coalesce(t->'parent_ids', '[]'::jsonb)) v), '{}'),
+      children_ids = coalesce((select array_agg(v::uuid) from jsonb_array_elements_text(coalesce(t->'children_ids', '[]'::jsonb)) v), '{}'),
+      spouse_ids = coalesce((select array_agg(v::uuid) from jsonb_array_elements_text(coalesce(t->'spouse_ids', '[]'::jsonb)) v), '{}')
+    where id = (t->>'id')::uuid and user_id = me;
+  end loop;
+
+  update public.cultural_stories set family_member_id = m.removed_id where user_id = me and id = any(m.stories_moved);
+  update public.saved_records set family_member_id = m.removed_id where user_id = me and id = any(coalesce(m.records_moved, '{}'));
+  update public.family_merges set undone_at = now() where id = m.id;
+  return m.removed_id;
+end;
+$$;
+revoke all on function public.undo_family_merge(uuid) from public, anon;
+grant execute on function public.undo_family_merge(uuid) to authenticated;
+
 commit;

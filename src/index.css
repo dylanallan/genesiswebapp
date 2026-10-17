@@ -66,3 +66,11 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari, Opera */
 }
+/* Keyboard users must always see where they are. Shows only for keyboard focus, not on mouse clicks. */
+@layer base {
+  :focus-visible {
+    outline: 3px solid rgb(var(--genesis-700));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}

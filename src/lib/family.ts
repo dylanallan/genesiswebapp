@@ -5,6 +5,7 @@ export interface TreeMember {
   id: string;
   name: string;
   relationship: string;
+  gender?: string | null;
   birthDate?: string;
   birthPlace?: string;
   deathDate?: string;
@@ -24,6 +25,7 @@ interface FamilyRow {
   middle_name: string | null;
   last_name: string | null;
   relationship: string | null;
+  gender?: string | null;
   birth_date: string | null;
   birth_location: string | null;
   death_date: string | null;
@@ -40,6 +42,7 @@ export const fromRow = (r: FamilyRow): TreeMember => ({
   id: r.id,
   name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' '),
   relationship: r.relationship ?? '',
+  gender: r.gender ?? null,
   birthDate: r.birth_date ?? undefined,
   birthPlace: r.birth_location ?? undefined,
   deathDate: r.death_date ?? undefined,
@@ -57,7 +60,7 @@ export const toRow = (m: TreeMember) => {
   const first = parts.shift() ?? m.name;
   return {
     first_name: first,
-    last_name: parts.length ? parts.pop() : null,
+    last_name: parts.length ? parts.pop()! : '',
     middle_name: parts.length ? parts.join(' ') : null,
     relationship: m.relationship || null,
     birth_date: m.birthDate || null,
@@ -75,10 +78,23 @@ export const toRow = (m: TreeMember) => {
 };
 
 
+// The API returns at most 1,000 rows per request, and imported trees can be far bigger, so read in pages.
+export async function loadAllFamilyRows<T = FamilyRow>(columns = '*', pageSize = 1000): Promise<T[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  const rows: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase.from('family_members').select(columns)
+      .eq('user_id', auth.user?.id ?? '')
+      .order('birth_date', { ascending: true, nullsFirst: false }).order('id')
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...((data ?? []) as T[]));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
 export async function loadFamilyMembers(): Promise<TreeMember[]> {
-  const { data, error } = await supabase.from('family_members').select('*').order('birth_date', { ascending: true, nullsFirst: false });
-  if (error) throw error;
-  return (data ?? []).map(fromRow);
+  return (await loadAllFamilyRows()).map(fromRow);
 }
 
 export async function saveFamilyMember(m: TreeMember): Promise<TreeMember> {

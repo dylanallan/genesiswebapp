@@ -1,13 +1,14 @@
 // Cache bust: 2024-07-01-1
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link as RouterLink } from 'react-router-dom';
 import { 
   Home, 
   Users, 
   Calendar, 
   FileText, 
   Globe, 
+  Sparkles,
+  MessageCircle,
   Settings, 
   Plus,
   Search,
@@ -108,11 +109,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
-import UniversalSearch from './UniversalSearch';
-import { DataSourceAdmin } from './DataSourceAdmin';
 import { useSession } from '../lib/session-context';
-import { useAtom } from 'jotai';
-import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';
 import { CulturalArtifactGallery } from './CulturalArtifactGallery';
 import { TraditionsManager } from './TraditionsManager';
@@ -123,7 +120,6 @@ import { CulturalRecipeBook } from './CulturalRecipeBook';
 import { TimelineBuilder } from './TimelineBuilder';
 import { AutomationHub } from './AutomationHub';
 import { UserProfileManager } from './UserProfileManager';
-import { UserProfileButton } from './UserProfileButton';
 import { ErrorBoundary } from '../lib/error-boundary';
 import { chatApi } from '../api/chat';
 import { FamilyTreeAnalyzer } from './FamilyTreeAnalyzer';
@@ -185,9 +181,25 @@ import { MediaPlayer } from './MediaPlayer';
 import { MediaUploader } from './MediaUploader';
 import { MediaDemo } from './MediaDemo';
 import SettingsPanel from './Settings';
-import FamilySummary from './FamilySummary';
 import RecordsSearch from './RecordsSearch';
 import AdminPayments from './AdminPayments';
+import TreeImport from './TreeImport';
+import FamilySharing from './FamilySharing';
+import FamilyStorybook from './FamilyStorybook';
+import FamilyInterview from './FamilyInterview';
+import PrivacyCenter from './PrivacyCenter';
+import GetStarted from './GetStarted';
+import TreeCheckup from './TreeCheckup';
+import ResearchAssistant from './ResearchAssistant';
+import PedigreeChart from './PedigreeChart';
+import FamilyMap from './FamilyMap';
+import HeritageMix from './HeritageMix';
+import FamilyFacts from './FamilyFacts';
+import MyAccount from './MyAccount';
+import FamilySearch from './FamilySearch';
+import PhotoRestore from './PhotoRestore';
+import LifeStory from './LifeStory';
+import { useSearchParams } from 'react-router-dom';
 import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
 
 interface DashboardProps {
@@ -195,6 +207,134 @@ interface DashboardProps {
 }
 
 const features = [
+  {
+    id: 'welcome',
+    name: 'Get started',
+    icon: Home,
+    component: GetStarted,
+    description: 'Your first steps',
+    category: 'heritage',
+  },
+  {
+    id: 'tree-import',
+    name: 'Import or export tree',
+    icon: Upload,
+    component: TreeImport,
+    description: 'Bring your tree from Ancestry, MyHeritage or FamilySearch',
+    category: 'heritage',
+  },
+  {
+    id: 'family-sharing',
+    name: 'Share with family',
+    icon: Share,
+    component: FamilySharing,
+    description: 'Invite relatives to view and add memories',
+    category: 'heritage',
+  },
+  {
+    id: 'family-interview',
+    name: 'Interview a relative',
+    icon: Mic,
+    component: FamilyInterview,
+    description: 'Guided voice interviews, recorded and written down',
+    category: 'heritage',
+  },
+  {
+    id: 'family-storybook',
+    name: 'Family storybook',
+    icon: BookOpen,
+    component: FamilyStorybook,
+    description: 'Turn your family history into a printable book',
+    category: 'heritage',
+  },
+  {
+    id: 'family-tree-chart',
+    name: 'Family tree',
+    icon: Trees,
+    component: PedigreeChart,
+    description: 'Visual family tree chart',
+    category: 'heritage',
+  },
+  {
+    id: 'life-story',
+    name: 'Life stories',
+    icon: BookOpen,
+    component: LifeStory,
+    description: 'Each person\'s life as a timeline',
+    category: 'heritage',
+  },
+  {
+    id: 'photo-restore',
+    name: 'Restore old photos',
+    icon: Image,
+    component: PhotoRestore,
+    description: 'Repair and colourise old photos',
+    category: 'heritage',
+  },
+  {
+    id: 'family-map',
+    name: 'Family map',
+    icon: Map,
+    component: FamilyMap,
+    description: 'Where your family lived and moved',
+    category: 'heritage',
+  },
+  {
+    id: 'heritage-mix',
+    name: 'Where we come from',
+    icon: Globe,
+    component: HeritageMix,
+    description: 'Your heritage breakdown from your tree',
+    category: 'heritage',
+  },
+  {
+    id: 'family-facts',
+    name: 'Family facts',
+    icon: Sparkles,
+    component: FamilyFacts,
+    description: 'Highlights from your family tree',
+    category: 'heritage',
+  },
+  {
+    id: 'family-search',
+    name: 'Search my family',
+    icon: Search,
+    component: FamilySearch,
+    description: 'Find people, places, stories and recipes you have saved',
+    category: 'heritage',
+  },
+  {
+    id: 'my-account',
+    name: 'My account',
+    icon: User,
+    component: MyAccount,
+    description: 'Your name, password, text size and helper preferences',
+    category: 'core',
+  },
+  {
+    id: 'research-assistant',
+    name: 'Research assistant',
+    icon: Search,
+    component: ResearchAssistant,
+    description: 'Find and verify records for a person',
+    category: 'heritage',
+  },
+  {
+    id: 'tree-checkup',
+    name: 'Tree checkup',
+    icon: Shield,
+    component: TreeCheckup,
+    description: 'Find likely mistakes in your tree',
+    category: 'heritage',
+  },
+  {
+    id: 'privacy-center',
+    name: 'Your data & privacy',
+    icon: Shield,
+    component: PrivacyCenter,
+    description: 'Download or delete everything',
+    category: 'user',
+  },
   {
     id: 'records-search',
     name: 'Historical Records',
@@ -204,22 +344,6 @@ const features = [
     category: 'heritage',
   },
   // Core System Features
-  {
-    id: 'search',
-    name: 'Universal Search',
-    icon: Search,
-    component: UniversalSearch,
-    description: 'Search across all data sources',
-    category: 'core'
-  },
-  {
-    id: 'data',
-    name: 'Data Sources',
-    icon: Database,
-    component: DataSourceAdmin,
-    description: 'Manage data sources and integrations',
-    category: 'core'
-  },
   {
     id: 'ai-assistant',
     name: 'AI Assistant',
@@ -794,84 +918,102 @@ const features = [
   }
 ];
 
+// What customers see: family-history tools grouped by what they want to do, with plain names.
+// Everything else (business, enterprise, hackathon, monitoring tools) is only listed for admins.
+const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType<{ className?: string }>; items: Array<[string, string]> }> = [
+  { id: 'start', name: 'Start here', icon: Home, items: [['welcome', 'Get started'], ['tree-import', 'Import or export tree']] },
+  { id: 'family', name: 'My family', icon: Trees, items: [
+    ['family-tree-chart', 'Family tree'], ['family-map', 'Family map'], ['heritage-mix', 'Where we come from'], ['family-facts', 'Family facts'], ['life-story', 'Life stories'], ['family-tree-viz', 'People list'], ['tree-checkup', 'Tree checkup'], ['timeline-builder', 'Timeline'],
+    ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
+  ] },
+  { id: 'memories', name: 'Memories', icon: Heart, items: [
+    ['family-interview', 'Interview a relative'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
+    ['photo-restore', 'Restore old photos'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
+    ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
+  ] },
+  { id: 'research', name: 'Research', icon: Search, items: [['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
+  { id: 'ai', name: 'AI helper', icon: Brain, items: [
+    ['family-tree-voice', 'Talk about my tree'],
+  ] },
+  { id: 'account', name: 'Account', icon: User, items: [['my-account', 'My account'], ['privacy-center', 'Your data & privacy']] },
+];
+
 export const Dashboard: React.FC<DashboardProps> = () => {
   const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [preferences] = useAtom(userPreferencesAtom);
-  const [activeFeature, setActiveFeature] = useState('records-search');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  
-  const { colorScheme } = preferences;
+  const [searchParams] = useSearchParams();
+  const [activeFeature, setActiveFeature] = useState(searchParams.get('feature') ?? 'welcome');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    () => CUSTOMER_MENU.find((g) => g.items.some(([id]) => id === (searchParams.get('feature') ?? 'welcome')))?.id ?? 'start',
+  );
 
-  const filteredFeatures = selectedCategory === 'all' 
-    ? features 
-    : features.filter(f => f.category === selectedCategory);
 
-  const activeEntry = (features.find(f => f.id === activeFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
+  // Links inside the app (e.g. "Research this person") change ?feature= to switch screens.
+  const linkedFeature = searchParams.get('feature');
+  useEffect(() => {
+    if (!linkedFeature) return;
+    setActiveFeature(linkedFeature);
+    const group = CUSTOMER_MENU.find((g) => g.items.some(([item]) => item === linkedFeature));
+    if (group) setSelectedCategory(group.id);
+  }, [linkedFeature, searchParams]);
+
+  useEffect(() => {
+    supabase.rpc('is_admin').then(({ data }: { data: boolean | null }) => setIsAdmin(data === true));
+  }, []);
+
+  const open = (id: string) => {
+    setActiveFeature(id);
+    const group = CUSTOMER_MENU.find((g) => g.items.some(([item]) => item === id));
+    if (group) setSelectedCategory(group.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const customerGroup = CUSTOMER_MENU.find((g) => g.id === selectedCategory);
+  const adminCategory = selectedCategory.startsWith('admin:') ? selectedCategory.slice(6) : null;
+  const filteredFeatures = customerGroup
+    ? customerGroup.items.map(([id, label]) => ({ ...(features.find((f) => f.id === id) ?? { id, icon: Home }), name: label }))
+    : adminCategory === 'all'
+      ? features
+      : features.filter(f => f.category === adminCategory);
+
+  // Tools outside the customer menu are for admins only, even when opened by a link.
+  const customerIds = new Set(CUSTOMER_MENU.flatMap((g) => g.items.map(([id]) => id)));
+  const visibleFeature = isAdmin || customerIds.has(activeFeature) ? activeFeature : 'welcome';
+  const activeEntry = (features.find(f => f.id === visibleFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
   const ActiveComponent = activeEntry.component as React.ComponentType;
-  const closeFeature = () => setActiveFeature('records-search');
+  const closeFeature = () => setActiveFeature('welcome');
 
   // Pop-up features close with the Escape key, as people expect.
   useEffect(() => {
     if (!activeEntry.render) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('records-search'); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('welcome'); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [activeEntry]);
 
+  // Admins also get the full original tool list, including business and monitoring tools.
+  const adminCategories = [
+    { id: 'admin:all', name: 'All tools (admin)', icon: Plus },
+    { id: 'admin:user', name: 'Accounts & payments', icon: CreditCard },
+    { id: 'admin:business', name: 'Business tools', icon: Zap },
+    { id: 'admin:analytics', name: 'Monitoring', icon: BarChart3 },
+    { id: 'admin:core', name: 'System', icon: Settings },
+    { id: 'admin:hackathon', name: 'Demos', icon: Rocket },
+  ];
   const categories = [
-    { id: 'all', name: 'All Features', icon: Plus },
-    { id: 'core', name: 'Core System', icon: Home },
-    { id: 'heritage', name: 'Heritage Tools', icon: Globe },
-    { id: 'business', name: 'Business Tools', icon: Zap },
-    { id: 'media', name: 'Media & Content', icon: Camera },
-    { id: 'analytics', name: 'Analytics & Monitoring', icon: BarChart3 },
-    { id: 'user', name: 'User Management', icon: Users },
-    { id: 'ai', name: 'AI & Context', icon: Brain },
-    { id: 'timeline', name: 'Timeline & Organization', icon: Clock },
-    { id: 'hackathon', name: 'Hackathon Features', icon: Rocket },
-    { id: 'tools', name: 'Additional Tools', icon: Settings }
+    ...CUSTOMER_MENU.map(({ id, name, icon }) => ({ id, name, icon })),
+    ...(isAdmin ? adminCategories : []),
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur-sm" style={{ 
-        borderColor: colorScheme.border
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Home className="w-6 h-6 text-genesis-600" />
-                <h1 className="text-lg font-medium text-gray-900">
-                  Genesis Heritage
-                </h1>
-              </div>
-              <p className="text-sm hidden sm:block text-gray-600">
-                Automate your business and unlock your roots
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <RouterLink
-                to="/pricing"
-                className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Plans &amp; billing
-              </RouterLink>
-
-              <UserProfileButton />
-            </div>
-          </div>
-        </div>
-      </nav>
 
       {/* Category Filter */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="category-menu" role="navigation" aria-label="Sections">
             {categories.map(category => {
               const Icon = category.icon;
               return (
@@ -898,7 +1040,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Feature Navigation */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="feature-menu" role="navigation" aria-label="Pages in this section">
             {filteredFeatures.map(feature => {
               const Icon = feature.icon;
               return (
@@ -932,13 +1074,12 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <FamilySummary />
             {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
             <ErrorBoundary key={activeFeature}>
-              {activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
+              {activeEntry.id === 'welcome' ? <GetStarted open={open} /> : activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
                   <h2 className="text-xl font-bold mb-2">Component Error</h2>
                   <p>Feature component is not available or is not a valid React component.</p>
@@ -947,7 +1088,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
             </ErrorBoundary>
             
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 scroll-mt-4" id="ai-helper">
             <ErrorBoundary>
               <EnhancedAIAssistant />
             </ErrorBoundary>
@@ -955,47 +1096,19 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         </div>
       </main>
 
-      {/* Enhanced Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative group">
-          <motion.button 
-            className="w-14 h-14 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Plus className="w-6 h-6" />
-          </motion.button>
-          
-          <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
-              <h3 className="font-semibold text-gray-900 mb-2">Enhanced AI Features</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Semantic Search</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Context Awareness</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Multi-model Routing</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Helper button: jumps to the AI family-history helper (it sits far below the page on phones). */}
+      <button
+        onClick={() => {
+          const helper = document.getElementById('ai-helper');
+          const box = helper?.querySelector<HTMLElement>('textarea, input[type="text"], input:not([type])');
+          (box ?? helper)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          box?.focus({ preventScroll: true });
+        }}
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 h-12 bg-genesis-600 text-white rounded-full shadow-lg hover:bg-genesis-700"
+        aria-label="Ask the family history helper"
+      >
+        <MessageCircle className="w-5 h-5" /> <span className="hidden sm:inline">Ask for help</span>
+      </button>
     </div>
   );
 };

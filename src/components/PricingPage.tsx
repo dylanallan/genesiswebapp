@@ -1,3 +1,4 @@
+import { TAGLINE } from '../lib/brand';
 import { useEffect, useState } from 'react';
 import { Check, Loader2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,8 +12,23 @@ const FREE_DAILY = Number(import.meta.env.VITE_FREE_DAILY_MESSAGES ?? 10);
 const MONTHLY_PRICE = import.meta.env.VITE_PRICE_MONTHLY_LABEL ?? '$19 / month';
 const YEARLY_PRICE = import.meta.env.VITE_PRICE_YEARLY_LABEL ?? '$190 / year';
 
-const FREE_FEATURES = [`${FREE_DAILY} AI messages per day`, 'Family tree & traditions library', 'Historical records search'];
-const PRO_FEATURES = ['Generous daily AI chat limits', 'Voice narration of family stories', 'Voice-story generation', 'Workflow & automation tools', 'Priority support'];
+const FREE_FEATURES = [
+  'Unlimited family tree, with Ancestry / GEDCOM import and export', 'Free historical records search, no paywall',
+  'Interview recordings, stories, recipes and photos', 'Share with family members for free', `${FREE_DAILY} AI messages per day`,
+];
+// Plain promises about money and data. Each one is true of how the app works today; keep it that way.
+const PROMISES = [
+  'Cancel in one tap on this page. No phone calls, no forms, no questions.',
+  'If you cancel, you keep Pro until the end of the time you paid for.',
+  'e-Transfer and one-time PayPal payments never renew. We never charge you without asking.',
+  'Stop paying and your tree, photos, stories and recordings stay yours on the free plan. Download everything any time.',
+  'One clear price in Canadian dollars. No teaser rates and no add-on packs.',
+  'We never sell your data or your family\'s data.',
+];
+
+const PRO_FEATURES = [
+  'Everything in Free', 'Generous daily AI limits: write storybooks as often as you like', 'Restore and colourise old photos (10 a day)', 'Priority support',
+];
 
 export default function PricingPage() {
   const { subscription, subscriptionLoading, refreshSubscription } = useSession();
@@ -55,6 +71,7 @@ export default function PricingPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold text-center mb-2">Choose your plan</h1>
+      <p className="text-center text-genesis-700 italic mb-2">{TAGLINE}</p>
       <p className="text-center text-gray-600 mb-8">Pay with PayPal (cards accepted) or by Interac e-Transfer.</p>
 
       {subscription.active && (
@@ -149,6 +166,15 @@ export default function PricingPage() {
           <p className="mt-3 text-xs text-blue-800">One-time payments do not renew automatically. Pay again any time to extend; days are never lost.</p>
         </section>
       )}
+
+      <section aria-labelledby="promises" className="mt-8 rounded-xl border border-gray-200 bg-white p-5" data-testid="billing-promises">
+        <h2 id="promises" className="text-lg font-semibold mb-3">Our promises</h2>
+        <ul className="space-y-2">
+          {PROMISES.map((p) => (
+            <li key={p} className="flex gap-2 text-gray-700"><Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" /><span>{p}</span></li>
+          ))}
+        </ul>
+      </section>
 
       <p className="mt-6 text-center text-xs text-gray-500">Card and PayPal payments are processed securely by PayPal. We never see or store your card or bank details.</p>
     </div>
