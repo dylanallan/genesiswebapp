@@ -23,6 +23,19 @@ test('home page', async ({ page }) => {
   expect(report(r.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious'))).toEqual([]);
 });
 
+// Public pages people reach from search, ads and partner links.
+for (const path of ['/switch', '/compare', '/partners', '/pricing', '/privacy', '/terms']) {
+  test(`public page ${path}`, async ({ page }) => {
+    await installMockBackend(page, state);
+    await page.goto(path);
+    await page.getByRole('heading', { level: 1 }).first().waitFor();
+    await page.waitForTimeout(800);
+    const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    console.log(`A11Y ${path}`, JSON.stringify(report(r.violations)));
+    expect(report(r.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious'))).toEqual([]);
+  });
+}
+
 test('relative’s answer page (no account)', async ({ page }) => {
   await installMockBackend(page, { ...state, memoryRequest: { token: 'aaaabbbbccccddddeeeeffff00001111', view: { from_name: 'Dylan', relative_name: 'Grandma Rosa', questions: ['Where did you grow up?'], answered: [], closed: false } } });
   await page.goto('/memories/aaaabbbbccccddddeeeeffff00001111');

@@ -19,6 +19,15 @@ test('the switch guide explains both sites and leads to sign-up', async ({ page 
   await expect(page.getByText(/not inside a GEDCOM file/)).toBeVisible();
   await page.getByRole('link', { name: /Create my free account and import/ }).click();
   await expect(page.getByRole('button', { name: 'Create Account' })).toBeVisible();
+  // Once in, they land straight on the tree import, not the general dashboard.
+  await page.getByRole('button', { name: /Already have an account/ }).click();
+  await page.getByLabel('Email').fill('rosa@example.com');
+  await page.getByLabel('Password').fill('a long family password');
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.getByLabel('GEDCOM file')).toBeAttached();
+  // Only once: the next visit goes to the dashboard as usual.
+  expect(await page.evaluate(() => localStorage.getItem('genesis-next'))).toBeNull();
 });
 
 test('the comparison page marks unchecked competitor details instead of guessing', async ({ page }) => {

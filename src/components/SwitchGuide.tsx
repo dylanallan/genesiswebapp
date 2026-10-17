@@ -31,7 +31,7 @@ const FACTS = [
 export const SwitchGuide: React.FC = () => {
   useLang();
   const { session } = useSession();
-  const importHref = session ? '/dashboard?feature=tree-import' : '/?start=signup';
+  const importHref = session ? '/dashboard?feature=tree-import' : '/?start=signup&next=import';
 
   return (
     <main className="min-h-screen bg-[#faf7f0] text-[#1f3a2e]">

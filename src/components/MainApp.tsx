@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { rememberNextStep } from '../lib/next-step';
 import { useSession } from '../lib/session-context';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -286,6 +287,8 @@ const LoadingScreen = () => (
     </div>
   </div>
 );
+
+rememberNextStep();
 
 export const MainApp: React.FC = () => {
   const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();

@@ -1,4 +1,5 @@
 // Cache bust: 2024-07-01-1
+import { takeNextFeature } from '../lib/next-step';
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -984,10 +985,11 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [searchParams] = useSearchParams();
-  const [activeFeature, setActiveFeature] = useState(searchParams.get('feature') ?? 'welcome');
+  // A link (?feature=) wins; otherwise a step remembered at sign-up (e.g. the tree import for people switching).
+  const [activeFeature, setActiveFeature] = useState(() => searchParams.get('feature') ?? takeNextFeature() ?? 'welcome');
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    () => CUSTOMER_MENU.find((g) => g.items.some(([id]) => id === (searchParams.get('feature') ?? 'welcome')))?.id ?? 'start',
+    () => CUSTOMER_MENU.find((g) => g.items.some(([id]) => id === (searchParams.get('feature') ?? takeNextFeature() ?? 'welcome')))?.id ?? 'start',
   );
 
 
