@@ -225,3 +225,23 @@ do $$ declare t text := (select token from public.memory_requests where id = 'ab
   perform answer_memory_request(t, 1, 'At a dance.');
   raise notice 'CHECK closed link takes no answers: FAIL';
 exception when others then raise notice 'CHECK closed link takes no answers: PASS'; end $$;
+
+-- Record hints are private to the tree's owner.
+set role authenticated;
+set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
+insert into family_members (id, first_name, last_name) values ('abab0000-0000-4000-8000-0000000000b1', 'Rosa', 'Vega');
+insert into record_hints (family_member_id, source, source_id, title, url, score, level)
+values ('abab0000-0000-4000-8000-0000000000b1', 'wikitree', 'Vega-1', 'Rosa Vega (1902-1980)', 'https://example.org/1', 82, 'strong');
+insert into record_hint_checks (family_member_id) values ('abab0000-0000-4000-8000-0000000000b1');
+select 'owner sees their hint' as check, count(*) = 1 as pass from record_hints where source_id = 'Vega-1';
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = 'abababab-0000-4000-8000-000000000007';
+select 'others cannot see hints' as check, count(*) = 0 as pass from record_hints where source_id = 'Vega-1';
+select 'others cannot see hint checks' as check, count(*) = 0 as pass from record_hint_checks where family_member_id = 'abab0000-0000-4000-8000-0000000000b1';
+do $$ begin
+  insert into record_hints (user_id, family_member_id, source, source_id, title, url, score, level)
+  values ('eeeeeeee-0000-4000-8000-000000000005', 'abab0000-0000-4000-8000-0000000000b1', 'x', 'forged', 'Forged', 'https://example.org/x', 99, 'strong');
+  raise notice 'CHECK cannot plant hints in another tree: FAIL';
+exception when others then raise notice 'CHECK cannot plant hints in another tree: PASS'; end $$;
+reset role;

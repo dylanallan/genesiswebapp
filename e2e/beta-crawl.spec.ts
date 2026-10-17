@@ -139,6 +139,38 @@ test('ask a relative: the relative answers with no account, big text, one questi
   }
 });
 
+test('record hints: finds likely records for people in the tree, with evidence, and saves one', async ({ page }) => {
+  current = 'record-hints';
+  state.posted = {};
+  state.familyRows = [
+    { id: '99999999-0000-4000-8000-000000000001', first_name: 'Rosa', middle_name: null, last_name: 'Vega', birth_date: '1902-03-04', death_date: '1980-01-01', birth_location: 'Oaxaca, México', death_location: 'Los Angeles, California', is_living: false },
+    { id: '99999999-0000-4000-8000-000000000002', first_name: 'Maya', middle_name: null, last_name: 'Vega', birth_date: '1995-01-01', death_date: null, birth_location: null, death_location: null, is_living: true },
+  ];
+  state.recordHits = [
+    { source: 'wikitree', sourceLabel: 'WikiTree', sourceId: 'Vega-1', title: 'Rosa Vega (1902–1980)', snippet: 'Born: Oaxaca, México', date: '1902', url: 'https://www.wikitree.com', attribution: 'WikiTree contributors', facts: { birthYear: 1902, deathYear: 1980, birthPlace: 'Oaxaca, México', deathPlace: 'Los Angeles, California' } },
+    { source: 'wikitree', sourceLabel: 'WikiTree', sourceId: 'Vega-2', title: 'Rosa Vega (1950–2010)', snippet: 'Born: Madrid, España', date: '1950', url: 'https://www.wikitree.com', attribution: 'WikiTree contributors', facts: { birthYear: 1950, deathYear: 2010, birthPlace: 'Madrid, España' } },
+  ];
+  try {
+    await page.goto('/dashboard?feature=record-hints');
+    const panel = page.getByTestId('record-hints');
+    await expect(panel.getByText('1 person not searched yet')).toBeVisible(); // Maya is living, so not searched
+    await panel.getByRole('button', { name: 'Find hints' }).click();
+    await expect(panel.getByText('Rosa Vega (1902–1980)')).toBeVisible();
+    await expect(panel.getByText(/Strong match/)).toBeVisible();
+    await expect(panel.getByText('Rosa Vega (1950–2010)')).toHaveCount(0); // a different Rosa is not suggested
+    expect(state.calls.filter((c) => c.includes('records-search'))).toHaveLength(1);
+    await panel.getByRole('button', { name: 'Save to Rosa' }).click();
+    await expect(page.getByText('Saved to this person’s records')).toBeVisible();
+    const saved = state.posted.saved_records?.[0] as { family_member_id: string; source_id: string; notes: string };
+    expect(saved.family_member_id).toBe('99999999-0000-4000-8000-000000000001');
+    expect(saved.source_id).toBe('Vega-1');
+    expect(saved.notes).toContain('Record hint:');
+  } finally {
+    state.familyRows = undefined;
+    state.recordHits = undefined;
+  }
+});
+
 test('signed-in user lands on home and sees their plan', async ({ page }) => {
   current = 'home';
   await page.goto('/');

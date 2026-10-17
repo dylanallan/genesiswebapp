@@ -129,6 +129,10 @@ export async function installMockBackend(page: Page, state: MockState) {
       if (table === 'family_members' && ['GET', 'HEAD'].includes(req.method()) && state.familyRows) rows = state.familyRows;
       if (table === 'cultural_stories' && req.method() === 'GET' && state.storyRows) rows = state.storyRows;
       if (table === 'waitlist_signups' && req.method() === 'GET' && state.waitlistRows) rows = state.waitlistRows;
+      // Hints the page saved come back when it reloads, as the database would return them.
+      if (table === 'record_hints' && req.method() === 'GET') {
+        rows = (state.posted?.record_hints ?? []).map((h, i) => ({ id: `hint-${i}`, status: 'new', ...(h as object) }));
+      }
       if (table === 'app_settings' && state.manualPayments) {
         rows = [
           { key: 'etransfer_email', value: 'pay@example.com' },

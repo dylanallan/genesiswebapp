@@ -187,6 +187,7 @@ import RecordsSearch from './RecordsSearch';
 import AdminPayments from './AdminPayments';
 import { AdminWaitlist } from './AdminWaitlist';
 import { AskRelative } from './AskRelative';
+import { RecordHints } from './RecordHints';
 import TreeImport from './TreeImport';
 import FamilySharing from './FamilySharing';
 import FamilyStorybook from './FamilyStorybook';
@@ -233,6 +234,14 @@ const features = [
     icon: Share,
     component: FamilySharing,
     description: 'Invite relatives to view and add memories',
+    category: 'heritage',
+  },
+  {
+    id: 'record-hints',
+    name: 'Record hints',
+    icon: Sparkles,
+    component: RecordHints,
+    description: 'Likely records for people in your tree, with the evidence',
     category: 'heritage',
   },
   {
@@ -951,7 +960,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
     ['photo-restore', 'Restore old photos'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
-  { id: 'research', name: 'Research', icon: Search, items: [['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
+  { id: 'research', name: 'Research', icon: Search, items: [['record-hints', 'Record hints'], ['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
   { id: 'ai', name: 'AI helper', icon: Brain, items: [
     ['family-tree-voice', 'Talk about my tree'],
   ] },

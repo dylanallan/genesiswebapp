@@ -9,7 +9,7 @@ const ALL = ['welcome', 'tree-import', 'family-tree-chart', 'family-map', 'herit
   'tree-checkup', 'timeline-builder', 'family-contacts', 'family-sharing', 'dna-insights', 'cultural-stories', 'cultural-recipes',
   'traditions', 'celebrations', 'cultural-artifacts', 'family-photos', 'photo-restore', 'media-gallery', 'family-interview',
   'voice-recorder', 'family-storybook', 'family-search', 'research-assistant', 'records-search', 'data-table', 'family-tree-voice',
-  'my-account', 'privacy-center', 'ask-relative'];
+  'my-account', 'privacy-center', 'ask-relative', 'record-hints'];
 const FEATURES = process.env.A11Y_FEATURES?.split(',') ?? ALL;
 const state: MockState = { subscribed: false, calls: [], chatQuotaExceeded: false };
 
@@ -38,7 +38,8 @@ test.describe('signed in', () => {
   for (const f of FEATURES) {
     test(`screen ${f}`, async ({ page }) => {
       await page.goto(`/dashboard?feature=${f}`);
-      await page.waitForTimeout(1500);
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500); // let the helper's greeting finish fading in
       const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       console.log(`A11Y ${f}`, JSON.stringify(report(r.violations)));
       expect(report(r.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious'))).toEqual([]);
