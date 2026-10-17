@@ -9,7 +9,7 @@ const ALL = ['welcome', 'tree-import', 'family-tree-chart', 'family-map', 'herit
   'tree-checkup', 'timeline-builder', 'family-contacts', 'family-sharing', 'dna-insights', 'cultural-stories', 'cultural-recipes',
   'traditions', 'celebrations', 'cultural-artifacts', 'family-photos', 'photo-restore', 'media-gallery', 'family-interview',
   'voice-recorder', 'family-storybook', 'family-search', 'research-assistant', 'records-search', 'data-table', 'family-tree-voice',
-  'my-account', 'privacy-center'];
+  'my-account', 'privacy-center', 'ask-relative'];
 const FEATURES = process.env.A11Y_FEATURES?.split(',') ?? ALL;
 const state: MockState = { subscribed: false, calls: [], chatQuotaExceeded: false };
 
@@ -20,6 +20,15 @@ test('home page', async ({ page }) => {
   await page.goto('/');
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   console.log('A11Y home', JSON.stringify(report(r.violations)));
+  expect(report(r.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious'))).toEqual([]);
+});
+
+test('relative’s answer page (no account)', async ({ page }) => {
+  await installMockBackend(page, { ...state, memoryRequest: { token: 'aaaabbbbccccddddeeeeffff00001111', view: { from_name: 'Dylan', relative_name: 'Grandma Rosa', questions: ['Where did you grow up?'], answered: [], closed: false } } });
+  await page.goto('/memories/aaaabbbbccccddddeeeeffff00001111');
+  await page.getByTestId('answer-memories').waitFor();
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  console.log('A11Y memories', JSON.stringify(report(r.violations)));
   expect(report(r.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious'))).toEqual([]);
 });
 

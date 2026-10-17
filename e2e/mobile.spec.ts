@@ -14,7 +14,8 @@ const FAMILY = [
 ];
 
 // Most families will use a phone: key screens must fit a 390px-wide screen without sideways scrolling.
-const state: MockState = { subscribed: false, calls: [], chatQuotaExceeded: false };
+const state: MockState = { subscribed: false, calls: [], chatQuotaExceeded: false,
+  memoryRequest: { token: 'aaaabbbbccccddddeeeeffff00001111', view: { from_name: 'Dylan', relative_name: 'Grandma Rosa', questions: ['Where did you grow up?', 'How did you meet Grandpa?'], answered: [], closed: false } } };
 test.use({ viewport: { width: 390, height: 844 } });
 
 for (const [name, path, signedIn] of [
@@ -26,6 +27,8 @@ for (const [name, path, signedIn] of [
   ['heritage breakdown', '/dashboard?feature=heritage-mix', true],
   ['family facts', '/dashboard?feature=family-facts', true],
   ['life story', '/dashboard?feature=life-story', true],
+  ['ask a relative', '/dashboard?feature=ask-relative', true],
+  ['relative’s answer page', '/memories/aaaabbbbccccddddeeeeffff00001111', false],
 ] as const) {
   test(`${name} fits a phone screen`, async ({ page, context }) => {
     if (signedIn) await signIn(context);

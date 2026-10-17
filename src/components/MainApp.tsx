@@ -11,6 +11,7 @@ import EliteHackathonApp from './EliteHackathonApp';
 import GlobalIntelligenceDashboard from './GlobalIntelligenceDashboard';
 import { GlobalDataProvider } from '../lib/GlobalDataContext';
 import PricingPage from './PricingPage';
+import AnswerMemories from './AnswerMemories';
 import AccountBar from './AccountBar';
 import { SetNewPassword } from './SetNewPassword';
 import { TAGLINE } from '../lib/brand';
@@ -283,6 +284,9 @@ export const MainApp: React.FC = () => {
   const [authView, setAuthView] = useState<'signin' | 'signup' | null>(null);
 
   const path = window.location.pathname;
+  // A relative answering an "Ask a relative" link: no account, works whether or not anyone is signed in.
+  const memoryToken = /^\/memories\/([A-Za-z0-9]{24,64})\/?$/.exec(path)?.[1];
+  if (memoryToken) return <AnswerMemories token={memoryToken} />;
   if (path === '/privacy' || path === '/terms') {
     return <Router><Routes><Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} /></Routes></Router>;
   }

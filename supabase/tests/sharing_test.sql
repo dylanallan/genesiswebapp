@@ -182,3 +182,46 @@ do $$ begin
   raise notice 'CHECK direct waitlist insert blocked: FAIL';
 exception when others then raise notice 'CHECK direct waitlist insert blocked: PASS'; end $$;
 reset role;
+
+-- Ask a relative: the sender makes a link; the relative (no account) can only read its questions and add answers,
+-- which become the sender's stories; nobody else can see the request.
+set role authenticated;
+set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
+insert into memory_requests (id, from_name, relative_name, questions)
+values ('abab0000-0000-4000-8000-0000000000aa', 'Dylan', 'Grandma Rosa', array['Where did you grow up?', 'How did you meet Grandpa?']);
+reset role;
+-- The test reads the link's token as the database owner (visitors can't list tokens), then acts as the relative.
+select token as memory_token from public.memory_requests where id = 'abab0000-0000-4000-8000-0000000000aa' \gset
+set role anon;
+select 'relative sees the questions' as check, (get_memory_request(:'memory_token')->'questions'->>1) = 'How did you meet Grandpa?' as pass;
+reset role;
+do $$ declare t text := (select token from public.memory_requests where id = 'abab0000-0000-4000-8000-0000000000aa'); begin
+  set local role anon;
+  perform answer_memory_request(t, 0, 'In Oaxaca, near the market.');
+  perform answer_memory_request(t, 0, 'In Oaxaca, near the big market.');
+  reset role;
+end $$;
+select 'answer becomes a story credited to the relative' as check, count(*) = 1 as pass from cultural_stories
+  where user_id = 'eeeeeeee-0000-4000-8000-000000000005' and storyteller = 'Grandma Rosa' and content = 'In Oaxaca, near the big market.';
+do $$ declare t text := (select token from public.memory_requests where id = 'abab0000-0000-4000-8000-0000000000aa'); begin
+  set local role anon;
+  perform answer_memory_request(t, 5, 'not a question');
+  raise notice 'CHECK answer outside the questions refused: FAIL';
+exception when others then raise notice 'CHECK answer outside the questions refused: PASS'; end $$;
+set role anon;
+select 'a wrong link shows nothing' as check, get_memory_request('0000000000000000000000000000000x') is null as pass;
+do $$ begin
+  perform 1 from public.memory_requests;
+  raise notice 'CHECK visitors cannot list memory requests: FAIL';
+exception when insufficient_privilege then raise notice 'CHECK visitors cannot list memory requests: PASS'; end $$;
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = 'abababab-0000-4000-8000-000000000007';
+select 'other people cannot see the request' as check, count(*) = 0 as pass from memory_requests where id = 'abab0000-0000-4000-8000-0000000000aa';
+reset role;
+update memory_requests set closed_at = now() where id = 'abab0000-0000-4000-8000-0000000000aa';
+do $$ declare t text := (select token from public.memory_requests where id = 'abab0000-0000-4000-8000-0000000000aa'); begin
+  set local role anon;
+  perform answer_memory_request(t, 1, 'At a dance.');
+  raise notice 'CHECK closed link takes no answers: FAIL';
+exception when others then raise notice 'CHECK closed link takes no answers: PASS'; end $$;

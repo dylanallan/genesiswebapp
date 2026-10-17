@@ -32,7 +32,8 @@ export interface MockState {
   storyRows?: unknown[];    // rows returned for cultural_stories
   posted?: Record<string, unknown[]>; // bodies of POSTs, by table
   storageFiles?: Record<string, string[]>;
-  waitlistRows?: unknown[];  // rows returned for waitlist_signups (admin view) // files in each storage bucket, as paths under the user's folder
+  waitlistRows?: unknown[];
+  memoryRequest?: { token: string; view: unknown }; // what get_memory_request returns for that token  // rows returned for waitlist_signups (admin view) // files in each storage bucket, as paths under the user's folder
 }
 
 export async function signIn(context: BrowserContext) {
@@ -99,6 +100,14 @@ export async function installMockBackend(page: Page, state: MockState) {
         currency: 'CAD', reference_code: 'GEN-TEST01', status: 'pending', created_at: '2026-01-01T00:00:00Z',
       });
     }
+    if (path === '/rest/v1/rpc/get_memory_request') {
+      const { p_token } = JSON.parse(req.postData() ?? '{}');
+      return json(route, p_token === state.memoryRequest?.token ? state.memoryRequest.view : null);
+    }
+    if (path === '/rest/v1/rpc/answer_memory_request') {
+      (state.posted ??= {}).answer_memory_request = [...(state.posted.answer_memory_request ?? []), JSON.parse(req.postData() ?? 'null')];
+      return json(route, true);
+    }
     if (path === '/rest/v1/rpc/join_waitlist') {
       const body = JSON.parse(req.postData() ?? '{}');
       (state.posted ??= {}).join_waitlist = [...(state.posted.join_waitlist ?? []), body];
@@ -134,6 +143,10 @@ export async function installMockBackend(page: Page, state: MockState) {
         (state.posted ??= {})[table] = [...(state.posted[table] ?? []), ...(Array.isArray(body) ? body : [body])];
       }
       if (req.method() === 'POST' || req.method() === 'PATCH') rows = [{ id: '11111111-1111-4111-8111-111111111111', token: 'tok123' }];
+      if (table === 'memory_requests' && req.method() === 'POST') {
+        const body = JSON.parse(req.postData() ?? '{}');
+        rows = [{ ...body, id: '22222222-0000-4000-8000-000000000001', token: 'aaaabbbbccccddddeeeeffff00001111', created_at: new Date().toISOString(), closed_at: null }];
+      }
       if (wantsObject) return rows.length ? json(route, rows[0]) : json(route, { code: 'PGRST116', message: 'no rows' }, 406);
       // Page like the real database: ?offset=&limit= (from .range() and .limit()).
       const total = rows.length;

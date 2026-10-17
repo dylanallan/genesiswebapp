@@ -6,6 +6,7 @@ Allow: /terms
 Allow: /pricing
 Disallow: /dashboard
 Disallow: /join/
+Disallow: /memories/
 
 # AI training crawlers and bulk scrapers may not copy this site.
 # (Assistants that fetch a page when someone asks, like ChatGPT-User and PerplexityBot, may read the public pages,

@@ -105,7 +105,8 @@ import {
   Table,
   Server,
   Trophy,
-  ListChecks
+  ListChecks,
+  Send
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -185,6 +186,7 @@ import SettingsPanel from './Settings';
 import RecordsSearch from './RecordsSearch';
 import AdminPayments from './AdminPayments';
 import { AdminWaitlist } from './AdminWaitlist';
+import { AskRelative } from './AskRelative';
 import TreeImport from './TreeImport';
 import FamilySharing from './FamilySharing';
 import FamilyStorybook from './FamilyStorybook';
@@ -231,6 +233,14 @@ const features = [
     icon: Share,
     component: FamilySharing,
     description: 'Invite relatives to view and add memories',
+    category: 'heritage',
+  },
+  {
+    id: 'ask-relative',
+    name: 'Ask a relative by link',
+    icon: Send,
+    component: AskRelative,
+    description: 'Send a private link; they answer on their phone, no account needed',
     category: 'heritage',
   },
   {
@@ -937,7 +947,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
     ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
-    ['family-interview', 'Interview a relative'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
+    ['family-interview', 'Interview a relative'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
     ['photo-restore', 'Restore old photos'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },

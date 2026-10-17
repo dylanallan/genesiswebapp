@@ -95,6 +95,50 @@ test('admin sees the waitlist with invite counts and can download it', async ({ 
   }
 });
 
+test('ask a relative: make a private link with chosen questions', async ({ page }) => {
+  current = 'ask-relative';
+  state.posted = {};
+  await page.goto('/dashboard?feature=ask-relative');
+  const panel = page.getByTestId('ask-relative');
+  await panel.getByLabel('Who are you asking?').fill('Grandma Rosa');
+  await panel.getByLabel('Your name, as they know you').fill('Dylan');
+  await panel.getByLabel('Your own question').fill('What was your wedding like?');
+  await panel.getByRole('button', { name: 'Add', exact: true }).click();
+  await panel.getByRole('button', { name: 'Make the link' }).click();
+  await expect(panel.getByText('Your link for Grandma Rosa is ready')).toBeVisible();
+  await expect(panel.getByLabel('Link to send')).toHaveValue(/\/memories\/aaaabbbbccccddddeeeeffff00001111$/);
+  const sent = state.posted.memory_requests?.[0] as { relative_name: string; from_name: string; questions: string[] };
+  expect(sent.relative_name).toBe('Grandma Rosa');
+  expect(sent.from_name).toBe('Dylan');
+  expect(sent.questions).toHaveLength(4); // three suggested questions plus the one added
+  expect(sent.questions.at(-1)).toBe('What was your wedding like?');
+});
+
+test('ask a relative: the relative answers with no account, big text, one question at a time', async ({ browser }) => {
+  const page = await (await browser.newContext()).newPage(); // not signed in
+  state.posted = {};
+  state.memoryRequest = { token: 'aaaabbbbccccddddeeeeffff00001111', view: { from_name: 'Dylan', relative_name: 'Grandma Rosa', questions: ['Where did you grow up?', 'How did you meet Grandpa?'], answered: [], closed: false } };
+  await installMockBackend(page, state);
+  try {
+    await page.goto('/memories/aaaabbbbccccddddeeeeffff00001111');
+    const main = page.getByTestId('answer-memories');
+    await expect(main.getByRole('heading', { name: 'Hello Grandma Rosa' })).toBeVisible();
+    await expect(main.getByRole('heading', { name: 'Where did you grow up?' })).toBeVisible();
+    await main.getByRole('textbox').fill('In Oaxaca, near the market.');
+    await main.getByRole('button', { name: 'Save my answer' }).click();
+    await expect(main.getByText('Saved. Thank you!')).toBeVisible();
+    await expect(main.getByText('1 of 2 answered')).toBeVisible();
+    expect(state.posted.answer_memory_request?.[0]).toEqual({ p_token: 'aaaabbbbccccddddeeeeffff00001111', p_index: 0, p_text: 'In Oaxaca, near the market.' });
+    await main.getByRole('button', { name: /Next question/ }).click();
+    await expect(main.getByRole('heading', { name: 'How did you meet Grandpa?' })).toBeVisible();
+    // A wrong link explains itself instead of showing an error.
+    await page.goto('/memories/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz');
+    await expect(page.getByRole('heading', { name: 'This link doesn’t work' })).toBeVisible();
+  } finally {
+    state.memoryRequest = undefined;
+  }
+});
+
 test('signed-in user lands on home and sees their plan', async ({ page }) => {
   current = 'home';
   await page.goto('/');
