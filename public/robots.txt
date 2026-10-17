@@ -4,6 +4,7 @@ Allow: /$
 Allow: /privacy
 Allow: /terms
 Allow: /pricing
+Allow: /guides/
 Disallow: /dashboard
 Disallow: /join/
 Disallow: /memories/

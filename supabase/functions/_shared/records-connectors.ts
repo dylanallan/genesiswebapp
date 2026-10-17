@@ -26,6 +26,7 @@ export interface Connector {
   id: string
   label: string
   needsKey?: string // env var that must be set for this connector to run
+  enabledBy?: string // env var that must be "true": sources we have not yet tested live stay off until then
   search(q: RecordQuery, signal: AbortSignal): Promise<RecordHit[]>
 }
 
@@ -174,7 +175,70 @@ const europeana: Connector = {
   },
 }
 
-export const CONNECTORS: Connector[] = [wikitree, wikidata, chroniclingAmerica, internetArchive, dpla, europeana, trove]
+// Gallica (Bibliothèque nationale de France): French books, newspapers and archives, useful for Quebec, Acadian
+// and French families. Official SRU 1.2 search API, open without restriction except abuse (BnF / data.gouv.fr).
+// Returns Dublin Core XML. Off until tested live: set RECORDS_ENABLE_GALLICA=true.
+const xmlField = (rec: string, tag: string): string[] =>
+  [...rec.matchAll(new RegExp(`<dc:${tag}[^>]*>([\\s\\S]*?)</dc:${tag}>`, 'g'))].map((m) => decodeXml(m[1]).trim()).filter(Boolean)
+const decodeXml = (s: string) => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&amp;/g, '&')
+const cqlPhrase = (s: string) => `"${s.replace(/["\\]/g, ' ').trim()}"`
+
+export function parseGallica(xml: string): RecordHit[] {
+  return [...xml.matchAll(/<srw:record>([\s\S]*?)<\/srw:record>/g)].map((m): RecordHit | null => {
+    const rec = m[1]
+    const url = xmlField(rec, 'identifier').find((id) => id.startsWith('https://gallica.bnf.fr/ark:'))
+    if (!url) return null
+    const type = xmlField(rec, 'type')[0]
+    return {
+      source: 'gallica', sourceLabel: 'Gallica (BnF)', sourceId: url.replace('https://gallica.bnf.fr/', ''),
+      title: xmlField(rec, 'title')[0] || 'Document', snippet: clip([type, ...xmlField(rec, 'description')].filter(Boolean).join(' · ')),
+      date: xmlField(rec, 'date')[0], url,
+      license: xmlField(rec, 'rights')[0] || 'See item page', attribution: 'Bibliothèque nationale de France / Gallica',
+    }
+  }).filter((h): h is RecordHit => h !== null)
+}
+
+const gallica: Connector = {
+  id: 'gallica',
+  label: 'Gallica (Bibliothèque nationale de France)',
+  enabledBy: 'RECORDS_ENABLE_GALLICA',
+  async search(q, signal) {
+    const query = [`gallica all ${cqlPhrase(q.name)}`, q.place && `gallica all ${cqlPhrase(q.place)}`].filter(Boolean).join(' and ')
+    const params = new URLSearchParams({ operation: 'searchRetrieve', version: '1.2', maximumRecords: '8', query })
+    const res = await fetch(`https://gallica.bnf.fr/SRU?${params}`, { signal, headers: { 'User-Agent': UA, Accept: 'application/xml' } })
+    if (!res.ok) throw new Error(`${res.status} from gallica.bnf.fr`)
+    return parseGallica(await res.text())
+  },
+}
+
+// US National Archives Catalog (free key by email from Catalog_API@nara.gov): immigration, military, census and
+// other federal records; US government works are public domain. API v2, key in the x-api-key header.
+export function parseNara(data: any): RecordHit[] {
+  return (data?.body?.hits?.hits ?? []).map((h: any): RecordHit | null => {
+    const r = h?._source?.record ?? {}
+    const naId = r.naId ?? h?._source?.naId ?? h?._id
+    if (!naId) return null
+    return {
+      source: 'nara', sourceLabel: 'US National Archives', sourceId: String(naId),
+      title: text(r.title) || 'Archival record', snippet: clip(text(r.scopeAndContentNote) || text(r.levelOfDescription)),
+      date: text(r.productionDates?.[0]?.logicalDate ?? r.coverageStartDate?.logicalDate), url: `https://catalog.archives.gov/id/${naId}`,
+      license: 'Public domain (US government record) unless noted', attribution: 'US National Archives and Records Administration',
+    }
+  }).filter((h: RecordHit | null): h is RecordHit => h !== null)
+}
+
+const nara: Connector = {
+  id: 'nara',
+  label: 'US National Archives Catalog',
+  needsKey: 'NARA_API_KEY',
+  async search(q, signal) {
+    const params = new URLSearchParams({ q: terms(q), limit: '8' })
+    return parseNara(await getJson(`https://catalog.archives.gov/api/v2/records/search?${params}`, signal, { 'x-api-key': cfg('NARA_API_KEY') ?? '' }))
+  },
+}
+
+export const CONNECTORS: Connector[] = [wikitree, wikidata, chroniclingAmerica, internetArchive, dpla, europeana, trove, gallica, nara]
 
 export interface SearchOutcome {
   hits: RecordHit[]
@@ -186,7 +250,7 @@ export async function searchAll(q: RecordQuery, timeoutMs = 8000): Promise<Searc
   const outcome: SearchOutcome = { hits: [], sources: [] }
   await Promise.all(
     CONNECTORS.map(async (c) => {
-      if (c.needsKey && !cfg(c.needsKey)) {
+      if ((c.needsKey && !cfg(c.needsKey)) || (c.enabledBy && cfg(c.enabledBy) !== 'true')) {
         outcome.sources.push({ id: c.id, label: c.label, status: 'not_configured', count: 0 })
         return
       }
