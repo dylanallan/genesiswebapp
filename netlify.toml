@@ -42,3 +42,10 @@
   for = "/registerSW.js"
   [headers.values]
     Cache-Control = "no-cache" 
+# Google Play (TWA) checks this file to know the Android app belongs to this site. It is a real file, so Netlify
+# serves it before the app's catch-all redirect; this just gives it the right type.
+[[headers]]
+  for = "/.well-known/assetlinks.json"
+  [headers.values]
+    Content-Type = "application/json"
+    Access-Control-Allow-Origin = "*"

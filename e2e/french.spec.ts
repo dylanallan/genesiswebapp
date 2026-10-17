@@ -69,3 +69,14 @@ for (const feature of ['welcome', 'family-tree', 'family-tree-chart', 'cultural-
     expect(await leftoverEnglish(page)).toEqual([]);
   });
 }
+
+// The privacy policy and terms, signed out, read entirely in French.
+for (const [path, heading] of [['/privacy', 'Politique de confidentialité'], ['/terms', 'Conditions d’utilisation']]) {
+  test(`${path} in French`, async ({ page }) => {
+    await installMockBackend(page, fresh());
+    await page.goto(path);
+    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+    await expect(page.getByText(/Dernière mise à jour : 11 octobre 2026/)).toBeVisible();
+    expect(await leftoverEnglish(page)).toEqual([]);
+  });
+}

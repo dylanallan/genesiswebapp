@@ -8,27 +8,41 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'icons/*.png'],
+      // Read by browsers when someone installs the app, and by PWABuilder to make the Microsoft Store and Google Play
+      // packages (see marketing/store-listing.md).
       manifest: {
+        id: '/',
         name: 'Genesis Heritage',
         short_name: 'Genesis',
-        description: 'Your family tree, voices, stories and records in one private place.',
-        theme_color: '#0c8ee8',
-        background_color: '#ffffff',
+        description: 'Your family tree, voices, stories and records in one private place. Bilingual, private by default, priced in Canadian dollars.',
+        lang: 'en-CA',
+        dir: 'ltr',
+        start_url: '/dashboard?source=pwa',
+        scope: '/',
         display: 'standalone',
+        display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
+        orientation: 'any',
+        theme_color: '#2E5A44',
+        background_color: '#faf7f0',
+        categories: ['lifestyle', 'education', 'social'],
+        launch_handler: { client_mode: ['navigate-existing', 'auto'] },
         icons: [
-          {
-            src: '/icons/icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/icons/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+          { src: '/icons/icon-any-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-any-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/maskable-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/icons/maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        screenshots: [
+          { src: '/screens/interview.png', sizes: '1205x636', type: 'image/png', form_factor: 'wide', label: 'Interview a relative and keep their voice' },
+          { src: '/screens/tree.png', sizes: '1205x1296', type: 'image/png', form_factor: 'narrow', label: 'Your family tree' },
+          { src: '/screens/life-story.png', sizes: '1205x1583', type: 'image/png', form_factor: 'narrow', label: 'A life story from the tree' },
+          { src: '/screens/research.png', sizes: '1205x1691', type: 'image/png', form_factor: 'narrow', label: 'Free record search' },
+        ],
+        shortcuts: [
+          { name: 'My family tree', short_name: 'Tree', url: '/dashboard?feature=family-tree-chart&source=shortcut', icons: [{ src: '/icons/shortcut-96x96.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'Record a story', short_name: 'Story', url: '/dashboard?feature=family-interview&source=shortcut', icons: [{ src: '/icons/shortcut-96x96.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'Ask a relative', short_name: 'Ask', url: '/dashboard?feature=ask-relative&source=shortcut', icons: [{ src: '/icons/shortcut-96x96.png', sizes: '96x96', type: 'image/png' }] },
+        ],
       },
       workbox: {
         // Only the app shell is downloaded ahead of time (the first page, shared libraries, French text, icons), so a

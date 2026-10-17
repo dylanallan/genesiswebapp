@@ -107,7 +107,6 @@ export const FR_RESEARCH: Record<string, string> = {
   'Finish and save answers only': 'Terminer et enregistrer seulement les réponses',
 
   // Record hints
-  'Record hints': 'Pistes de documents',
   'Genesis searches free public archives for people in your tree and shows records that may be about them, with the reasons for and against. You decide what’s right.':
     'Genesis cherche dans les archives publiques gratuites les personnes de votre arbre et vous montre les documents qui pourraient les concerner, avec les raisons pour et contre. C’est vous qui décidez.',
   'Could not load your hints.': 'Impossible de charger vos pistes.',
