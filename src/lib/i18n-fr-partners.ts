@@ -1,6 +1,7 @@
 // French for the partners page and the waitlist "joining for" choice (see i18n-fr.ts for the rules).
 export const FR_PARTNERS: Record<string, string> = {
   'Partners & investors': 'Partenaires et investisseurs',
+  'This email is already signed up. We’ll write to it when Genesis Heritage opens.': 'Cette adresse est déjà inscrite. Nous vous écrirons à l’ouverture de Genesis Heritage.',
   'My family': 'Ma famille',
   'A genealogy society, library or archive': 'Une société de généalogie, une bibliothèque ou un centre d’archives',
   'A business that wants to partner': 'Une entreprise qui souhaite devenir partenaire',

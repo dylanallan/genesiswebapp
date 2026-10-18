@@ -10,7 +10,7 @@ let taken: string | null | undefined;
 export function rememberNextStep(search = typeof window !== 'undefined' ? window.location.search : '') {
   try {
     const next = new URLSearchParams(search).get('next');
-    if (next && PLACES[next]) localStorage.setItem(KEY, next);
+    if (next && Object.prototype.hasOwnProperty.call(PLACES, next)) localStorage.setItem(KEY, next);
   } catch { /* storage blocked: they land on the dashboard as usual */ }
 }
 
@@ -20,7 +20,7 @@ export function takeNextPath(): string | null {
   try {
     const next = localStorage.getItem(KEY);
     localStorage.removeItem(KEY);
-    taken = next && PLACES[next] ? PLACES[next] : null;
+    taken = next && Object.prototype.hasOwnProperty.call(PLACES, next) ? PLACES[next] : null;
   } catch { taken = null; }
   return taken;
 }

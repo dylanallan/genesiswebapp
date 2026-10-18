@@ -18,8 +18,8 @@ const segmentLabel = (id: string) => SEGMENTS.find((s) => s.id === id)?.label ??
 
 const csvCell = (v: string | number | null) => {
   const s = String(v ?? '');
-  // Quote every cell; a leading = + - @ is neutralised so a spreadsheet never runs it as a formula.
-  return `"${(/^[=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`;
+  // Quote every cell; a leading = + - @ or space/tab/return is neutralised so a spreadsheet never runs it as a formula.
+  return `"${(/^[\s=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`;
 };
 
 /** Admins only (the database shows rows to admins and nobody else): who joined the waitlist, and from where. */

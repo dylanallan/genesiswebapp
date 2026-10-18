@@ -21,10 +21,13 @@ do $$ begin
     values ('ABCDEFGHJKLM', 'yearly', 12, 'a1a1a1a1-0000-4000-8000-000000000011', (select id from manual_payments limit 1));
   raise notice 'CHECK buyer cannot make a code directly: FAIL';
 exception when others then raise notice 'CHECK buyer cannot make a code directly: PASS'; end $$;
-do $$ begin
-  if (redeem_gift_code((select code from gift_codes limit 1))->>'ok')::boolean then raise notice 'CHECK unpaid gift cannot be redeemed: FAIL';
-  else raise notice 'CHECK unpaid gift cannot be redeemed: PASS'; end if;
-end $$;
+select 'buyer cannot read the code before paying' as check, (select count(*) = 0 from gift_codes) as pass;
+reset role;
+select code as pending_code from gift_codes limit 1 \gset
+set role authenticated;
+set request.jwt.claim.sub = 'a1a1a1a1-0000-4000-8000-000000000011';
+select 'unpaid gift cannot be redeemed' as check, (redeem_gift_code(:'pending_code')->>'ok')::boolean = false
+  and redeem_gift_code(:'pending_code')->>'reason' like 'This gift is waiting%' as pass;
 
 set request.jwt.claim.sub = 'c3c3c3c3-0000-4000-8000-000000000013';
 select 'stranger sees no gifts' as check, (select count(*) = 0 from gift_codes) and (select count(*) = 0 from my_gifts()) as pass;

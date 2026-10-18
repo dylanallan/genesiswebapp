@@ -163,11 +163,12 @@ set role anon;
 select 'waitlist rejects a bad email' as check, (public.join_waitlist('not-an-email')->>'ok')::boolean = false as pass;
 select 'waitlist join works' as check, (public.join_waitlist('Rosa@Example.com', 'Rosa', 'test')->>'ok')::boolean as pass;
 select 'waitlist ignores a repeat' as check, (public.join_waitlist(' rosa@example.com ')->>'already')::boolean as pass;
+-- A repeat says "already" but never hands out that person's referral code or place in line.
+select 'waitlist repeat reveals nothing' as check, (public.join_waitlist('rosa@example.com') - 'ok' - 'already') = '{}'::jsonb as pass;
 do $$ declare c text; begin
-  c := public.join_waitlist('rosa@example.com')->>'code';
+  c := public.join_waitlist('mia@example.com')->>'code';
   perform public.join_waitlist('luis@example.com', null, null, c);
-  if (public.join_waitlist('rosa@example.com')->>'invited')::int = 1 then raise notice 'CHECK waitlist counts referrals: PASS';
-  else raise notice 'CHECK waitlist counts referrals: FAIL'; end if;
+  perform set_config('test.mia_code', c, false);
 end $$;
 select 'waitlist records who is joining' as check, (public.join_waitlist_v2('ana@example.com', 'Ana', 'partners', null, 'investor', 'Heritage Fund', 'Interested in a call')->>'ok')::boolean as pass;
 select 'waitlist ignores an unknown segment' as check, (public.join_waitlist_v2('bo@example.com', null, null, null, 'hacker')->>'ok')::boolean as pass;
@@ -178,6 +179,7 @@ do $$ begin
   raise notice 'CHECK visitors cannot read the waitlist: FAIL';
 exception when insufficient_privilege then raise notice 'CHECK visitors cannot read the waitlist: PASS'; end $$;
 reset role;
+select 'waitlist counts referrals' as check, (select count(*) = 1 from public.waitlist_signups where referred_by = current_setting('test.mia_code')) as pass;
 select 'waitlist keeps the first details' as check, (select interest = 'investor' and organization = 'Heritage Fund' and note = 'Interested in a call' from public.waitlist_signups where email = 'ana@example.com') as pass;
 select 'waitlist drops an unknown segment' as check, (select interest is null from public.waitlist_signups where email = 'bo@example.com') as pass;
 set role authenticated;

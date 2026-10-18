@@ -57,9 +57,9 @@ Deno.serve(async (req) => {
         console.error('PayPal create subscription failed', r.status, JSON.stringify(r.body))
         return json({ error: 'PayPal could not start the subscription. Please try again.' }, 502, cors)
       }
-      // Remember the pending subscription so "sync" works before the webhook arrives. Someone with
-      // paid-up e-Transfer access keeps it until PayPal confirms the new subscription.
-      if (hasPro && current?.provider === 'etransfer') {
+      // Remember the pending subscription so "sync" works before the webhook arrives. Someone with access
+      // paid another way (e-Transfer, a PayPal payment link, a gift) keeps it until PayPal confirms the new one.
+      if (hasPro && current?.provider && current.provider !== 'paypal') {
         await db.from('subscriptions').update({ provider_subscription_id: r.body.id }).eq('user_id', user.id)
       } else {
         await db.from('subscriptions').upsert({

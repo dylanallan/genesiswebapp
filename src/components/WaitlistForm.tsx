@@ -43,8 +43,18 @@ export const WaitlistForm: React.FC<{ source?: string; interest?: Interest; askI
     setBusy(false);
     if (rpcError || !data) { setError(t('We couldn’t add you just now. Please try again.')); return; }
     if (!data.ok) { setError(data.reason ? t(String(data.reason)) : t('Please check your email address.')); return; }
-    setJoined({ position: Number(data.position), code: String(data.code), invited: Number(data.invited ?? 0), already: !!data.already });
+    setJoined({ position: Number(data.position ?? 0), code: String(data.code ?? ''), invited: Number(data.invited ?? 0), already: !!data.already });
   });
+
+  // Already on the list: we don't show that person's link or place in line (anyone can type an email).
+  if (joined?.already) {
+    return (
+      <div className="rounded-2xl bg-white border border-black/10 p-6 space-y-2 text-left" role="status" data-testid="waitlist-joined">
+        <p className="flex items-center gap-2 text-xl font-semibold text-[#1f3a2e]"><Check className="w-6 h-6" /> {t('You’re already on the list.')}</p>
+        <p className="text-[#3d4a43]">{t('This email is already signed up. We’ll write to it when Genesis Heritage opens.')}</p>
+      </div>
+    );
+  }
 
   if (joined) {
     const link = `${window.location.origin}/?ref=${joined.code}#waitlist`;
@@ -53,7 +63,7 @@ export const WaitlistForm: React.FC<{ source?: string; interest?: Interest; askI
     };
     return (
       <div className="rounded-2xl bg-white border border-black/10 p-6 space-y-4 text-left" role="status" data-testid="waitlist-joined">
-        <p className="flex items-center gap-2 text-xl font-semibold text-[#1f3a2e]"><Check className="w-6 h-6" /> {t(joined.already ? 'You’re already on the list.' : 'You’re on the list!')}</p>
+        <p className="flex items-center gap-2 text-xl font-semibold text-[#1f3a2e]"><Check className="w-6 h-6" /> {t('You’re on the list!')}</p>
         <p className="text-[#3d4a43]">{t('You’re number {n}. We’ll email you when Genesis Heritage opens.', { n: joined.position.toLocaleString(locale()) })}</p>
         <div className="space-y-2">
           <p className="text-[#3d4a43]">{t('Invite your family with your own link:')}</p>
