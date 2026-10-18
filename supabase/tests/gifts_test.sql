@@ -83,3 +83,25 @@ do $$ declare r jsonb; begin
   if r->>'reason' like 'Too many tries%' then raise notice 'CHECK guessing is limited: PASS'; else raise notice 'CHECK guessing is limited: FAIL'; end if;
 end $$;
 reset role;
+
+-- The buyer deletes their account (in this throwaway test database): a paid gift still works for its recipient.
+insert into auth.users (id, email) values ('e5e5e5e5-0000-4000-8000-000000000015', 'leaver@example.com'),
+  ('f6f6f6f6-0000-4000-8000-000000000016', 'keeper@example.com');
+set role authenticated;
+set request.jwt.claim.sub = 'e5e5e5e5-0000-4000-8000-000000000015';
+select create_gift_request('yearly', 'etransfer', 'Keeper', 'keeper@example.com', 'For you')->>'gift_id' as leaver_paid \gset
+set request.jwt.claim.sub = 'd4d4d4d4-0000-4000-8000-000000000014';
+select status as leaver_review from review_manual_payment((select payment_id from gift_codes where id = :'leaver_paid'), true) \gset
+reset role;
+select code as kept_code from gift_codes where id = :'leaver_paid' \gset
+delete from auth.users where id = 'e5e5e5e5-0000-4000-8000-000000000015';
+select 'paid gift is kept when the buyer leaves' as check,
+  (select status = 'paid' and message = 'For you' from gift_codes_kept where code = :'kept_code')
+  and not exists (select 1 from gift_codes where code = :'kept_code') as pass;
+set role authenticated;
+set request.jwt.claim.sub = 'f6f6f6f6-0000-4000-8000-000000000016';
+select 'a kept gift can be redeemed' as check, (redeem_gift_code(:'kept_code')->>'ok')::boolean as pass;
+select 'the recipient has Pro' as check, has_pro_access('f6f6f6f6-0000-4000-8000-000000000016') as pass;
+select 'a kept gift works only once' as check, redeem_gift_code(:'kept_code')->>'reason' = 'This gift code has already been used.' as pass;
+select 'kept gifts are hidden from users' as check, (select count(*) = 0 from gift_codes_kept) as pass;
+reset role;
