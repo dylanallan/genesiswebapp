@@ -19,6 +19,18 @@ import { toast } from 'sonner';
 import { useSession } from '../lib/session-context';
 import { chatApi } from '../api/chat';
 import { AICustomInstructionsEditor } from './AICustomInstructionsEditor';
+import { locale, t, useLang } from '../lib/i18n';
+
+// The opening message, shown in the reader's language (translated when drawn, so switching language updates it).
+const WELCOME_ID = 'welcome';
+const WELCOME = `👋 Hello! I'm your family history helper. I can help you:
+
+- Work out where to look for an ancestor's records
+- Read old documents, handwriting and place names
+- Understand what life was like for your family in their time and place
+- Think of questions to ask your relatives
+
+What would you like to find out?`;
 
 // Type definitions for SpeechRecognition
 declare global {
@@ -42,6 +54,7 @@ interface ChatMessage {
 }
 
 export const EnhancedAIAssistant: React.FC = () => {
+  useLang();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -62,16 +75,9 @@ export const EnhancedAIAssistant: React.FC = () => {
   useEffect(() => {
     // Add initial welcome message
     const initialMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: WELCOME_ID,
       role: 'assistant',
-      content: `👋 Hello! I'm your family history helper. I can help you:
-
-- Work out where to look for an ancestor's records
-- Read old documents, handwriting and place names
-- Understand what life was like for your family in their time and place
-- Think of questions to ask your relatives
-
-What would you like to find out?`,
+      content: WELCOME,
       timestamp: new Date()
     };
     
@@ -111,7 +117,7 @@ What would you like to find out?`,
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
-        toast.error('Speech recognition error. Please try again.');
+        toast.error(t('Speech recognition error. Please try again.'));
       };
 
       recognition.onend = () => {
@@ -122,7 +128,7 @@ What would you like to find out?`,
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      toast.error('Speech recognition is not supported in your browser');
+      toast.error(t('Speech recognition is not supported in your browser'));
       return;
     }
 
@@ -134,7 +140,7 @@ What would you like to find out?`,
       setIsListening(true);
       setInput('');
       setTranscript('');
-      toast.success('Listening... Speak now');
+      toast.success(t('Listening… Speak now'));
     }
   };
 
@@ -163,7 +169,7 @@ What would you like to find out?`,
         provider: currentModel,
       });
       conversationIdRef.current = response.conversationId;
-      if (response.code === 'UPGRADE_REQUIRED') toast.info('Free daily limit reached — upgrade to Pro to keep chatting.');
+      if (response.code === 'UPGRADE_REQUIRED') toast.info(t('Free daily limit reached — upgrade to Pro to keep chatting.'));
 
       console.log('📥 EnhancedAIAssistant received response:', response);
       
@@ -185,13 +191,13 @@ What would you like to find out?`,
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: "I'm sorry, I encountered an error processing your request. Please try again or contact support if the issue persists.",
+        content: t('Sorry, something went wrong with your question. Please try again in a moment.'),
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, errorMessage]);
       
-      toast.error('Failed to get response');
+      toast.error(t('The helper couldn’t answer just now.'));
     } finally {
       setIsLoading(false);
       setTranscript('');
@@ -211,10 +217,10 @@ What would you like to find out?`,
           : m
       ));
       
-      toast.success(rating > 3 ? 'Thanks for the positive feedback!' : 'Thanks for your feedback. We\'ll work to improve.');
+      toast.success(t(rating > 3 ? 'Thanks for the positive feedback!' : 'Thanks for your feedback. We’ll work to improve.'));
     } catch (error) {
       console.error('Error saving feedback:', error);
-      toast.error('Failed to save feedback');
+      toast.error(t('Couldn’t save your feedback.'));
     }
   };
 
@@ -229,8 +235,8 @@ What would you like to find out?`,
             <Brain className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-gray-900">Family history helper</h2>
-            <p className="text-xs text-gray-500">Ask anything about your ancestors</p>
+            <h2 className="font-bold text-gray-900">{t('Family history helper')}</h2>
+            <p className="text-xs text-gray-500">{t('Ask anything about your ancestors')}</p>
           </div>
         </div>
       </div>
@@ -258,10 +264,10 @@ What would you like to find out?`,
                   ? 'bg-gradient-to-r from-genesis-600 to-genesis-700 text-white' 
                   : 'bg-white text-gray-900 border border-gray-200'
               }`}>
-                <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                <div className="whitespace-pre-wrap leading-relaxed">{message.id === WELCOME_ID ? t(WELCOME) : message.content}</div>
                 
                 <div className="mt-3 flex items-center justify-between text-xs opacity-70">
-                  <span>{message.timestamp.toLocaleTimeString()}</span>
+                  <span>{message.timestamp.toLocaleTimeString(locale())}</span>
                 </div>
               </div>
               
@@ -281,7 +287,8 @@ What would you like to find out?`,
                       ? 'bg-green-100 text-green-600 shadow-sm' 
                       : 'text-gray-400 hover:text-green-600 hover:bg-green-50 hover:shadow-sm'
                   }`}
-                  title="This response was helpful"
+                  title={t('This answer was helpful')}
+                  aria-label={t('This answer was helpful')}
                 >
                   <ThumbsUp className="w-4 h-4" />
                 </button>
@@ -292,7 +299,8 @@ What would you like to find out?`,
                       ? 'bg-red-100 text-red-600 shadow-sm' 
                       : 'text-gray-400 hover:text-red-600 hover:bg-red-50 hover:shadow-sm'
                   }`}
-                  title="This response was not helpful"
+                  title={t('This answer was not helpful')}
+                  aria-label={t('This answer was not helpful')}
                 >
                   <ThumbsDown className="w-4 h-4" />
                 </button>
@@ -318,7 +326,7 @@ What would you like to find out?`,
                   <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
-                <span className="text-xs text-gray-500">AI is typing...</span>
+                <span className="text-xs text-gray-500">{t('The helper is typing…')}</span>
               </div>
             </div>
           </motion.div>
@@ -335,7 +343,7 @@ What would you like to find out?`,
               <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
               <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
-            <span className="text-sm font-medium">AI is thinking...</span>
+            <span className="text-sm font-medium">{t('The helper is thinking…')}</span>
           </motion.div>
         )}
         
@@ -347,7 +355,7 @@ What would you like to find out?`,
           >
             <div className="flex items-center space-x-2 mb-2">
               <Mic className="w-4 h-4 text-genesis-600" />
-              <span className="text-sm font-medium text-genesis-700">Listening...</span>
+              <span className="text-sm font-medium text-genesis-700">{t('Listening…')}</span>
             </div>
             <p className="text-sm text-genesis-800">{transcript}</p>
           </motion.div>
@@ -368,7 +376,8 @@ What would you like to find out?`,
                   ? 'bg-red-100 text-red-600 hover:bg-red-200 shadow-md' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
               }`}
-              title={isListening ? 'Stop listening' : 'Start voice input'}
+              title={t(isListening ? 'Stop listening' : 'Speak your question')}
+              aria-label={t(isListening ? 'Stop listening' : 'Speak your question')}
             >
               {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
@@ -377,7 +386,8 @@ What would you like to find out?`,
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about an ancestor, a record, or your family's history..."
+                placeholder={t('Ask about an ancestor, a record, or your family’s history…')}
+                aria-label={t('Your question')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500 shadow-sm"
                 disabled={isLoading}
                 onKeyPress={(e) => {
@@ -391,6 +401,7 @@ What would you like to find out?`,
                 <button
                   type="button"
                   onClick={() => setInput('')}
+                  aria-label={t('Clear')}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
@@ -399,8 +410,8 @@ What would you like to find out?`,
             </div>
             <button
               type="submit"
-              aria-label="Send"
-              title="Send"
+              aria-label={t('Send')}
+              title={t('Send')}
               disabled={isLoading || !input.trim()}
               className="px-6 py-3 bg-gradient-to-r from-genesis-600 to-genesis-700 text-white rounded-xl hover:from-genesis-700 hover:to-genesis-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
             >
@@ -412,24 +423,24 @@ What would you like to find out?`,
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setInput("Help me with genealogy research")}
+              onClick={() => setInput(t('Where should I start looking for my family’s records?'))}
               className="px-3 py-1.5 text-xs bg-genesis-100 text-genesis-700 rounded-full hover:bg-genesis-200 transition-colors"
             >
-              Genealogy Research
+              {t('Where to start')}
             </button>
             <button
               type="button"
-              onClick={() => setInput("What records could tell me when my great-grandparents arrived in this country?")}
+              onClick={() => setInput(t('What records could tell me when my great-grandparents arrived in this country?'))}
               className="px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors"
             >
-              Immigration records
+              {t('Immigration records')}
             </button>
             <button
               type="button"
-              onClick={() => setInput("Tell me about cultural heritage preservation")}
+              onClick={() => setInput(t('What questions should I ask my grandparents about their childhood?'))}
               className="px-3 py-1.5 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
             >
-              Cultural Heritage
+              {t('Questions for grandparents')}
             </button>
           </div>
         </form>
@@ -445,9 +456,10 @@ What would you like to find out?`,
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Assistant Settings</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{t('Helper settings')}</h3>
                 <button
                   onClick={() => setShowSettings(false)}
+                  aria-label={t('Close')}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X className="w-6 h-6" />
@@ -456,7 +468,7 @@ What would you like to find out?`,
 
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">AI Model</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">{t('AI model')}</h4>
                   <select
                     value={currentModel}
                     onChange={(e) => setCurrentModel(e.target.value)}
@@ -471,13 +483,13 @@ What would you like to find out?`,
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Custom Instructions</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">{t('Custom instructions')}</h4>
                   <button
                     onClick={() => setShowCustomInstructionsEditor(true)}
                     className="w-full flex items-center space-x-2 px-4 py-2 bg-genesis-100 text-genesis-700 rounded-lg hover:bg-genesis-200 transition-colors"
                   >
                     <Brain className="w-4 h-4" />
-                    <span>Edit Custom Instructions</span>
+                    <span>{t('Edit custom instructions')}</span>
                   </button>
                 </div>
 
@@ -485,11 +497,11 @@ What would you like to find out?`,
                   <button
                     onClick={() => {
                       setShowSettings(false);
-                      toast.success('Settings saved');
+                      toast.success(t('Settings saved'));
                     }}
                     className="w-full px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
-                    Save Settings
+                    {t('Save settings')}
                   </button>
                 </div>
               </div>

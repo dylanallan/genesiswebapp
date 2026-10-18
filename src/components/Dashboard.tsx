@@ -1161,9 +1161,9 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           box?.focus({ preventScroll: true });
         }}
         className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 h-12 bg-genesis-600 text-white rounded-full shadow-lg hover:bg-genesis-700"
-        aria-label="Ask the family history helper"
+        aria-label={t('Ask the family history helper')}
       >
-        <MessageCircle className="w-5 h-5" /> <span className="hidden sm:inline">Ask for help</span>
+        <MessageCircle className="w-5 h-5" /> <span className="hidden sm:inline">{t('Ask for help')}</span>
       </button>
     </div>
   );
