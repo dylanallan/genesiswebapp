@@ -6,7 +6,7 @@ name: Deploy Supabase backend
 on:
   push:
     branches: [main]
-    paths: ["supabase/**"]
+    paths: ["supabase/**", "scripts/set-auth-urls.sh"]
   workflow_dispatch:
 
 concurrency: deploy-supabase
@@ -33,5 +33,10 @@ jobs:
         if: steps.secrets.outputs.ready == 'true'
         with:
           node-version: 20
+      - name: Sign-in addresses point at the live site (not localhost)
+        if: steps.secrets.outputs.ready == 'true'
+        run: scripts/set-auth-urls.sh
+        env:
+          SITE_URL: https://genesisheritage.netlify.app
       - if: steps.secrets.outputs.ready == 'true'
         run: scripts/deploy-supabase.sh
