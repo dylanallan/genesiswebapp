@@ -26,7 +26,7 @@ export function pendingInvite(): string | null {
 
 const forgetInvite = () => { try { localStorage.removeItem(PENDING_INVITE_KEY); } catch { /* storage blocked */ } };
 
-interface Preview { owner_name: string; role: 'viewer' | 'contributor'; own: boolean; joined: boolean }
+interface Preview { owner_name: string; role: 'viewer' | 'contributor' | 'editor'; own: boolean; joined: boolean }
 
 /** Opened from an invite link (/join/<token>). Shows whose family it is and only joins when the person agrees. */
 export const JoinFamily: React.FC = () => {
@@ -62,7 +62,9 @@ export const JoinFamily: React.FC = () => {
         <>
           <h1 className="text-xl font-semibold">{t("Join {name}'s family?", { name: preview.owner_name })}</h1>
           <p className="text-gray-600">
-            {preview.role === 'contributor'
+            {preview.role === 'editor'
+              ? t('You’ll be able to see their family tree, stories and storybooks, add your own memories, and help fix and fill in the tree.')
+              : preview.role === 'contributor'
               ? t('You’ll be able to see their family tree, stories and storybooks, and add your own memories.')
               : t('You’ll be able to see their family tree, stories and storybooks.')}{' '}
             {t('They will see your name. You can leave at any time by asking them to remove you.')}

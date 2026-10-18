@@ -4,10 +4,14 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { t, useLang } from '../lib/i18n';
 import ListenButton from './ListenButton';
+import { AddRelativeForm, EditPersonButton } from './SharedTreeEditor';
 
-interface Invite { id: string; invitee_name: string | null; member_name: string | null; role: 'viewer' | 'contributor'; status: 'pending' | 'active' | 'revoked'; token: string; created_at: string }
-interface SharedFamily { owner_id: string; owner_name: string; role: 'viewer' | 'contributor' }
-interface SnapshotMember { id: string; first_name: string | null; middle_name: string | null; last_name: string | null; birth_date: string | null; birth_location: string | null; death_date: string | null; death_location: string | null; relationship: string | null; notes: string | null }
+type Role = 'viewer' | 'contributor' | 'editor';
+const ROLE_LABEL: Record<Role, string> = { viewer: 'can view', contributor: 'can view and add', editor: 'can view, add and edit the tree' };
+
+interface Invite { id: string; invitee_name: string | null; member_name: string | null; role: Role; status: 'pending' | 'active' | 'revoked'; token: string; created_at: string }
+interface SharedFamily { owner_id: string; owner_name: string; role: Role }
+interface SnapshotMember { id: string; first_name: string | null; middle_name: string | null; last_name: string | null; birth_date: string | null; birth_location: string | null; death_date: string | null; death_location: string | null; relationship: string | null; notes: string | null; is_living?: boolean }
 interface SnapshotStory { id: string; title: string; content: string; storyteller: string | null; created_at: string }
 interface Snapshot { owner_name: string; role: string; members: SnapshotMember[]; stories: SnapshotStory[]; storybooks: Array<{ id: string; title: string; chapters: Array<{ heading: string; body: string }> }> }
 
@@ -56,7 +60,8 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
             {snap.members.slice(0, 500).map((m) => (
               <li key={m.id} className="border rounded-lg p-3">
                 <p className="font-medium">{fullName(m)}</p>
-                <p className="text-sm text-gray-500">{[years(m), m.birth_location].filter(Boolean).join(' · ')}</p>
+                <p className="text-sm text-gray-500">{snap.role !== 'editor' && m.is_living ? t('Living') : [years(m), m.birth_location].filter(Boolean).join(' · ')}</p>
+                {snap.role === 'editor' && <EditPersonButton owner={family.owner_id} member={m} onSaved={load} />}
               </li>
             ))}
           </ul>
@@ -87,7 +92,9 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
         ))}
       </section>
 
-      {family.role === 'contributor' && (
+      {snap.role === 'editor' && <AddRelativeForm owner={family.owner_id} members={snap.members} onSaved={load} />}
+
+      {(snap.role === 'contributor' || snap.role === 'editor') && (
         <form onSubmit={addStory} className="border rounded-lg p-4 space-y-3 bg-genesis-50">
           <h4 className="font-medium">{t('Add a memory to this family')}</h4>
           <input required value={story.title} onChange={(e) => setStory({ ...story, title: e.target.value })} placeholder={t('Title, e.g. Sundays at Grandma’s')} className="w-full px-3 py-2 border rounded-lg" aria-label={t('Memory title')} />
@@ -104,7 +111,7 @@ export const FamilySharing: React.FC = () => {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [shared, setShared] = useState<SharedFamily[]>([]);
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'viewer' | 'contributor'>('contributor');
+  const [role, setRole] = useState<Role>('contributor');
   const [creating, setCreating] = useState(false);
   const [viewing, setViewing] = useState<SharedFamily | null>(null);
 
@@ -118,7 +125,7 @@ export const FamilySharing: React.FC = () => {
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
-    const { data, error } = await supabase.from('family_shares').insert({ invitee_name: name.trim() || null, role }).select('token').single();
+    const { data, error } = await supabase.from('family_shares').insert({ invitee_name: name.trim() || null, ...asShare(role) }).select('token').single();
     setCreating(false);
     if (error) { toast.error(error.message); return; }
     await navigator.clipboard?.writeText(inviteLink(data.token)).catch(() => undefined);
@@ -127,7 +134,9 @@ export const FamilySharing: React.FC = () => {
     load();
   };
 
-  const setStatus = async (id: string, patch: Partial<Pick<Invite, 'status' | 'role'>>) => {
+  // An editor is stored as a contributor who can also edit.
+  const asShare = (r: Role) => ({ role: r === 'editor' ? 'contributor' : r, can_edit: r === 'editor' });
+  const setStatus = async (id: string, patch: { status?: Invite['status']; role?: string; can_edit?: boolean }) => {
     const { error } = await supabase.from('family_shares').update(patch).eq('id', id);
     if (error) toast.error(error.message); else load();
   };
@@ -148,9 +157,10 @@ export const FamilySharing: React.FC = () => {
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Aunt Rosa')} className="mt-1 block px-3 py-2 min-h-[44px] border rounded-lg" />
         </label>
         <label className="text-sm">{t('They can')}
-          <select value={role} onChange={(e) => setRole(e.target.value as Invite['role'])} className="mt-1 block px-3 py-2 min-h-[44px] border rounded-lg">
+          <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="mt-1 block px-3 py-2 min-h-[44px] border rounded-lg">
             <option value="contributor">{t('view and add memories')}</option>
             <option value="viewer">{t('view only')}</option>
+            <option value="editor">{t('view, add memories and edit the tree')}</option>
           </select>
         </label>
         <button disabled={creating} className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50">
@@ -165,7 +175,7 @@ export const FamilySharing: React.FC = () => {
               <div>
                 <p className="font-medium">{i.member_name ?? i.invitee_name ?? t('Invite link')}</p>
                 <p className="text-sm text-gray-500">
-                  {t(i.status === 'pending' ? 'Not joined yet' : i.status === 'active' ? 'Joined' : 'Access removed')} · {t(i.role === 'viewer' ? 'can view' : 'can view and add')}
+                  {t(i.status === 'pending' ? 'Not joined yet' : i.status === 'active' ? 'Joined' : 'Access removed')} · {t(ROLE_LABEL[i.role] ?? 'can view')}
                 </p>
               </div>
               {i.status !== 'revoked' && (
@@ -175,7 +185,12 @@ export const FamilySharing: React.FC = () => {
                     <a href={`mailto:?subject=${encodeURIComponent(t('Join our family history'))}&body=${message(i.token)}`} className="flex items-center gap-1 px-3 py-2 min-h-[44px] border rounded-lg"><Mail className="w-3 h-3" /> {t('Email')}</a>
                     <a href={`https://wa.me/?text=${message(i.token)}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-2 min-h-[44px] border rounded-lg"><MessageCircle className="w-3 h-3" /> WhatsApp</a>
                   </>}
-                  <button onClick={() => setStatus(i.id, { role: i.role === 'viewer' ? 'contributor' : 'viewer' })} className="px-3 py-2 min-h-[44px] border rounded-lg">{t(i.role === 'viewer' ? 'Allow adding' : 'Make view only')}</button>
+                  <label className="sr-only" htmlFor={`role-${i.id}`}>{t('What {name} can do', { name: i.member_name ?? i.invitee_name ?? t('Invite link') })}</label>
+                  <select id={`role-${i.id}`} value={i.role} onChange={(e) => setStatus(i.id, asShare(e.target.value as Role))} className="px-3 py-2 min-h-[44px] border rounded-lg bg-white">
+                    <option value="viewer">{t('View only')}</option>
+                    <option value="contributor">{t('View and add memories')}</option>
+                    <option value="editor">{t('View, add and edit the tree')}</option>
+                  </select>
                   <button onClick={() => setStatus(i.id, { status: 'revoked' })} className="px-3 py-2 min-h-[44px] border rounded-lg text-red-600">{t('Remove access')}</button>
                 </div>
               )}

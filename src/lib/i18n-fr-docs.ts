@@ -1,4 +1,4 @@
-// French for the old document reader and the phone install card.
+// French for the old document reader, photo dating, the phone install card and tree editors.
 export const FR_DOCS: Record<string, string> = {
   "Read an old document": "Lire un vieux document",
   "Transcribe and translate old records and letters": "Transcrire et traduire de vieux actes et de vieilles lettres",
@@ -74,4 +74,28 @@ export const FR_DOCS: Record<string, string> = {
   "Written on the photo: {date}. That’s a better clue than any guess.": "Inscrit sur la photo : {date}. C’est un meilleur indice que toute estimation.",
   "Clues we used": "Indices utilisés",
   "This is an estimate, not a fact. A relative’s memory, a date on the back or the photographer’s stamp can tell you more.": "C’est une estimation, pas un fait. Le souvenir d’un proche, une date au verso ou le cachet du photographe peuvent vous en dire plus.",
+  // Sharing: editors
+  "Living": "Vivant",
+  "view, add memories and edit the tree": "voir, ajouter des souvenirs et modifier l’arbre",
+  "What {name} can do": "Ce que {name} peut faire",
+  "View only": "Voir seulement",
+  "View and add memories": "Voir et ajouter des souvenirs",
+  "View, add and edit the tree": "Voir, ajouter et modifier l’arbre",
+  "can view, add and edit the tree": "peut voir, ajouter et modifier l’arbre",
+  "You’ll be able to see their family tree, stories and storybooks, add your own memories, and help fix and fill in the tree.": "Vous pourrez voir son arbre, ses histoires et ses livres de famille, ajouter vos propres souvenirs et aider à corriger et à compléter l’arbre.",
+  "Saved.": "Enregistré.",
+  "Choose who this person is related to": "Choisissez à qui cette personne est apparentée",
+  "A first and last name are required": "Un prénom et un nom de famille sont nécessaires",
+  "{name} was added to the tree.": "{name} a été ajouté à l’arbre.",
+  "Add a missing relative": "Ajouter un proche manquant",
+  "This person is the": "Cette personne est",
+  "parent of": "le parent de",
+  "child of": "l’enfant de",
+  "spouse or partner of": "l’époux, l’épouse ou le conjoint de",
+  "Person in the tree": "Personne dans l’arbre",
+  "Add to the tree": "Ajouter à l’arbre",
+  "You can’t edit this family tree": "Vous ne pouvez pas modifier cet arbre",
+  "Please check the dates": "Veuillez vérifier les dates",
+  "The death date is before the birth date": "La date de décès est avant la date de naissance",
+  "That person is not in this family": "Cette personne ne fait pas partie de cette famille",
 };
