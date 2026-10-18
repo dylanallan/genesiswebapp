@@ -302,7 +302,7 @@ export const CulturalRecipeBook: React.FC = () => {
                 
                 <div className="flex items-center justify-between">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(recipe.difficulty)}`}>
-                    {recipe.difficulty}
+                    {t(recipe.difficulty)}
                   </span>
                   <div className="flex space-x-1">
                     {recipe.tags.slice(0, 2).map(tag => (
@@ -360,7 +360,7 @@ export const CulturalRecipeBook: React.FC = () => {
                     {renderStars(selectedRecipe.rating)}
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(selectedRecipe.difficulty)}`}>
-                    {selectedRecipe.difficulty}
+                    {t(selectedRecipe.difficulty)}
                   </span>
                 </div>
               </div>

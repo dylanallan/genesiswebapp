@@ -216,13 +216,13 @@ export const TraditionsManager: React.FC = () => {
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <MapPin className="w-4 h-4 text-blue-500" />
                       <span className="font-medium">{t('Origin:')}</span>
-                      <span>{tradition.origin || 'Not specified'}</span>
+                      <span>{tradition.origin || t('Not specified')}</span>
                     </div>
                     
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <Clock className="w-4 h-4 text-green-500" />
                       <span className="font-medium">{t('Frequency:')}</span>
-                      <span>{tradition.frequency || 'Not specified'}</span>
+                      <span>{tradition.frequency ? t(tradition.frequency) : t('Not specified')}</span>
                     </div>
                   </div>
                   

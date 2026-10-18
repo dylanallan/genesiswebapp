@@ -58,8 +58,8 @@ export const TimelineBuilder: React.FC = () => {
       const fromTree: TimelineEvent[] = rows.flatMap((r) => {
         const name = [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') || 'Someone';
         const out: TimelineEvent[] = [];
-        if (r.birth_date) out.push({ id: `tree-b-${r.id}`, date: r.birth_date, title: `${name} is born`, description: '', location: r.birth_location ?? undefined, people: [name], media: [], category: 'birth', fromTree: true });
-        if (r.death_date) out.push({ id: `tree-d-${r.id}`, date: r.death_date, title: `${name} dies`, description: '', location: r.death_location ?? undefined, people: [name], media: [], category: 'other', fromTree: true });
+        if (r.birth_date) out.push({ id: `tree-b-${r.id}`, date: r.birth_date, title: t('{name} is born', { name }), description: '', location: r.birth_location ?? undefined, people: [name], media: [], category: 'birth', fromTree: true });
+        if (r.death_date) out.push({ id: `tree-d-${r.id}`, date: r.death_date, title: t('{name} dies', { name }), description: '', location: r.death_location ?? undefined, people: [name], media: [], category: 'other', fromTree: true });
         return out;
       });
       const saved = ((data || []) as TimelineEvent[]).map((e) => ({ ...e, people: e.people ?? [], media: e.media ?? [] }));
@@ -115,6 +115,9 @@ export const TimelineBuilder: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Shown in the reader's language; the stored value stays the same.
+  const CATEGORY_LABELS: Record<string, string> = { birth: 'Birth', marriage: 'Marriage', migration: 'Migration', achievement: 'Achievement', tradition: 'Tradition', other: 'Other' };
 
   const getCategoryColor = (category: string) => {
     const colors = {
@@ -253,7 +256,7 @@ export const TimelineBuilder: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.category)}`}>
-                        {event.category}
+                        {t(CATEGORY_LABELS[event.category] ?? 'Other')}
                       </span>
                       <span className="text-sm text-gray-500">
                         {new Date(`${event.date.slice(0, 10)}T12:00:00`).toLocaleDateString()}

@@ -272,4 +272,6 @@ export const FR_REST: Record<string, string> = {
   '(regenerated on every deploy)': '(régénéré à chaque déploiement)',
   'Robots rules:': 'Règles pour les robots :',
   'Every page sets its own title and sharing (Open Graph / Twitter) tags.': 'Chaque page définit son propre titre et ses balises de partage (Open Graph / Twitter).',
+  // Values from built-in lists, shown in French
+  'Not specified': 'Non précisé',
 };

@@ -6,6 +6,9 @@ import { supabase } from '../lib/supabase';
 import { useSaveGuard } from '../lib/use-save-guard';
 import { t, useLang } from '../lib/i18n';
 
+// Category names in the reader's language; the stored value stays the same.
+const ARTIFACT_LABELS: Record<string, string> = { image: 'Image', document: 'Document', audio: 'Audio', video: 'Video', other: 'Other' };
+
 interface CulturalArtifact {
   id: string;
   title: string;
@@ -373,7 +376,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                   <h4 className="text-sm font-medium text-gray-500 mb-1">{t('Category')}</h4>
                   <div className="flex items-center space-x-2">
                     {getCategoryIcon(selectedArtifact.category)}
-                    <span className="text-gray-900 capitalize">{selectedArtifact.category}</span>
+                    <span className="text-gray-900">{t(ARTIFACT_LABELS[selectedArtifact.category] ?? 'Other')}</span>
                   </div>
                 </div>
 
