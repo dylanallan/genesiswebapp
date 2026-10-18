@@ -34,6 +34,10 @@ set request.jwt.claim.sub = 'ffffffff-0000-4000-8000-000000000006';
 select 'cousin previews invite' as check, (preview_family_invite('tok-viewer')->>'role') = 'viewer' as pass;
 select 'cousin accepts invite' as check, (accept_family_invite('tok-viewer')->>'role') = 'viewer' as pass;
 select 'cousin sees the family' as check, jsonb_array_length(shared_family_snapshot('eeeeeeee-0000-4000-8000-000000000005')->'members') = 1 as pass;
+-- Rosa has no dates, so she counts as living: the cousin sees her name, not her details.
+select 'living relatives show name only' as check,
+  (select m->>'first_name' = 'Rosa' and m->'birth_date' is null and m->'notes' is null and (m->>'is_living')::boolean
+   from jsonb_array_elements(shared_family_snapshot('eeeeeeee-0000-4000-8000-000000000005')->'members') m) as pass;
 select 'shared family listed' as check, count(*) = 1 as pass from my_shared_families();
 select 'cousin cannot read tree table directly' as check, count(*) = 0 as pass from family_members;
 do $$ begin
@@ -55,7 +59,13 @@ do $$ begin
   raise notice 'CHECK owner cannot activate an invite: FAIL';
 exception when others then raise notice 'CHECK owner cannot activate an invite: PASS'; end $$;
 update family_shares set role = 'contributor' where token = 'tok-viewer';
+insert into family_members (first_name, last_name, birth_date, death_date, birth_location, notes)
+  values ('Abuela', 'Vega', '1901-03-04', '1980-05-06', 'Oaxaca', 'private research note');
 set request.jwt.claim.sub = 'ffffffff-0000-4000-8000-000000000006';
+select 'ancestors keep their details, never private notes' as check,
+  (select m->>'birth_location' = 'Oaxaca' and m->>'birth_date' = '1901-03-04' and m->'notes' is null
+   from jsonb_array_elements(shared_family_snapshot('eeeeeeee-0000-4000-8000-000000000005')->'members') m
+   where m->>'first_name' = 'Abuela') as pass;
 select 'contributor adds a story' as check, add_shared_story('eeeeeeee-0000-4000-8000-000000000005', 'Summer 1965', 'We picked peaches.') is not null as pass;
 set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
 select 'owner owns the contributed story' as check, count(*) = 1 as pass from cultural_stories where title = 'Summer 1965';
@@ -67,7 +77,7 @@ do $$ begin
 exception when others then raise notice 'CHECK revoked access is gone: PASS'; end $$;
 
 set request.jwt.claim.sub = 'eeeeeeee-0000-4000-8000-000000000005';
-select 'export has my tree' as check, jsonb_array_length(export_my_data()->'family_members') = 1 as pass;
+select 'export has my tree' as check, jsonb_array_length(export_my_data()->'family_members') = 2 as pass;
 select 'export excludes others' as check, not (export_my_data() ? 'family_shares') or
   (select bool_and((x->>'owner_id') = 'eeeeeeee-0000-4000-8000-000000000005') from jsonb_array_elements(export_my_data()->'family_shares') x) as pass;
 reset role;
