@@ -80,3 +80,11 @@ for (const [path, heading] of [['/privacy', 'Politique de confidentialité'], ['
     expect(await leftoverEnglish(page)).toEqual([]);
   });
 }
+
+test('plans page in French for visitors', async ({ page }) => {
+  await installMockBackend(page, fresh());
+  await page.goto('/pricing');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Choisissez votre forfait');
+  await expect(page.getByText('19 $ / mois')).toBeVisible();
+  expect(await leftoverEnglish(page)).toEqual([]);
+});
