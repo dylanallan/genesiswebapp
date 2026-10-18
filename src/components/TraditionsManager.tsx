@@ -4,6 +4,7 @@ import { Globe, Calendar, Users, MapPin, Clock, Plus, Edit, Trash, Search, Filte
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useSaveGuard } from '../lib/use-save-guard';
+import { t, useLang } from '../lib/i18n';
 
 interface Tradition {
   id: string;
@@ -19,6 +20,7 @@ interface Tradition {
 }
 
 export const TraditionsManager: React.FC = () => {
+  useLang();
   const [traditions, setTraditions] = useState<Tradition[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +51,7 @@ export const TraditionsManager: React.FC = () => {
       if (error) throw error;
       setTraditions(data || []);
     } catch (error) {
-      toast.error('Failed to load traditions');
+      toast.error(t('Failed to load traditions'));
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +61,7 @@ export const TraditionsManager: React.FC = () => {
   const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
-      toast.error('Name is required');
+      toast.error(t('Name is required'));
       return;
     }
     setIsLoading(true);
@@ -71,14 +73,14 @@ export const TraditionsManager: React.FC = () => {
           .update(formData)
           .eq('id', selectedTradition.id);
         if (error) throw error;
-        toast.success('Tradition updated successfully');
+        toast.success(t('Tradition updated successfully'));
       } else {
         // Add
         const { error } = await supabase
           .from('traditions')
           .insert([{ ...formData }]);
         if (error) throw error;
-        toast.success('Tradition added successfully');
+        toast.success(t('Tradition added successfully'));
       }
       setShowAddForm(false);
       setIsEditing(false);
@@ -94,7 +96,7 @@ export const TraditionsManager: React.FC = () => {
       });
       fetchTraditions();
     } catch (error) {
-      toast.error('Failed to save tradition');
+      toast.error(t('Failed to save tradition'));
     } finally {
       setIsLoading(false);
     }
@@ -116,15 +118,15 @@ export const TraditionsManager: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this tradition?')) return;
+    if (!confirm(t('Are you sure you want to delete this tradition?'))) return;
     setIsLoading(true);
     try {
       const { error } = await supabase.from('traditions').delete().eq('id', id);
       if (error) throw error;
       setTraditions(traditions.filter(t => t.id !== id));
-      toast.success('Tradition deleted successfully');
+      toast.success(t('Tradition deleted successfully'));
     } catch (error) {
-      toast.error('Failed to delete tradition');
+      toast.error(t('Failed to delete tradition'));
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +143,7 @@ export const TraditionsManager: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Globe className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-semibold text-gray-900">Cultural Traditions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('Cultural Traditions')}</h2>
         </div>
         <button
           onClick={() => {
@@ -160,7 +162,7 @@ export const TraditionsManager: React.FC = () => {
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Tradition</span>
+          <span>{t('Add Tradition')}</span>
         </button>
       </div>
 
@@ -170,7 +172,7 @@ export const TraditionsManager: React.FC = () => {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search traditions by name, description, or origin..."
+          placeholder={t('Search traditions by name, description, or origin...')}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
@@ -182,7 +184,7 @@ export const TraditionsManager: React.FC = () => {
       ) : filteredTraditions.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No traditions found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('No traditions found')}</h3>
           <p className="text-gray-500 mb-4">
             {searchTerm 
               ? `No results for "${searchTerm}"` 
@@ -193,7 +195,7 @@ export const TraditionsManager: React.FC = () => {
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Add Tradition
+            {t('Add Tradition')}
           </button>
         </div>
       ) : (
@@ -213,13 +215,13 @@ export const TraditionsManager: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <MapPin className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium">Origin:</span>
+                      <span className="font-medium">{t('Origin:')}</span>
                       <span>{tradition.origin || 'Not specified'}</span>
                     </div>
                     
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <Clock className="w-4 h-4 text-green-500" />
-                      <span className="font-medium">Frequency:</span>
+                      <span className="font-medium">{t('Frequency:')}</span>
                       <span>{tradition.frequency || 'Not specified'}</span>
                     </div>
                   </div>
@@ -267,12 +269,12 @@ export const TraditionsManager: React.FC = () => {
                 >
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-1">Historical Context</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-1">{t('Historical Context')}</h4>
                       <p className="text-gray-600">{tradition.historical_context || 'No historical context provided'}</p>
                     </div>
                     
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-1">Modern Application</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-1">{t('Modern Application')}</h4>
                       <p className="text-gray-600">{tradition.modern_application || 'No modern application provided'}</p>
                     </div>
                   </div>
@@ -307,93 +309,93 @@ export const TraditionsManager: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
+                    {t('Name *')}
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter tradition name"
+                    placeholder={t('Enter tradition name')}
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
+                    {t('Description')}
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
-                    placeholder="Describe this tradition"
+                    placeholder={t('Describe this tradition')}
                   ></textarea>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Origin
+                      {t('Origin')}
                     </label>
                     <input
                       type="text"
                       value={formData.origin}
                       onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Where did this tradition originate?"
+                      placeholder={t('Where did this tradition originate?')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Frequency
+                      {t('Frequency')}
                     </label>
                     <select
                       value={formData.frequency}
                       onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="">Select frequency</option>
-                      <option value="Daily">Daily</option>
-                      <option value="Weekly">Weekly</option>
-                      <option value="Monthly">Monthly</option>
-                      <option value="Yearly">Yearly</option>
-                      <option value="Special occasions">Special occasions</option>
+                      <option value="">{t('Select frequency')}</option>
+                      <option value="Daily">{t('Daily')}</option>
+                      <option value="Weekly">{t('Weekly')}</option>
+                      <option value="Monthly">{t('Monthly')}</option>
+                      <option value="Yearly">{t('Yearly')}</option>
+                      <option value="Special occasions">{t('Special occasions')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Historical Context
+                    {t('Historical Context')}
                   </label>
                   <textarea
                     value={formData.historical_context}
                     onChange={(e) => setFormData({ ...formData, historical_context: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
-                    placeholder="Describe the historical context of this tradition"
+                    placeholder={t('Describe the historical context of this tradition')}
                   ></textarea>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Modern Application
+                    {t('Modern Application')}
                   </label>
                   <textarea
                     value={formData.modern_application}
                     onChange={(e) => setFormData({ ...formData, modern_application: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
-                    placeholder="How is this tradition practiced today?"
+                    placeholder={t('How is this tradition practiced today?')}
                   ></textarea>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Participants (comma separated)
+                    {t('Participants (comma separated)')}
                   </label>
                   <input
                     type="text"
@@ -403,7 +405,7 @@ export const TraditionsManager: React.FC = () => {
                       participants: e.target.value.split(',').map(p => p.trim()).filter(p => p) 
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Family members, community, etc."
+                    placeholder={t('Family members, community, etc.')}
                   />
                 </div>
 
@@ -413,7 +415,7 @@ export const TraditionsManager: React.FC = () => {
                     onClick={() => setShowAddForm(false)}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </button>
                   <button
                     type="submit"

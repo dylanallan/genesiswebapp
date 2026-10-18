@@ -4,6 +4,7 @@ import { Calendar, Search, Plus, Edit, Trash, MapPin, Users, Info, X, CalendarDa
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useSaveGuard } from '../lib/use-save-guard';
+import { t, useLang } from '../lib/i18n';
 
 interface Celebration {
   id: string;
@@ -18,6 +19,7 @@ interface Celebration {
 }
 
 export const CelebrationManager: React.FC = () => {
+  useLang();
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +49,7 @@ export const CelebrationManager: React.FC = () => {
       if (error) throw error;
       setCelebrations(data || []);
     } catch (error) {
-      toast.error('Failed to load celebrations');
+      toast.error(t('Failed to load celebrations'));
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +59,7 @@ export const CelebrationManager: React.FC = () => {
   const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
-      toast.error('Name is required');
+      toast.error(t('Name is required'));
       return;
     }
     setIsLoading(true);
@@ -69,14 +71,14 @@ export const CelebrationManager: React.FC = () => {
           .update(formData)
           .eq('id', selectedCelebration.id);
         if (error) throw error;
-        toast.success('Celebration updated successfully');
+        toast.success(t('Celebration updated successfully'));
       } else {
         // Add
         const { error } = await supabase
           .from('celebrations')
           .insert([{ ...formData }]);
         if (error) throw error;
-        toast.success('Celebration added successfully');
+        toast.success(t('Celebration added successfully'));
       }
       setShowAddForm(false);
       setShowEditForm(false);
@@ -91,7 +93,7 @@ export const CelebrationManager: React.FC = () => {
       });
       fetchCelebrations();
     } catch (error) {
-      toast.error('Failed to save celebration');
+      toast.error(t('Failed to save celebration'));
     } finally {
       setIsLoading(false);
     }
@@ -111,15 +113,15 @@ export const CelebrationManager: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this celebration?')) return;
+    if (!confirm(t('Are you sure you want to delete this celebration?'))) return;
     setIsLoading(true);
     try {
       const { error } = await supabase.from('celebrations').delete().eq('id', id);
       if (error) throw error;
       setCelebrations(celebrations.filter(c => c.id !== id));
-      toast.success('Celebration deleted successfully');
+      toast.success(t('Celebration deleted successfully'));
     } catch (error) {
-      toast.error('Failed to delete celebration');
+      toast.error(t('Failed to delete celebration'));
     } finally {
       setIsLoading(false);
     }
@@ -163,14 +165,14 @@ export const CelebrationManager: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Calendar className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-semibold text-gray-900">Celebrations & Events</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('Celebrations & Events')}</h2>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Celebration</span>
+          <span>{t('Add Celebration')}</span>
         </button>
       </div>
 
@@ -180,7 +182,7 @@ export const CelebrationManager: React.FC = () => {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search celebrations by name, description, or location..."
+          placeholder={t('Search celebrations by name, description, or location...')}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
@@ -192,7 +194,7 @@ export const CelebrationManager: React.FC = () => {
       ) : filteredCelebrations.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No celebrations found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('No celebrations found')}</h3>
           <p className="text-gray-500 mb-4">
             {searchTerm 
               ? `No results for "${searchTerm}"` 
@@ -203,7 +205,7 @@ export const CelebrationManager: React.FC = () => {
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Add Celebration
+            {t('Add Celebration')}
           </button>
         </div>
       ) : (
@@ -288,14 +290,14 @@ export const CelebrationManager: React.FC = () => {
                       >
                         {celebration.significance && (
                           <div className="mb-3">
-                            <h4 className="text-sm font-medium text-gray-700 mb-1">Significance</h4>
+                            <h4 className="text-sm font-medium text-gray-700 mb-1">{t('Significance')}</h4>
                             <p className="text-sm text-gray-600">{celebration.significance}</p>
                           </div>
                         )}
                         
                         {celebration.participants && celebration.participants.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-1">Participants</h4>
+                            <h4 className="text-sm font-medium text-gray-700 mb-1">{t('Participants')}</h4>
                             <div className="flex flex-wrap gap-2">
                               {celebration.participants.map((participant, index) => (
                                 <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
@@ -342,75 +344,75 @@ export const CelebrationManager: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
+                    {t('Name *')}
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter celebration name"
+                    placeholder={t('Enter celebration name')}
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
+                    {t('Description')}
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
-                    placeholder="Describe this celebration"
+                    placeholder={t('Describe this celebration')}
                   ></textarea>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date or Season
+                      {t('Date or Season')}
                     </label>
                     <input
                       type="text"
                       value={formData.date_or_season}
                       onChange={(e) => setFormData({ ...formData, date_or_season: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., December 25 or Winter"
+                      placeholder={t('e.g., December 25 or Winter')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location
+                      {t('Location')}
                     </label>
                     <input
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Where is this celebration held?"
+                      placeholder={t('Where is this celebration held?')}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Significance
+                    {t('Significance')}
                   </label>
                   <textarea
                     value={formData.significance}
                     onChange={(e) => setFormData({ ...formData, significance: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
-                    placeholder="What is the cultural or personal significance of this celebration?"
+                    placeholder={t('What is the cultural or personal significance of this celebration?')}
                   ></textarea>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Participants (comma separated)
+                    {t('Participants (comma separated)')}
                   </label>
                   <input
                     type="text"
@@ -420,7 +422,7 @@ export const CelebrationManager: React.FC = () => {
                       participants: e.target.value.split(',').map(p => p.trim()).filter(p => p) 
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Family members, community, etc."
+                    placeholder={t('Family members, community, etc.')}
                   />
                 </div>
 
@@ -433,7 +435,7 @@ export const CelebrationManager: React.FC = () => {
                     }}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </button>
                   <button
                     type="submit"

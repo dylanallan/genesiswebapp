@@ -1,6 +1,7 @@
 // French (Canada) for the app. Keys are the exact English text shown in the app; keep `{placeholders}` as they are.
 // Tone: warm, plain, "vous". Typographic apostrophes (’) and French spacing before : ; ? ! use a normal space here.
 import { FR_MORE } from './i18n-fr-more';
+import { FR_REST } from './i18n-fr-rest';
 import { FR_LEGAL } from './i18n-fr-legal';
 import { FR_ACCOUNT } from './i18n-fr-account';
 import { FR_RESEARCH } from './i18n-fr-research';
@@ -11,6 +12,7 @@ import { FR_SWITCH } from './i18n-fr-switch';
 import { FR_GIFT } from './i18n-fr-gift';
 
 export const FR: Record<string, string> = {
+  ...FR_REST,
   ...FR_MORE,
   ...FR_LEGAL,
   ...FR_ACCOUNT,

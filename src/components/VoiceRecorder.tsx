@@ -3,6 +3,7 @@ import { Mic, MicOff, Loader2, Play, Pause, Save, Trash, AlertCircle } from 'luc
 import { toast } from 'sonner';
 import { uploadOwnFile, signedUrl } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import { t, useLang } from '../lib/i18n';
 
 interface VoiceRecorderProps {
   onRecordingComplete?: (audioBlob: Blob, audioUrl: string) => void;
@@ -15,6 +16,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   maxDuration = 60,
   className
 }) => {
+  useLang();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -86,11 +88,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         });
       }, 1000);
       
-      toast.success('Recording started');
+      toast.success(t('Recording started'));
     } catch (error) {
       console.error('Error starting recording:', error);
       setError('Could not access microphone. Please check your permissions.');
-      toast.error('Failed to start recording');
+      toast.error(t('Failed to start recording'));
     }
   };
 
@@ -104,7 +106,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         timerRef.current = null;
       }
       
-      toast.success('Recording stopped');
+      toast.success(t('Recording stopped'));
     }
   };
 
@@ -117,7 +119,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     } else {
       audioRef.current.play().catch(err => {
         console.error('Playback error:', err);
-        toast.error('Playback failed');
+        toast.error(t('Playback failed'));
       });
       setIsPlaying(true);
     }
@@ -132,14 +134,14 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       const path = await uploadOwnFile('voice-recordings', 'voice-recording.webm', audioBlob, audioBlob.type || 'audio/webm');
       const url = await signedUrl('voice-recordings', path);
 
-      toast.success('Recording saved successfully');
+      toast.success(t('Recording saved successfully'));
 
       if (onRecordingComplete) {
         onRecordingComplete(audioBlob, url);
       }
     } catch (error) {
       console.error('Error saving recording:', error);
-      toast.error('Failed to save recording');
+      toast.error(t('Failed to save recording'));
     } finally {
       setIsProcessing(false);
     }
@@ -154,7 +156,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     setAudioUrl(null);
     setIsPlaying(false);
     
-    toast.info('Recording deleted');
+    toast.info(t('Recording deleted'));
   };
 
   const formatTime = (seconds: number) => {
@@ -240,7 +242,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                     ) : (
                       <Save className="w-4 h-4" />
                     )}
-                    <span>Save</span>
+                    <span>{t('Save')}</span>
                   </button>
                   
                   <button
@@ -249,7 +251,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                     className="flex items-center space-x-1 px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
                   >
                     <Trash className="w-4 h-4" />
-                    <span>Delete</span>
+                    <span>{t('Delete')}</span>
                   </button>
                 </div>
               </div>
@@ -262,7 +264,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 disabled={isProcessing}
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
-                Record again
+                {t('Record again')}
               </button>
             </>
           )}

@@ -58,7 +58,7 @@ test('a relative’s answer page in French', async ({ page }) => {
 });
 
 // The inside screens: each opens in French with no translated sentence left in English.
-for (const feature of ['welcome', 'family-tree', 'family-tree-chart', 'cultural-stories', 'family-interview', 'ask-relative', 'record-hints', 'tree-checkup', 'my-account', 'privacy-center', 'life-story', 'family-map', 'photo-restore', 'heritage-mix', 'family-facts', 'family-search', 'family-sharing']) {
+for (const feature of ['welcome', 'family-tree', 'family-tree-chart', 'cultural-stories', 'family-interview', 'ask-relative', 'record-hints', 'tree-checkup', 'my-account', 'privacy-center', 'life-story', 'family-map', 'photo-restore', 'heritage-mix', 'family-facts', 'family-search', 'family-sharing', 'timeline-builder', 'family-contacts', 'celebrations', 'cultural-recipes', 'traditions', 'cultural-artifacts', 'dna-insights', 'family-photos', 'media-gallery', 'records-search', 'research-assistant', 'voice-recorder', 'data-table', 'family-tree-voice']) {
   test(`${feature} in French`, async ({ page, context }) => {
     await signIn(context);
     await installMockBackend(page, fresh());

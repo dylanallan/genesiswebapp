@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ChevronDown, ChevronUp, Filter, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { t, useLang } from '../lib/i18n';
 
 interface Column<T> {
   key: string;
@@ -36,6 +37,7 @@ export function DataTable<T>({
   className,
   onRefresh
 }: DataTableProps<T>) {
+  useLang();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -101,15 +103,15 @@ export function DataTable<T>({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search..."
+                placeholder={t('Search...')}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
             </div>
             {onRefresh && (
               <button
                 onClick={onRefresh}
-                aria-label="Refresh"
-                title="Refresh"
+                aria-label={t('Refresh')}
+                title={t('Refresh')}
                 className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
               >
                 <RefreshCw className="w-5 h-5" />
@@ -155,7 +157,7 @@ export function DataTable<T>({
                 <td colSpan={columns.length} className="px-6 py-4 text-center">
                   <div className="flex items-center justify-center">
                     <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
-                    <span className="ml-2 text-gray-500">Loading...</span>
+                    <span className="ml-2 text-gray-500">{t('Loading...')}</span>
                   </div>
                 </td>
               </tr>

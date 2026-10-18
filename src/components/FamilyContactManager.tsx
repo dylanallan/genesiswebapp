@@ -4,6 +4,7 @@ import { Users, Search, Plus, Edit, Trash, Phone, Mail, MapPin, Calendar, X, Inf
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useSaveGuard } from '../lib/use-save-guard';
+import { t, useLang } from '../lib/i18n';
 
 interface FamilyContact {
   id: string;
@@ -24,6 +25,7 @@ interface FamilyContact {
 }
 
 export const FamilyContactManager: React.FC = () => {
+  useLang();
   const [contacts, setContacts] = useState<FamilyContact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,7 +56,7 @@ export const FamilyContactManager: React.FC = () => {
       if (error) throw error;
       setContacts(data || []);
     } catch (error) {
-      toast.error('Failed to load contacts');
+      toast.error(t('Failed to load contacts'));
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +66,7 @@ export const FamilyContactManager: React.FC = () => {
   const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
-      toast.error('Name is required');
+      toast.error(t('Name is required'));
       return;
     }
     setIsLoading(true);
@@ -78,14 +80,14 @@ export const FamilyContactManager: React.FC = () => {
           .update(row)
           .eq('id', selectedContact.id);
         if (error) throw error;
-        toast.success('Contact updated successfully');
+        toast.success(t('Contact updated successfully'));
       } else {
         // Add
         const { error } = await supabase
           .from('family_contacts')
           .insert([row]);
         if (error) throw error;
-        toast.success('Contact added successfully');
+        toast.success(t('Contact added successfully'));
       }
       setShowAddForm(false);
       setIsEditing(false);
@@ -101,7 +103,7 @@ export const FamilyContactManager: React.FC = () => {
       });
       fetchContacts();
     } catch (error) {
-      toast.error('Failed to save contact');
+      toast.error(t('Failed to save contact'));
     } finally {
       setIsLoading(false);
     }
@@ -123,15 +125,15 @@ export const FamilyContactManager: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+    if (!confirm(t('Are you sure you want to delete this contact?'))) return;
     setIsLoading(true);
     try {
       const { error } = await supabase.from('family_contacts').delete().eq('id', id);
       if (error) throw error;
       setContacts(contacts.filter(c => c.id !== id));
-      toast.success('Contact deleted successfully');
+      toast.success(t('Contact deleted successfully'));
     } catch (error) {
-      toast.error('Failed to delete contact');
+      toast.error(t('Failed to delete contact'));
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +173,7 @@ export const FamilyContactManager: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Users className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-semibold text-gray-900">Family Contacts</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('Family Contacts')}</h2>
         </div>
         <button
           onClick={() => {
@@ -190,7 +192,7 @@ export const FamilyContactManager: React.FC = () => {
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Contact</span>
+          <span>{t('Add Contact')}</span>
         </button>
       </div>
 
@@ -200,7 +202,7 @@ export const FamilyContactManager: React.FC = () => {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search contacts by name, relationship, or location..."
+          placeholder={t('Search contacts by name, relationship, or location...')}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
@@ -212,7 +214,7 @@ export const FamilyContactManager: React.FC = () => {
       ) : filteredContacts.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No contacts found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('No contacts found')}</h3>
           <p className="text-gray-500 mb-4">
             {searchTerm 
               ? `No results for "${searchTerm}"` 
@@ -223,7 +225,7 @@ export const FamilyContactManager: React.FC = () => {
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Add Contact
+            {t('Add Contact')}
           </button>
         </div>
       ) : (
@@ -301,7 +303,7 @@ export const FamilyContactManager: React.FC = () => {
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <div className="flex items-center space-x-2 mb-2">
                     <Users className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Related to:</span>
+                    <span className="text-sm font-medium text-gray-700">{t('Related to:')}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {contact.related_names.slice(0, 3).map((name, index) => (
@@ -346,35 +348,35 @@ export const FamilyContactManager: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
+                    {t('Name *')}
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter contact name"
+                    placeholder={t('Enter contact name')}
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Relationship
+                    {t('Relationship')}
                   </label>
                   <input
                     type="text"
                     value={formData.relationship}
                     onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g., Mother, Cousin, Grandfather"
+                    placeholder={t('e.g., Mother, Cousin, Grandfather')}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
+                      {t('Email')}
                     </label>
                     <input
                       type="email"
@@ -390,7 +392,7 @@ export const FamilyContactManager: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone
+                      {t('Phone')}
                     </label>
                     <input
                       type="tel"
@@ -408,7 +410,7 @@ export const FamilyContactManager: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Birth Date
+                      {t('Birth Date')}
                     </label>
                     <input
                       type="date"
@@ -420,21 +422,21 @@ export const FamilyContactManager: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location
+                      {t('Location')}
                     </label>
                     <input
                       type="text"
                       value={formData.location || ''}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="City, Country"
+                      placeholder={t('City, Country')}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address
+                    {t('Address')}
                   </label>
                   <input
                     type="text"
@@ -444,26 +446,26 @@ export const FamilyContactManager: React.FC = () => {
                       contact_info: { ...formData.contact_info, address: e.target.value } 
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Full address"
+                    placeholder={t('Full address')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notes
+                    {t('Notes')}
                   </label>
                   <textarea
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
-                    placeholder="Additional notes about this contact"
+                    placeholder={t('Additional notes about this contact')}
                   ></textarea>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Related Names (comma separated)
+                    {t('Related Names (comma separated)')}
                   </label>
                   <input
                     type="text"
@@ -473,13 +475,13 @@ export const FamilyContactManager: React.FC = () => {
                       related_names: e.target.value.split(',').map(name => name.trim()).filter(name => name) 
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="John Doe, Jane Smith, etc."
+                    placeholder={t('John Doe, Jane Smith, etc.')}
                   />
                 </div>
 
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <Info className="w-4 h-4" />
-                  <span>Contact information is securely stored and only visible to you.</span>
+                  <span>{t('Contact information is securely stored and only visible to you.')}</span>
                 </div>
 
                 <div className="flex space-x-3 pt-4">
@@ -488,7 +490,7 @@ export const FamilyContactManager: React.FC = () => {
                     onClick={() => setShowAddForm(false)}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </button>
                   <button
                     type="submit"

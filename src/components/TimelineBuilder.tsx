@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { loadAllFamilyRows } from '../lib/family';
 import { useSaveGuard } from '../lib/use-save-guard';
+import { t, useLang } from '../lib/i18n';
 
 interface TimelineEvent {
   id: string;
@@ -23,6 +24,7 @@ interface TimelineEvent {
 }
 
 export const TimelineBuilder: React.FC = () => {
+  useLang();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [shown, setShown] = useState(200); // big trees have thousands of events; drawing them all at once freezes phones
   const [showAddForm, setShowAddForm] = useState(false);
@@ -63,7 +65,7 @@ export const TimelineBuilder: React.FC = () => {
       const saved = ((data || []) as TimelineEvent[]).map((e) => ({ ...e, people: e.people ?? [], media: e.media ?? [] }));
       setEvents([...saved, ...fromTree].sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')));
     } catch (error) {
-      toast.error('Failed to load timeline events');
+      toast.error(t('Failed to load timeline events'));
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +74,7 @@ export const TimelineBuilder: React.FC = () => {
   const guard = useSaveGuard(); // a second quick tap must not save twice
   const addEvent = guard(async () => {
     if (!newEvent.date || !newEvent.title) {
-      toast.error('Please fill in required fields');
+      toast.error(t('Please fill in required fields'));
       return;
     }
     setIsLoading(true);
@@ -81,7 +83,7 @@ export const TimelineBuilder: React.FC = () => {
         .from('timeline_events')
         .insert([{ ...newEvent }]);
       if (error) throw error;
-      toast.success('Event added to timeline');
+      toast.success(t('Event added to timeline'));
       setShowAddForm(false);
       setNewEvent({
         date: '',
@@ -94,7 +96,7 @@ export const TimelineBuilder: React.FC = () => {
       });
       fetchEvents();
     } catch (error) {
-      toast.error('Failed to add event');
+      toast.error(t('Failed to add event'));
     } finally {
       setIsLoading(false);
     }
@@ -106,9 +108,9 @@ export const TimelineBuilder: React.FC = () => {
       const { error } = await supabase.from('timeline_events').delete().eq('id', id);
       if (error) throw error;
       setEvents(prev => prev.filter(e => e.id !== id));
-      toast.success('Event removed from timeline');
+      toast.success(t('Event removed from timeline'));
     } catch (error) {
-      toast.error('Failed to remove event');
+      toast.error(t('Failed to remove event'));
     } finally {
       setIsLoading(false);
     }
@@ -143,14 +145,14 @@ export const TimelineBuilder: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Calendar className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-semibold">Family Timeline</h2>
+          <h2 className="text-xl font-semibold">{t('Family Timeline')}</h2>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Event</span>
+          <span>{t('Add Event')}</span>
         </button>
       </div>
 
@@ -163,47 +165,47 @@ export const TimelineBuilder: React.FC = () => {
             exit={{ opacity: 0, height: 0 }}
             className="mb-6 p-4 bg-gray-50 rounded-lg"
           >
-            <h3 className="font-medium mb-4">Add New Event</h3>
+            <h3 className="font-medium mb-4">{t('Add New Event')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
                 type="date"
                 value={newEvent.date}
                 onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Date"
+                placeholder={t('Date')}
               />
               <input
                 type="text"
                 value={newEvent.title}
                 onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Event title"
+                placeholder={t('Event title')}
               />
               <input
                 type="text"
                 value={newEvent.location}
                 onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Location"
+                placeholder={t('Location')}
               />
               <select
                 value={newEvent.category}
                 onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value as any })}
                 className="px-3 py-2 border border-gray-300 rounded-lg"
               >
-                <option value="birth">Birth</option>
-                <option value="marriage">Marriage</option>
-                <option value="migration">Migration</option>
-                <option value="achievement">Achievement</option>
-                <option value="tradition">Tradition</option>
-                <option value="other">Other</option>
+                <option value="birth">{t('Birth')}</option>
+                <option value="marriage">{t('Marriage')}</option>
+                <option value="migration">{t('Migration')}</option>
+                <option value="achievement">{t('Achievement')}</option>
+                <option value="tradition">{t('Tradition')}</option>
+                <option value="other">{t('Other')}</option>
               </select>
             </div>
             <textarea
               value={newEvent.description}
               onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
               className="w-full mt-4 px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder="Event description"
+              placeholder={t('Event description')}
               rows={3}
             />
             <div className="flex space-x-3 mt-4">
@@ -211,13 +213,13 @@ export const TimelineBuilder: React.FC = () => {
                 onClick={addEvent}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                Add Event
+                {t('Add Event')}
               </button>
               <button
                 onClick={() => setShowAddForm(false)}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
               >
-                Cancel
+                {t('Cancel')}
               </button>
             </div>
           </motion.div>
@@ -231,7 +233,7 @@ export const TimelineBuilder: React.FC = () => {
         <div className="space-y-6">
           {!isLoading && events.length === 0 && (
             <p className="relative bg-white border rounded-lg p-6 text-gray-600">
-              Your family timeline will appear here. Add birth and death dates on the family tree, or press "Add event" to record a wedding, a move or any special moment.
+              {t('Your family timeline will appear here. Add birth and death dates on the family tree, or press "Add event" to record a wedding, a move or any special moment.')}
             </p>
           )}
           {events.slice(0, shown).map((event, index) => (
@@ -276,7 +278,7 @@ export const TimelineBuilder: React.FC = () => {
                     )}
                   </div>
                   
-                  {event.fromTree ? <span className="text-xs text-gray-400">From your family tree</span> : <div className="flex space-x-2">
+                  {event.fromTree ? <span className="text-xs text-gray-400">{t('From your family tree')}</span> : <div className="flex space-x-2">
                     <button
                       onClick={() => setEditingEvent(event)}
                       className="p-1 text-gray-400 hover:text-blue-500"
@@ -297,7 +299,7 @@ export const TimelineBuilder: React.FC = () => {
           {events.length > shown && (
             <div className="relative text-center">
               <p className="text-sm text-gray-500 mb-2">Showing {shown.toLocaleString()} of {events.length.toLocaleString()} events.</p>
-              <button onClick={() => setShown((n) => n + 200)} className="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50">Show more</button>
+              <button onClick={() => setShown((n) => n + 200)} className="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50">{t('Show more')}</button>
             </div>
           )}
         </div>

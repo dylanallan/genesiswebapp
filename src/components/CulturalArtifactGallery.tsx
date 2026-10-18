@@ -4,6 +4,7 @@ import { Globe, Image, FileText, Music, Video, Search, Filter, Plus, Info, Exter
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useSaveGuard } from '../lib/use-save-guard';
+import { t, useLang } from '../lib/i18n';
 
 interface CulturalArtifact {
   id: string;
@@ -17,6 +18,7 @@ interface CulturalArtifact {
 }
 
 export const CulturalArtifactGallery: React.FC = () => {
+  useLang();
   const [artifacts, setArtifacts] = useState<CulturalArtifact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +50,7 @@ export const CulturalArtifactGallery: React.FC = () => {
       if (error) throw error;
       setArtifacts(data || []);
     } catch (error) {
-      toast.error('Failed to load artifacts');
+      toast.error(t('Failed to load artifacts'));
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +102,7 @@ export const CulturalArtifactGallery: React.FC = () => {
           <div className="h-48 bg-gray-100 flex items-center justify-center relative">
             <Video className="w-10 h-10 text-red-500" />
             <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-              Video
+              {t('Video')}
             </div>
           </div>
         );
@@ -145,16 +147,16 @@ export const CulturalArtifactGallery: React.FC = () => {
   };
 
   const handleDeleteArtifact = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this artifact?')) return;
+    if (!confirm(t('Are you sure you want to delete this artifact?'))) return;
     setIsLoading(true);
     try {
       const { error } = await supabase.from('cultural_artifacts').delete().eq('id', id);
       if (error) throw error;
       setArtifacts(artifacts.filter(a => a.id !== id));
       setSelectedArtifact(null);
-      toast.success('Artifact deleted successfully');
+      toast.success(t('Artifact deleted successfully'));
     } catch (error) {
-      toast.error('Failed to delete artifact');
+      toast.error(t('Failed to delete artifact'));
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +166,7 @@ export const CulturalArtifactGallery: React.FC = () => {
   const handleFormSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.category) {
-      toast.error('Title and category are required');
+      toast.error(t('Title and category are required'));
       return;
     }
     setIsLoading(true);
@@ -176,14 +178,14 @@ export const CulturalArtifactGallery: React.FC = () => {
           .update(formData)
           .eq('id', selectedArtifact.id);
         if (error) throw error;
-        toast.success('Artifact updated successfully');
+        toast.success(t('Artifact updated successfully'));
       } else {
         // Add
         const { error } = await supabase
           .from('cultural_artifacts')
           .insert([{ ...formData }]);
         if (error) throw error;
-        toast.success('Artifact added successfully');
+        toast.success(t('Artifact added successfully'));
       }
       setShowAddForm(false);
       setShowEditForm(false);
@@ -198,7 +200,7 @@ export const CulturalArtifactGallery: React.FC = () => {
       });
       fetchArtifacts();
     } catch (error) {
-      toast.error('Failed to save artifact');
+      toast.error(t('Failed to save artifact'));
     } finally {
       setIsLoading(false);
     }
@@ -226,14 +228,14 @@ export const CulturalArtifactGallery: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Globe className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-semibold text-gray-900">Cultural Artifacts</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('Cultural Artifacts')}</h2>
         </div>
         <button
           onClick={handleAddArtifact}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Artifact</span>
+          <span>{t('Add Artifact')}</span>
         </button>
       </div>
 
@@ -244,7 +246,7 @@ export const CulturalArtifactGallery: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search artifacts..."
+            placeholder={t('Search artifacts...')}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -267,7 +269,7 @@ export const CulturalArtifactGallery: React.FC = () => {
               onClick={() => setSelectedCategory(null)}
               className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
             >
-              Clear
+              {t('Clear')}
             </button>
           )}
         </div>
@@ -280,7 +282,7 @@ export const CulturalArtifactGallery: React.FC = () => {
       ) : filteredArtifacts.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No artifacts found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('No artifacts found')}</h3>
           <p className="text-gray-500 mb-4">
             {searchTerm 
               ? `No results for "${searchTerm}"` 
@@ -293,7 +295,7 @@ export const CulturalArtifactGallery: React.FC = () => {
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Add Artifact
+            {t('Add Artifact')}
           </button>
         </div>
       ) : (
@@ -363,12 +365,12 @@ export const CulturalArtifactGallery: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">{t('Description')}</h4>
                   <p className="text-gray-900">{selectedArtifact.description}</p>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Category</h4>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">{t('Category')}</h4>
                   <div className="flex items-center space-x-2">
                     {getCategoryIcon(selectedArtifact.category)}
                     <span className="text-gray-900 capitalize">{selectedArtifact.category}</span>
@@ -377,7 +379,7 @@ export const CulturalArtifactGallery: React.FC = () => {
 
                 {selectedArtifact.tags && selectedArtifact.tags.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Tags</h4>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">{t('Tags')}</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedArtifact.tags.map((tag, index) => (
                         <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
@@ -389,7 +391,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                 )}
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Added</h4>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">{t('Added')}</h4>
                   <p className="text-gray-900">
                     {new Date(selectedArtifact.created_at).toLocaleDateString()}
                   </p>
@@ -397,7 +399,7 @@ export const CulturalArtifactGallery: React.FC = () => {
 
                 {selectedArtifact.media_url && selectedArtifact.media_type !== 'image' && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Media</h4>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">{t('Media')}</h4>
                     <a 
                       href={selectedArtifact.media_url} 
                       target="_blank" 
@@ -416,7 +418,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                   onClick={() => setSelectedArtifact(null)}
                   className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                 >
-                  Close
+                  {t('Close')}
                 </button>
                 <button
                   onClick={() => {
@@ -425,7 +427,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                   }}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Edit Artifact
+                  {t('Edit Artifact')}
                 </button>
                 <button
                   onClick={() => {
@@ -433,7 +435,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                   }}
                   className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
                 >
-                  Delete
+                  {t('Delete')}
                 </button>
               </div>
             </div>
@@ -468,35 +470,35 @@ export const CulturalArtifactGallery: React.FC = () => {
               <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
-                    Title *
+                    {t('Title *')}
                   </label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter artifact title"
+                    placeholder={t('Enter artifact title')}
                     required
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
-                    Description
+                    {t('Description')}
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
-                    placeholder="Describe the cultural significance of this artifact"
+                    placeholder={t('Describe the cultural significance of this artifact')}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
-                      Category *
+                      {t('Category *')}
                     </label>
                     <select
                       value={formData.category}
@@ -504,18 +506,18 @@ export const CulturalArtifactGallery: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     >
-                      <option value="">Select a category</option>
-                      <option value="image">Image</option>
-                      <option value="document">Document</option>
-                      <option value="audio">Audio</option>
-                      <option value="video">Video</option>
-                      <option value="other">Other</option>
+                      <option value="">{t('Select a category')}</option>
+                      <option value="image">{t('Image')}</option>
+                      <option value="document">{t('Document')}</option>
+                      <option value="audio">{t('Audio')}</option>
+                      <option value="video">{t('Video')}</option>
+                      <option value="other">{t('Other')}</option>
                     </select>
                   </div>
 
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
-                      Media URL (optional)
+                      {t('Media URL (optional)')}
                     </label>
                     <input
                       type="text"
@@ -529,7 +531,7 @@ export const CulturalArtifactGallery: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">
-                    Tags
+                    {t('Tags')}
                   </label>
                   <div className="flex space-x-2">
                     <input
@@ -543,7 +545,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                         }
                       }}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Add a tag and press Enter"
+                      placeholder={t('Add a tag and press Enter')}
                     />
                     <button
                       type="button"
@@ -581,7 +583,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                     }}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </button>
                   <button
                     type="submit"

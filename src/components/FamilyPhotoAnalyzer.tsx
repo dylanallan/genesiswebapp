@@ -5,6 +5,7 @@ import { Upload, Image as ImageIcon, Loader2, Users, Tag, MapPin, Calendar } fro
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { uploadOwnFile } from '../lib/storage';
+import { t, useLang } from '../lib/i18n';
 
 interface PhotoAnalysis {
   faces: Face[];
@@ -58,6 +59,7 @@ interface Relationship {
 }
 
 export const FamilyPhotoAnalyzer: React.FC = () => {
+  useLang();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<PhotoAnalysis | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
       if (analysisError) throw analysisError;
 
       setAnalysis(analysisData);
-      toast.success('Photo analysis complete!');
+      toast.success(t('Photo analysis complete!'));
 
       // Store analysis results
       const { error: dbError } = await supabase
@@ -105,7 +107,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
 
     } catch (error) {
       console.error('Error analyzing photo:', error);
-      toast.error('Failed to analyze photo. Please try again.');
+      toast.error(t('Failed to analyze photo. Please try again.'));
     } finally {
       setIsAnalyzing(false);
     }
@@ -145,7 +147,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
       toast.success(`Name updated to ${name}`);
     } catch (error) {
       console.error('Error updating name:', error);
-      toast.error('Failed to update name');
+      toast.error(t('Failed to update name'));
     }
   };
 
@@ -155,7 +157,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <ImageIcon className="w-6 h-6 text-blue-500" />
-            <h2 className="text-xl font-semibold text-gray-900">Family Photo Analyzer</h2>
+            <h2 className="text-xl font-semibold text-gray-900">{t('Family Photo Analyzer')}</h2>
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -167,7 +169,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
             ) : (
               <>
                 <Upload className="w-5 h-5" />
-                <span>Upload Photo</span>
+                <span>{t('Upload Photo')}</span>
               </>
             )}
           </button>
@@ -184,7 +186,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
           <div className="relative mb-6">
             <img
               src={selectedImage}
-              alt="Selected family photo"
+              alt={t('Selected family photo')}
               className="w-full rounded-lg"
             />
             {analysis?.faces.map((face, index) => (
@@ -214,7 +216,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <Users className="w-5 h-5 text-blue-500" />
-                  <h3 className="font-medium text-blue-900">People</h3>
+                  <h3 className="font-medium text-blue-900">{t('People')}</h3>
                 </div>
                 <div className="space-y-2">
                   {analysis.faces.map((face, index) => (
@@ -229,7 +231,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
                         }}
                         className="text-xs text-blue-600 hover:text-blue-700"
                       >
-                        Edit Name
+                        {t('Edit Name')}
                       </button>
                     </div>
                   ))}
@@ -239,7 +241,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
               <div className="bg-green-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <Tag className="w-5 h-5 text-green-500" />
-                  <h3 className="font-medium text-green-900">Labels</h3>
+                  <h3 className="font-medium text-green-900">{t('Labels')}</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {analysis.labels.map((label, index) => (
@@ -256,7 +258,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
               <div className="bg-purple-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <MapPin className="w-5 h-5 text-purple-500" />
-                  <h3 className="font-medium text-purple-900">Details</h3>
+                  <h3 className="font-medium text-purple-900">{t('Details')}</h3>
                 </div>
                 <div className="space-y-2 text-sm text-purple-800">
                   {analysis.location && (
@@ -273,7 +275,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
               <div className="bg-amber-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <Users className="w-5 h-5 text-amber-500" />
-                  <h3 className="font-medium text-amber-900">Relationships</h3>
+                  <h3 className="font-medium text-amber-900">{t('Relationships')}</h3>
                 </div>
                 <div className="space-y-2">
                   {analysis.relationships.map((rel, index) => (

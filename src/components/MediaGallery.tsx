@@ -6,6 +6,7 @@ import { currentUserId } from '../lib/storage';
 import { MediaPlayer } from './MediaPlayer';
 import { VideoPlayer } from './VideoPlayer';
 import { AudioPlayer } from './AudioPlayer';
+import { t, useLang } from '../lib/i18n';
 
 interface MediaItem {
   id: string;
@@ -32,6 +33,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
   onSelect,
   selectable = false
 }) => {
+  useLang();
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
     } catch (error) {
       console.error('Error loading media:', error);
       setError('Failed to load media. Please try again.');
-      toast.error('Failed to load media');
+      toast.error(t('Failed to load media'));
     } finally {
       setIsLoading(false);
     }
@@ -134,10 +136,10 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
         setSelectedMedia(null);
       }
       
-      toast.success('File deleted successfully');
+      toast.success(t('File deleted successfully'));
     } catch (error) {
       console.error('Error deleting file:', error);
-      toast.error('Failed to delete file');
+      toast.error(t('Failed to delete file'));
     }
   };
 
@@ -177,8 +179,8 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
           <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           <button
             onClick={loadMedia}
-            aria-label="Refresh"
-            title="Refresh"
+            aria-label={t('Refresh')}
+            title={t('Refresh')}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
@@ -192,7 +194,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search media..."
+              placeholder={t('Search media...')}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -207,7 +209,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
               }`}
             >
               <Image className="w-4 h-4" />
-              <span>Images</span>
+              <span>{t('Images')}</span>
             </button>
             
             <button
@@ -219,7 +221,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
               }`}
             >
               <Music className="w-4 h-4" />
-              <span>Audio</span>
+              <span>{t('Audio')}</span>
             </button>
             
             <button
@@ -231,7 +233,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
               }`}
             >
               <Video className="w-4 h-4" />
-              <span>Video</span>
+              <span>{t('Video')}</span>
             </button>
             
             {selectedType && (
@@ -240,7 +242,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                 className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm flex items-center space-x-1"
               >
                 <X className="w-4 h-4" />
-                <span>Clear</span>
+                <span>{t('Clear')}</span>
               </button>
             )}
           </div>
@@ -260,7 +262,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                   onClick={loadMedia}
                   className="mt-2 text-sm text-red-600 hover:text-red-800"
                 >
-                  Try again
+                  {t('Try again')}
                 </button>
               </div>
             </div>
@@ -268,7 +270,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No media found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('No media found')}</h3>
             <p className="text-gray-500 mb-4">
               {searchTerm 
                 ? `No results for "${searchTerm}"` 
@@ -307,7 +309,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                     <div className="h-40 bg-gray-900 flex items-center justify-center relative">
                       <Video className="w-12 h-12 text-white opacity-70" />
                       <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                        Video
+                        {t('Video')}
                       </div>
                     </div>
                   )}
@@ -367,7 +369,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
         {selectedMedia && (
           <div className="mt-6 border-t border-gray-200 pt-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900">Preview</h3>
+              <h3 className="font-medium text-gray-900">{t('Preview')}</h3>
               <button
                 onClick={() => setSelectedMedia(null)}
                 className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
@@ -416,7 +418,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                     rel="noopener noreferrer"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Open Document
+                    {t('Open Document')}
                   </a>
                 </div>
               </div>

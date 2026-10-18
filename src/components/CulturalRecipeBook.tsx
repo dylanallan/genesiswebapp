@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ChefHat, Clock, Users, Star, Search, Plus, Globe, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { t, useLang } from '../lib/i18n';
 
 interface Recipe {
   id: string;
@@ -103,6 +104,7 @@ const inputClass =
   'mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500';
 
 export const CulturalRecipeBook: React.FC = () => {
+  useLang();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -125,7 +127,7 @@ export const CulturalRecipeBook: React.FC = () => {
       if (error) throw error;
       setRecipes((data || []).map(normalize));
     } catch (error) {
-      toast.error('Failed to load recipes');
+      toast.error(t('Failed to load recipes'));
     } finally {
       setIsLoading(false);
     }
@@ -150,16 +152,16 @@ export const CulturalRecipeBook: React.FC = () => {
   };
 
   const handleDeleteRecipe = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this recipe?')) return;
+    if (!confirm(t('Are you sure you want to delete this recipe?'))) return;
     setIsLoading(true);
     try {
       const { error } = await supabase.from('recipes').delete().eq('id', id);
       if (error) throw error;
       setRecipes(recipes.filter(r => r.id !== id));
       setSelectedRecipe(null);
-      toast.success('Recipe deleted successfully');
+      toast.success(t('Recipe deleted successfully'));
     } catch (error) {
-      toast.error('Failed to delete recipe');
+      toast.error(t('Failed to delete recipe'));
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +170,7 @@ export const CulturalRecipeBook: React.FC = () => {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.origin.trim()) {
-      toast.error('Name and origin are required');
+      toast.error(t('Name and origin are required'));
       return;
     }
     setIsLoading(true);
@@ -179,19 +181,19 @@ export const CulturalRecipeBook: React.FC = () => {
           .update(toRow(formData))
           .eq('id', editingId);
         if (error) throw error;
-        toast.success('Recipe updated successfully');
+        toast.success(t('Recipe updated successfully'));
       } else {
         const { error } = await supabase
           .from('recipes')
           .insert([toRow(formData)]);
         if (error) throw error;
-        toast.success('Recipe added successfully');
+        toast.success(t('Recipe added successfully'));
       }
       closeForm();
       setSelectedRecipe(null);
       fetchRecipes();
     } catch (error) {
-      toast.error('Failed to save recipe');
+      toast.error(t('Failed to save recipe'));
     } finally {
       setIsLoading(false);
     }
@@ -229,14 +231,14 @@ export const CulturalRecipeBook: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <ChefHat className="w-6 h-6 text-orange-500" />
-          <h2 className="text-xl font-semibold">Cultural Recipe Collection</h2>
+          <h2 className="text-xl font-semibold">{t('Cultural Recipe Collection')}</h2>
         </div>
         <button
           onClick={handleAddRecipe}
           className="flex items-center space-x-2 px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Recipe</span>
+          <span>{t('Add Recipe')}</span>
         </button>
       </div>
 
@@ -247,7 +249,7 @@ export const CulturalRecipeBook: React.FC = () => {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search recipes by name, origin, or tags..."
+          placeholder={t('Search recipes by name, origin, or tags...')}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
         />
       </div>
@@ -314,8 +316,7 @@ export const CulturalRecipeBook: React.FC = () => {
             </motion.div>
           ))}
         </div>
-      ) : (
-        /* Recipe Detail View */
+      ) : ( /* Recipe Detail View */
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -326,7 +327,7 @@ export const CulturalRecipeBook: React.FC = () => {
               onClick={() => setSelectedRecipe(null)}
               className="text-orange-600 hover:text-orange-700"
             >
-              ← Back to recipes
+              {t('← Back to recipes')}
             </button>
             <div className="flex items-center space-x-4">
               <button
@@ -334,14 +335,14 @@ export const CulturalRecipeBook: React.FC = () => {
                 className="flex items-center space-x-1 text-orange-600 hover:text-orange-700"
               >
                 <Pencil className="w-5 h-5" />
-                <span>Edit</span>
+                <span>{t('Edit')}</span>
               </button>
               <button
                 onClick={() => handleDeleteRecipe(selectedRecipe.id)}
                 className="flex items-center space-x-1 text-red-500 hover:text-red-600"
               >
                 <Trash2 className="w-5 h-5" />
-                <span>Delete</span>
+                <span>{t('Delete')}</span>
               </button>
             </div>
           </div>
@@ -365,17 +366,17 @@ export const CulturalRecipeBook: React.FC = () => {
               </div>
 
               <div className="bg-orange-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-orange-900 mb-2">Cultural Significance</h3>
+                <h3 className="font-semibold text-orange-900 mb-2">{t('Cultural Significance')}</h3>
                 <p className="text-orange-800">{selectedRecipe.culturalSignificance}</p>
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">Family Story</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">{t('Family Story')}</h3>
                 <p className="text-blue-800">{selectedRecipe.story}</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-4">Instructions</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">{t('Instructions')}</h3>
                 <ol className="space-y-3">
                   {selectedRecipe.instructions.map((instruction, index) => (
                     <li key={index} className="flex space-x-3">
@@ -391,29 +392,29 @@ export const CulturalRecipeBook: React.FC = () => {
 
             <div className="space-y-6">
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-4">Recipe Info</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">{t('Recipe Info')}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Prep Time:</span>
+                    <span>{t('Prep Time:')}</span>
                     <span>{selectedRecipe.prepTime} min</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Cook Time:</span>
+                    <span>{t('Cook Time:')}</span>
                     <span>{selectedRecipe.cookTime} min</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total Time:</span>
+                    <span>{t('Total Time:')}</span>
                     <span>{selectedRecipe.prepTime + selectedRecipe.cookTime} min</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Servings:</span>
+                    <span>{t('Servings:')}</span>
                     <span>{selectedRecipe.servings}</span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-4">Ingredients</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">{t('Ingredients')}</h3>
                 <ul className="space-y-3">
                   {selectedRecipe.ingredients.map((ingredient, index) => (
                     <li key={index} className="text-sm">
@@ -430,7 +431,7 @@ export const CulturalRecipeBook: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Tags</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">{t('Tags')}</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedRecipe.tags.map(tag => (
                     <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
@@ -451,71 +452,71 @@ export const CulturalRecipeBook: React.FC = () => {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{editingId ? 'Edit recipe' : 'Add a recipe'}</h3>
-              <button type="button" onClick={closeForm} aria-label="Close" className="text-gray-500 hover:text-gray-700">
+              <button type="button" onClick={closeForm} aria-label={t('Close')} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className="block text-sm">
-                <span className="font-medium">Recipe name *</span>
+                <span className="font-medium">{t('Recipe name *')}</span>
                 <input required value={formData.name} onChange={e => setField('name', e.target.value)} className={inputClass} />
               </label>
               <label className="block text-sm">
-                <span className="font-medium">Origin (place or culture) *</span>
+                <span className="font-medium">{t('Origin (place or culture) *')}</span>
                 <input required value={formData.origin} onChange={e => setField('origin', e.target.value)} className={inputClass} />
               </label>
             </div>
             <label className="block text-sm">
-              <span className="font-medium">Cultural significance</span>
+              <span className="font-medium">{t('Cultural significance')}</span>
               <textarea rows={2} value={formData.culturalSignificance} onChange={e => setField('culturalSignificance', e.target.value)} className={inputClass} />
             </label>
             <label className="block text-sm">
-              <span className="font-medium">Family story</span>
+              <span className="font-medium">{t('Family story')}</span>
               <textarea rows={3} value={formData.story} onChange={e => setField('story', e.target.value)} className={inputClass} />
             </label>
             <label className="block text-sm">
-              <span className="font-medium">Ingredients (one per line, e.g. "2 cups | flour")</span>
+              <span className="font-medium">{t('Ingredients (one per line, e.g. "2 cups | flour")')}</span>
               <textarea rows={4} value={formData.ingredients} onChange={e => setField('ingredients', e.target.value)} className={inputClass} />
             </label>
             <label className="block text-sm">
-              <span className="font-medium">Instructions (one step per line)</span>
+              <span className="font-medium">{t('Instructions (one step per line)')}</span>
               <textarea rows={4} value={formData.instructions} onChange={e => setField('instructions', e.target.value)} className={inputClass} />
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <label className="block text-sm">
-                <span className="font-medium">Prep (min)</span>
+                <span className="font-medium">{t('Prep (min)')}</span>
                 <input type="number" min={0} value={formData.prepTime} onChange={e => setField('prepTime', e.target.value)} className={inputClass} />
               </label>
               <label className="block text-sm">
-                <span className="font-medium">Cook (min)</span>
+                <span className="font-medium">{t('Cook (min)')}</span>
                 <input type="number" min={0} value={formData.cookTime} onChange={e => setField('cookTime', e.target.value)} className={inputClass} />
               </label>
               <label className="block text-sm">
-                <span className="font-medium">Servings</span>
+                <span className="font-medium">{t('Servings')}</span>
                 <input type="number" min={0} value={formData.servings} onChange={e => setField('servings', e.target.value)} className={inputClass} />
               </label>
               <label className="block text-sm">
-                <span className="font-medium">Rating (0-5)</span>
+                <span className="font-medium">{t('Rating (0-5)')}</span>
                 <input type="number" min={0} max={5} value={formData.rating} onChange={e => setField('rating', e.target.value)} className={inputClass} />
               </label>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className="block text-sm">
-                <span className="font-medium">Difficulty</span>
+                <span className="font-medium">{t('Difficulty')}</span>
                 <select value={formData.difficulty} onChange={e => setField('difficulty', e.target.value as Recipe['difficulty'])} className={inputClass}>
-                  <option>Easy</option>
-                  <option>Medium</option>
-                  <option>Hard</option>
+                  <option>{t('Easy')}</option>
+                  <option>{t('Medium')}</option>
+                  <option>{t('Hard')}</option>
                 </select>
               </label>
               <label className="block text-sm">
-                <span className="font-medium">Tags (comma separated)</span>
+                <span className="font-medium">{t('Tags (comma separated)')}</span>
                 <input value={formData.tags} onChange={e => setField('tags', e.target.value)} className={inputClass} />
               </label>
             </div>
             <div className="flex justify-end space-x-3 pt-2">
               <button type="button" onClick={closeForm} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                Cancel
+                {t('Cancel')}
               </button>
               <button type="submit" disabled={isLoading} className="px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 disabled:opacity-50">
                 {isLoading ? 'Saving...' : 'Save recipe'}
