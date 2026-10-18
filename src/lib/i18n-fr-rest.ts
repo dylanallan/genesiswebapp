@@ -274,4 +274,9 @@ export const FR_REST: Record<string, string> = {
   'Every page sets its own title and sharing (Open Graph / Twitter) tags.': 'Chaque page définit son propre titre et ses balises de partage (Open Graph / Twitter).',
   // Values from built-in lists, shown in French
   'Not specified': 'Non précisé',
+  // New-user walkthrough polish
+  'Tap anyone to move the tree to them. Slide the tree sideways to see everyone. Use the dashed boxes to add a missing parent.': 'Touchez une personne pour centrer l’arbre sur elle. Faites glisser l’arbre de côté pour voir tout le monde. Utilisez les cases en pointillé pour ajouter un parent manquant.',
+  'Add a family story': 'Ajouter une histoire de famille',
+  'Edit this story': 'Modifier cette histoire',
+  'Card and PayPal payments are processed securely by PayPal. We never see or store your card or bank details.': 'Les paiements par carte et PayPal sont traités de façon sécurisée par PayPal. Nous ne voyons ni ne conservons jamais vos renseignements de carte ou bancaires.',
 };

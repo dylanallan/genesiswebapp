@@ -1,3 +1,4 @@
+import { getLang } from './i18n';
 import { supabase } from './supabase';
 
 async function callBilling<T>(body: Record<string, unknown>): Promise<T> {
@@ -94,4 +95,7 @@ export async function getManualPaymentSettings(): Promise<ManualPaymentSettings 
 // Only PayPal's own payment pages may be opened from the Plans page.
 export const isPayPalLink = (url: string) => /^https:\/\/(www\.)?paypal\.com\//i.test(url);
 
-export const formatCad = (cents: number) => `$${(cents / 100).toFixed(2)} CAD`;
+// "$190.00 CAD" in English, "190,00 $ CA" in French (Canadian French puts the dollar sign after the amount).
+export const formatCad = (cents: number) => (getLang() === 'fr'
+  ? `${(cents / 100).toFixed(2).replace('.', ',')} $ CA`
+  : `$${(cents / 100).toFixed(2)} CAD`);

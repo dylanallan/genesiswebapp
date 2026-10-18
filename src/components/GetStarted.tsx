@@ -148,8 +148,8 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
 
           <form id="quick-tree" onSubmit={saveQuickTree} className="space-y-3">
             {SLOTS.map((s) => (
-              <fieldset key={s.key} className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
-                <label className="text-sm">{t(s.label)}
+              <fieldset key={s.key} className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end border rounded-lg p-3 sm:border-0 sm:p-0">
+                <label className="text-sm"><span className="font-semibold text-base text-gray-900">{t(s.label)}</span>
                   <input value={entries[s.key].name} onChange={field(s.key, 'name')} placeholder={t('Full name')} className="mt-1 block w-full px-3 py-2 border rounded-lg" />
                 </label>
                 <label className="text-sm">{t('Born on (optional)')}
@@ -160,7 +160,7 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
                 </label>
               </fieldset>
             ))}
-            <button disabled={saving} className="px-5 py-3 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50">
+            <button disabled={saving} className="w-full sm:w-auto px-5 py-3 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50">
               {saving ? t('Saving…') : t('Save and find my first records')}
             </button>
           </form>

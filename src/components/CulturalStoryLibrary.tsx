@@ -374,7 +374,7 @@ export const CulturalStoryLibrary: React.FC = () => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900">
-                  {t(isEditing ? 'Edit Cultural Story' : 'Add New Cultural Story')}
+                  {t(isEditing ? 'Edit this story' : 'Add a family story')}
                 </h3>
                 <button
                   onClick={() => setShowAddForm(false)}

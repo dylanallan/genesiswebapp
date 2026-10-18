@@ -61,7 +61,9 @@ test('a grandparent signs in, builds the tree, saves a story, invites family and
   await page.reload();
   expect(await page.evaluate(() => document.documentElement.style.fontSize)).toBe('20px');
 
-  // No developer words anywhere they went.
-  const text = await page.locator('body').innerText();
+  // No developer words anywhere they went (after the reload has fully settled).
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByTestId('feature-menu')).toBeVisible();
+  const text = await page.locator('body').innerText({ timeout: 20_000 });
   expect(text).not.toMatch(/\b(undefined|null|NaN|GEDCOM|API|Supabase|webhook|JSON)\b/);
 });

@@ -148,7 +148,7 @@ export const PedigreeChart: React.FC = () => {
           ))}
         </div>
         <p className="text-sm text-gray-500">
-          {t(view === 'ancestors' ? 'Click anyone to move the tree to them. Use the dashed boxes to add a missing parent.' : 'Everyone who came from this person. Click a name to start from them.')}
+          {t(view === 'ancestors' ? 'Tap anyone to move the tree to them. Slide the tree sideways to see everyone. Use the dashed boxes to add a missing parent.' : 'Everyone who came from this person. Click a name to start from them.')}
         </p>
       </div>
 

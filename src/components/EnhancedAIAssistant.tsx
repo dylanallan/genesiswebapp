@@ -267,7 +267,7 @@ export const EnhancedAIAssistant: React.FC = () => {
                 <div className="whitespace-pre-wrap leading-relaxed">{message.id === WELCOME_ID ? t(WELCOME) : message.content}</div>
                 
                 <div className="mt-3 flex items-center justify-between text-xs opacity-70">
-                  <span>{message.timestamp.toLocaleTimeString(locale())}</span>
+                  <span>{message.timestamp.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
               </div>
               

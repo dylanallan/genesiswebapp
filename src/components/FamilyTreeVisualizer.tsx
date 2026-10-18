@@ -444,7 +444,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-medium text-gray-900">{member.name}</h3>
-                    <p className="text-sm text-genesis-600">{t(member.relationship)}</p>
+                    <p className="text-sm text-genesis-600 first-letter:uppercase">{t(member.relationship)}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <span className="text-xs text-gray-500">{t('Confidence:')}</span>
                       <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">

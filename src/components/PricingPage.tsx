@@ -109,16 +109,16 @@ export default function PricingPage({ signedOut = false }: { signedOut?: boolean
         <section className="rounded-xl border bg-white p-6">
           <h2 className="text-xl font-semibold">{t('Free')}</h2>
           <p className="my-3 text-2xl font-bold">{t('$0')}</p>
-          <ul className="space-y-2 text-sm">{FREE_FEATURES.map((f) => <li key={f} className="flex gap-2"><Check className="h-4 w-4 text-green-600 mt-0.5" />{t(f, { n: FREE_DAILY })}</li>)}</ul>
+          <ul className="space-y-2 text-sm">{FREE_FEATURES.map((f) => <li key={f} className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-green-600 mt-0.5" />{t(f, { n: FREE_DAILY })}</li>)}</ul>
         </section>
 
         {(['monthly', 'yearly'] as const).map((plan) => (
           <section key={plan} className="rounded-xl border-2 border-genesis-600 bg-white p-6">
             <h2 className="text-xl font-semibold">Pro {plan === 'yearly' && <span className="ml-1 rounded bg-genesis-100 px-2 text-xs text-genesis-800">{t('Best value')}</span>}</h2>
             <p className="my-3 text-2xl font-bold">{t(plan === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE)}</p>
-            <ul className="mb-5 space-y-2 text-sm">{PRO_FEATURES.map((f) => <li key={f} className="flex gap-2"><Check className="h-4 w-4 text-green-600 mt-0.5" />{t(f)}</li>)}</ul>
+            <ul className="mb-5 space-y-2 text-sm">{PRO_FEATURES.map((f) => <li key={f} className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-green-600 mt-0.5" />{t(f)}</li>)}</ul>
             {signedOut && (
-              <a href="/?start=signup&next=pricing" className="block w-full rounded bg-genesis-600 py-2 text-center font-semibold text-white">
+              <a href="/?start=signup&next=pricing" className="block w-full min-h-[44px] rounded bg-genesis-600 py-2.5 text-center font-semibold text-white">
                 {t('Create a free account to choose this plan')}
               </a>
             )}
@@ -126,7 +126,7 @@ export default function PricingPage({ signedOut = false }: { signedOut?: boolean
               <button
                 onClick={() => run(plan, () => startCheckout(plan))}
                 disabled={renewing || busy !== null}
-                className="w-full rounded bg-[#ffc439] py-2 font-semibold text-gray-900 disabled:opacity-50"
+                className="w-full min-h-[44px] rounded bg-[#ffc439] py-2 font-semibold text-gray-900 disabled:opacity-50"
               >
                 {t(renewing ? 'Current plan' : busy === plan ? 'Opening PayPal…' : 'Subscribe with PayPal')}
               </button>
@@ -135,7 +135,7 @@ export default function PricingPage({ signedOut = false }: { signedOut?: boolean
               <button
                 onClick={() => run(`pl-${plan}`, async () => setRequest(await createManualPaymentRequest(plan, 'paypal_link')))}
                 disabled={renewing || busy !== null}
-                className={`${autoPayPal ? 'mt-2 border border-gray-300 text-sm text-gray-800' : 'bg-[#ffc439] font-semibold text-gray-900'} w-full rounded py-2 disabled:opacity-50`}
+                className={`${autoPayPal ? 'mt-2 border border-gray-300 text-sm text-gray-800' : 'bg-[#ffc439] font-semibold text-gray-900'} w-full min-h-[44px] rounded py-2 disabled:opacity-50`}
               >
                 {busy === `pl-${plan}` ? t('Preparing…') : t('Pay with PayPal or card ({price})', { price: formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents) })}
               </button>
@@ -144,7 +144,7 @@ export default function PricingPage({ signedOut = false }: { signedOut?: boolean
               <button
                 onClick={() => run(`et-${plan}`, async () => setRequest(await createManualPaymentRequest(plan, 'etransfer')))}
                 disabled={busy !== null}
-                className="mt-2 w-full rounded border border-gray-300 py-2 text-sm text-gray-800 disabled:opacity-50"
+                className="mt-2 w-full min-h-[44px] rounded border border-gray-300 py-2 text-sm text-gray-800 disabled:opacity-50"
               >
                 {busy === `et-${plan}` ? t('Preparing…') : t('Pay by Interac e-Transfer ({price})', { price: formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents) })}
               </button>
@@ -171,7 +171,7 @@ export default function PricingPage({ signedOut = false }: { signedOut?: boolean
         </ul>
       </section>
 
-      <p className="mt-6 text-center text-xs text-gray-500">Card and PayPal payments are processed securely by PayPal. We never see or store your card or bank details.</p>
+      <p className="mt-6 text-center text-xs text-gray-500">{t('Card and PayPal payments are processed securely by PayPal. We never see or store your card or bank details.')}</p>
     </div>
   );
 }
