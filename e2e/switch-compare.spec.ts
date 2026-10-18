@@ -64,7 +64,7 @@ test.describe('in French', () => {
     await installMockBackend(page, fresh());
     await page.goto('/compare');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Genesis, Ancestry et MyHeritage, côte à côte');
-    await expect(page.getByText('[vérifier le prix actuel]')).toHaveCount(2);
+    await expect(page.getByTestId('compare-table').getByText('[vérifier le prix actuel]')).toHaveCount(2);
     expect(await leftoverEnglish(page)).toEqual([]);
   });
 });

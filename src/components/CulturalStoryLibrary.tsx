@@ -194,7 +194,7 @@ export const CulturalStoryLibrary: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <BookOpen className="w-6 h-6 text-genesis-500" />
-          <h2 className="text-xl font-semibold text-gray-900">{t('Cultural Stories')}</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('Family stories')}</h2>
         </div>
         <button
           onClick={() => {
@@ -241,7 +241,7 @@ export const CulturalStoryLibrary: React.FC = () => {
           <p className="text-gray-500 mb-4">
             {searchTerm 
               ? t('No results for “{q}”', { q: searchTerm })
-              : t('Start by adding your first cultural story')}
+              : t('Start by adding your first family story')}
           </p>
           <button
             onClick={() => setShowAddForm(true)}

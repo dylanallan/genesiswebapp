@@ -324,7 +324,21 @@ export const MainApp: React.FC = () => {
     // Visitors see the home page; invite links and "Sign in"/"Start free" go straight to the account form.
     if (authView || path.startsWith('/join/')) return <SimpleAuth startMode={authView ?? undefined} onBack={path.startsWith('/join/') ? undefined : () => setAuthView(null)} />;
     // Visitors comparing prices can see the plans before making an account.
-    if (path === '/pricing') return <Suspense fallback={<LoadingScreen />}><Router><PricingPage signedOut /></Router></Suspense>;
+    if (path === '/pricing') {
+      return (
+        <Suspense fallback={<LoadingScreen />}>
+          <Router>
+            <div className="min-h-screen bg-[#faf7f0]">
+              <div className="max-w-5xl mx-auto px-4 pt-6 flex items-center justify-between">
+                <a href="/" className="text-sm text-[#2E5A44] underline">← Genesis Heritage</a>
+                <LanguageSwitch className="text-sm text-[#3d4a43]" />
+              </div>
+              <PricingPage signedOut />
+            </div>
+          </Router>
+        </Suspense>
+      );
+    }
     return <LandingPage onStart={() => setAuthView('signup')} onSignIn={() => setAuthView('signin')} />;
   }
   if (passwordRecovery) return <SetNewPassword onDone={finishPasswordRecovery} />;

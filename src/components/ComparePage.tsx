@@ -39,7 +39,21 @@ export const ComparePage: React.FC = () => {
           <p className="text-lg text-[#3d4a43]">{t('An honest comparison of what matters most to families.')}</p>
         </header>
 
-        <div className="overflow-x-auto bg-white rounded-2xl border border-black/10">
+        {/* Phones: one card per topic, so nothing is squeezed or cut off. */}
+        <div className="sm:hidden space-y-3" data-testid="compare-cards">
+          {ROWS.map((r) => (
+            <section key={r.topic} className="bg-white rounded-2xl border border-black/10 p-4 space-y-2">
+              <h2 className="text-lg font-semibold">{t(r.topic)}</h2>
+              <dl className="space-y-2">
+                <div className="rounded-lg bg-[#f6faf6] p-3"><dt className="font-semibold">Genesis Heritage</dt><dd>{cell(r.genesis)}</dd></div>
+                <div className="px-3"><dt className="font-semibold">Ancestry</dt><dd>{cell(r.ancestry)}</dd></div>
+                <div className="px-3"><dt className="font-semibold">MyHeritage</dt><dd>{cell(r.myheritage)}</dd></div>
+              </dl>
+            </section>
+          ))}
+        </div>
+
+        <div className="hidden sm:block overflow-x-auto bg-white rounded-2xl border border-black/10">
           <table className="w-full text-left text-base" data-testid="compare-table">
             <caption className="sr-only">{t('Genesis, Ancestry and MyHeritage, side by side')}</caption>
             <thead className="bg-[#eef3ee]">
