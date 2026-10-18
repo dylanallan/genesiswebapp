@@ -109,6 +109,7 @@ import {
   ListChecks,
   Send,
   ScanText,
+  CalendarClock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { t, useLang } from '../lib/i18n';
@@ -210,6 +211,7 @@ const MyAccount = lazy(() => import('./MyAccount'));
 const FamilySearch = lazy(() => import('./FamilySearch'));
 const PhotoRestore = lazy(() => import('./PhotoRestore'));
 const DocumentReader = lazy(() => import('./DocumentReader'));
+const PhotoDater = lazy(() => import('./PhotoDater'));
 const LifeStory = lazy(() => import('./LifeStory'));
 const SavedRecordsTableFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SavedRecordsTableFeature })));
 const SEOFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SEOFeature })));
@@ -304,6 +306,14 @@ const features = [
     icon: Image,
     component: PhotoRestore,
     description: 'Repair and colourise old photos',
+    category: 'heritage',
+  },
+  {
+    id: 'photo-date',
+    name: 'Date an old photo',
+    icon: CalendarClock,
+    component: PhotoDater,
+    description: 'Estimate when a photo was taken',
     category: 'heritage',
   },
   {
@@ -979,7 +989,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
     ['family-interview', 'Interview a relative'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
-    ['photo-restore', 'Restore old photos'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
+    ['photo-restore', 'Restore old photos'], ['photo-date', 'Date an old photo'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
   { id: 'research', name: 'Research', icon: Search, items: [['document-reader', 'Read an old document'], ['record-hints', 'Record hints'], ['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
