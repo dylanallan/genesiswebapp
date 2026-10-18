@@ -1028,6 +1028,15 @@ export const Dashboard: React.FC<DashboardProps> = () => {
   const ActiveComponent = activeEntry.component as React.ComponentType;
   const closeFeature = () => setActiveFeature('welcome');
 
+  // On phones the menus are one swipeable row: keep the open section and screen in view.
+  useEffect(() => {
+    for (const menu of ['category-menu', 'feature-menu']) {
+      const el = document.querySelector<HTMLElement>(`[data-testid="${menu}"] [aria-current]`);
+      const row = el?.parentElement;
+      if (el && row && row.scrollWidth > row.clientWidth) row.scrollTo({ left: el.offsetLeft - 16, behavior: 'smooth' });
+    }
+  }, [selectedCategory, visibleFeature]);
+
   // Pop-up features close with the Escape key, as people expect.
   useEffect(() => {
     if (!activeEntry.render) return;
@@ -1056,14 +1065,15 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Category Filter */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="category-menu" role="navigation" aria-label={t('Sections')}>
+          <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 py-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0" data-testid="category-menu" role="navigation" aria-label={t('Sections')}>
             {categories.map(category => {
               const Icon = category.icon;
               return (
                 <motion.button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  aria-current={selectedCategory === category.id ? 'true' : undefined}
+                  className={`relative shrink-0 flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                     selectedCategory === category.id
                       ? 'bg-white text-genesis-700 shadow-sm border border-gray-200'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
@@ -1083,14 +1093,15 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Feature Navigation */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-1 py-3" data-testid="feature-menu" role="navigation" aria-label={t('Pages in this section')}>
+          <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 py-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0" data-testid="feature-menu" role="navigation" aria-label={t('Pages in this section')}>
             {filteredFeatures.map(feature => {
               const Icon = feature.icon;
               return (
                 <motion.button
                   key={feature.id}
                   onClick={() => setActiveFeature(feature.id)}
-                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  aria-current={activeFeature === feature.id ? 'page' : undefined}
+                  className={`relative shrink-0 flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeFeature === feature.id
                       ? 'bg-gradient-to-r from-genesis-50 to-spiritual-50 text-genesis-700 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'

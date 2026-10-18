@@ -176,7 +176,7 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
             <ul className="mt-2 space-y-2">
               {discovery.hits.map((h) => (
                 <li key={h.url} className="text-sm">
-                  <a href={h.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline inline-flex items-center gap-1">{h.title}<ExternalLink className="w-3 h-3" /></a>
+                  <a href={h.url} target="_blank" rel="noopener noreferrer" className="text-genesis-700 hover:underline inline-flex items-center gap-1">{h.title}<ExternalLink className="w-3 h-3" /></a>
                   <span className="text-gray-500"> · {h.sourceLabel}</span>
                   {h.snippet && <p className="text-gray-600">{h.snippet}</p>}
                 </li>

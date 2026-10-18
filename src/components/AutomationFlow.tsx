@@ -83,7 +83,7 @@ export const AutomationFlow: React.FC = () => {
         data: {
           label: (
             <div className="flex items-center p-2">
-              <Workflow className="w-5 h-5 text-blue-400 mr-2" />
+              <Workflow className="w-5 h-5 text-genesis-400 mr-2" />
               <span className="text-gray-100">{userMessage}</span>
             </div>
           ),
@@ -102,7 +102,7 @@ export const AutomationFlow: React.FC = () => {
         source: '1',
         target: newNode.id,
         animated: true,
-        className: 'text-blue-400',
+        className: 'text-genesis-400',
       };
       
       setEdges((currentEdges) => [...currentEdges, newEdge]);
@@ -194,7 +194,7 @@ export const AutomationFlow: React.FC = () => {
           <div className="p-4 border-b border-gray-700">
             <div className="grid grid-cols-2 gap-2">
               {[
-                { id: 'docs', name: 'Documents', icon: FileText, color: 'text-blue-400' },
+                { id: 'docs', name: 'Documents', icon: FileText, color: 'text-genesis-400' },
                 { id: 'calendar', name: 'Calendar', icon: Calendar, color: 'text-green-400' },
                 { id: 'email', name: 'Email', icon: Mail, color: 'text-purple-400' },
                 { id: 'users', name: 'Users', icon: Users, color: 'text-amber-400' }

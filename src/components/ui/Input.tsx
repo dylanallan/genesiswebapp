@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             className={cn(
-              "w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+              "w-full rounded-lg border border-gray-300 shadow-sm focus:border-genesis-500 focus:ring-genesis-500",
               leftIcon && "pl-10",
               rightIcon && "pr-10",
               error && "border-red-500 focus:border-red-500 focus:ring-red-500",

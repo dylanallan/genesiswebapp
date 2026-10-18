@@ -193,7 +193,7 @@ export const CulturalStoryLibrary: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <BookOpen className="w-6 h-6 text-blue-500" />
+          <BookOpen className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">{t('Cultural Stories')}</h2>
         </div>
         <button
@@ -212,7 +212,7 @@ export const CulturalStoryLibrary: React.FC = () => {
               verification_status: 'unverified'
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
+          className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors min-h-[44px]"
         >
           <Plus className="w-5 h-5" />
           <span>{t('Add Story')}</span>
@@ -226,13 +226,13 @@ export const CulturalStoryLibrary: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t('Search stories by title, content, storyteller, or themes...')}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
         />
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-genesis-500"></div>
         </div>
       ) : filteredStories.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -245,7 +245,7 @@ export const CulturalStoryLibrary: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 min-h-[44px]"
+            className="inline-flex items-center px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 min-h-[44px]"
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('Add Story')}
@@ -272,7 +272,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     {story.storyteller && (
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <User className="w-4 h-4 text-blue-500" />
+                        <User className="w-4 h-4 text-genesis-500" />
                         <span className="font-medium">{t('Storyteller:')}</span>
                         <span>{story.storyteller}</span>
                       </div>
@@ -298,7 +298,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   {story.themes && story.themes.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-4">
                       {story.themes.map((theme, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                        <span key={index} className="px-2 py-1 bg-genesis-50 text-genesis-700 rounded-full text-xs">
                           {theme}
                         </span>
                       ))}
@@ -310,7 +310,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <button
                     onClick={() => handleEdit(story)}
                     aria-label={t('Edit {name}', { name: story.title })}
-                    className="p-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                    className="p-2 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                   >
                     <Edit className="w-5 h-5" />
                   </button>
@@ -328,7 +328,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                 onClick={() => setSelectedStory(
                   selectedStory?.id === story.id ? null : story
                 )}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                className="mt-4 text-sm text-genesis-600 hover:text-genesis-800 flex items-center"
               >
                 <span>{t(selectedStory?.id === story.id ? 'Hide full story' : 'Read full story')}</span>
               </button>
@@ -394,7 +394,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Enter story title')}
                     required
                   />
@@ -407,7 +407,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <textarea id="story-field-2"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={6}
                     placeholder={t('Enter the full story text')}
                     required
@@ -423,7 +423,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                       type="text"
                       value={formData.storyteller}
                       onChange={(e) => setFormData({ ...formData, storyteller: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('Who told this story?')}
                     />
                   </div>
@@ -436,7 +436,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                       type="date"
                       value={formData.date_recorded ? new Date(formData.date_recorded).toISOString().split('T')[0] : ''}
                       onChange={(e) => setFormData({ ...formData, date_recorded: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     />
                   </div>
                 </div>
@@ -450,7 +450,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('Where does this story take place?')}
                     />
                   </div>
@@ -463,7 +463,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                       type="text"
                       value={formData.language}
                       onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('Original language of the story')}
                     />
                   </div>
@@ -480,7 +480,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                       ...formData, 
                       themes: e.target.value.split(',').map(theme => theme.trim()).filter(theme => theme) 
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('e.g., family, resilience, tradition')}
                   />
                 </div>
@@ -492,7 +492,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <textarea id="story-field-8"
                     value={formData.translation}
                     onChange={(e) => setFormData({ ...formData, translation: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={4}
                     placeholder={t('If the story is in another language, provide a translation')}
                   ></textarea>
@@ -505,7 +505,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <select id="story-field-9"
                     value={formData.verification_status}
                     onChange={(e) => setFormData({ ...formData, verification_status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                   >
                     <option value="unverified">{t('Unverified')}</option>
                     <option value="pending">{t('Pending Verification')}</option>
@@ -523,7 +523,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors min-h-[44px]"
                   >
                     {t(isEditing ? 'Update Story' : 'Save Story')}
                   </button>

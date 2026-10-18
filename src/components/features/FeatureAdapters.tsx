@@ -186,7 +186,7 @@ export function SummarizerFeature({ onClose }: { onClose: () => void }) {
       ) : (
         <ul className="divide-y">
           {conversations.map((c) => (
-            <li key={c.id}><button className="w-full text-left py-2 hover:text-blue-700" onClick={() => setSelected(c.id)}>{c.title || 'Untitled conversation'}</button></li>
+            <li key={c.id}><button className="w-full text-left py-2 hover:text-genesis-700" onClick={() => setSelected(c.id)}>{c.title || 'Untitled conversation'}</button></li>
           ))}
         </ul>
       )}
@@ -252,12 +252,12 @@ export function SEOFeature() {
       <div className="rounded-lg border p-4">
         <p className="text-xs text-gray-500 mb-1">{t('Search result preview')}</p>
         <p className="text-sm text-green-700">{site}</p>
-        <p className="text-lg text-blue-800">{title}</p>
+        <p className="text-lg text-genesis-800">{title}</p>
         <p className="text-sm text-gray-700">{description}</p>
       </div>
       <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-        <li>{t('Sitemap:')} <a className="text-blue-700 underline" href="/sitemap.xml" target="_blank" rel="noopener">{site}/sitemap.xml</a> {t('(regenerated on every deploy)')}</li>
-        <li>{t('Robots rules:')} <a className="text-blue-700 underline" href="/robots.txt" target="_blank" rel="noopener">{site}/robots.txt</a></li>
+        <li>{t('Sitemap:')} <a className="text-genesis-700 underline" href="/sitemap.xml" target="_blank" rel="noopener">{site}/sitemap.xml</a> {t('(regenerated on every deploy)')}</li>
+        <li>{t('Robots rules:')} <a className="text-genesis-700 underline" href="/robots.txt" target="_blank" rel="noopener">{site}/robots.txt</a></li>
         <li>{t('Every page sets its own title and sharing (Open Graph / Twitter) tags.')}</li>
       </ul>
     </div>

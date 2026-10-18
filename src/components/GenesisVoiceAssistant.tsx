@@ -62,7 +62,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
     }`}>
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
-          <Brain className="w-6 h-6 text-blue-500" />
+          <Brain className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Genesis Voice Assistant</h2>
         </div>
         <div className="flex items-center space-x-2">
@@ -108,7 +108,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
           onClick={() => setActiveTab('chat')}
           className={`flex-1 flex items-center justify-center space-x-2 py-3 transition-colors ${
             activeTab === 'chat'
-              ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
+              ? 'bg-genesis-50 text-genesis-700 border-b-2 border-genesis-500'
               : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
@@ -119,7 +119,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
           onClick={() => setActiveTab('family-tree')}
           className={`flex-1 flex items-center justify-center space-x-2 py-3 transition-colors ${
             activeTab === 'family-tree'
-              ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
+              ? 'bg-genesis-50 text-genesis-700 border-b-2 border-genesis-500'
               : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
@@ -130,7 +130,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
           onClick={() => setActiveTab('automation')}
           className={`flex-1 flex items-center justify-center space-x-2 py-3 transition-colors ${
             activeTab === 'automation'
-              ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
+              ? 'bg-genesis-50 text-genesis-700 border-b-2 border-genesis-500'
               : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
@@ -158,14 +158,14 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
         {activeTab === 'automation' && (
           <div className="p-6 h-full flex items-center justify-center">
             <div className="text-center">
-              <Zap className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <Zap className="w-16 h-16 text-genesis-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Automation Voice Assistant</h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
                 Use voice commands to create and manage your business automation workflows
               </p>
               <button
                 onClick={() => toast.info('Automation voice assistant coming soon!')}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-6 py-3 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
               >
                 Coming Soon
               </button>
@@ -209,7 +209,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
                     />
                     <label 
                       htmlFor="voice-toggle"
-                      className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-blue-500 peer-checked:before:translate-x-6"
+                      className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-genesis-500 peer-checked:before:translate-x-6"
                     ></label>
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
                         />
                         <label 
                           htmlFor="detect-toggle"
-                          className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-blue-500 peer-checked:before:translate-x-6"
+                          className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-genesis-500 peer-checked:before:translate-x-6"
                         ></label>
                       </div>
                     </div>
@@ -257,7 +257,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
                         />
                         <label 
                           htmlFor="validation-toggle"
-                          className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-blue-500 peer-checked:before:translate-x-6"
+                          className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-genesis-500 peer-checked:before:translate-x-6"
                         ></label>
                       </div>
                     </div>
@@ -270,7 +270,7 @@ export const GenesisVoiceAssistant: React.FC<GenesisVoiceAssistantProps> = ({
                       setShowSettings(false);
                       toast.success('Settings saved');
                     }}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     Save Settings
                   </button>

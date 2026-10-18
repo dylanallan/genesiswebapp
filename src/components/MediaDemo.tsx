@@ -23,7 +23,7 @@ export const MediaDemo: React.FC = () => {
             onClick={() => setActiveTab('video')}
             className={`px-4 py-2 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'video'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-genesis-500 text-genesis-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -33,7 +33,7 @@ export const MediaDemo: React.FC = () => {
             onClick={() => setActiveTab('audio')}
             className={`px-4 py-2 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'audio'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-genesis-500 text-genesis-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -43,7 +43,7 @@ export const MediaDemo: React.FC = () => {
             onClick={() => setActiveTab('upload')}
             className={`px-4 py-2 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'upload'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-genesis-500 text-genesis-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -53,7 +53,7 @@ export const MediaDemo: React.FC = () => {
             onClick={() => setActiveTab('record')}
             className={`px-4 py-2 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'record'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-genesis-500 text-genesis-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -63,7 +63,7 @@ export const MediaDemo: React.FC = () => {
             onClick={() => setActiveTab('gallery')}
             className={`px-4 py-2 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'gallery'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-genesis-500 text-genesis-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >

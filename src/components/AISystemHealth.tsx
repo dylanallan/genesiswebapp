@@ -185,7 +185,7 @@ export const AISystemHealth: React.FC = () => {
   const getComponentIcon = (component: string) => {
     switch (component) {
       case 'aiRouter':
-        return <Zap className="w-5 h-5 text-blue-500" />;
+        return <Zap className="w-5 h-5 text-genesis-500" />;
       case 'database':
         return <Database className="w-5 h-5 text-purple-500" />;
       case 'authentication':
@@ -201,7 +201,7 @@ export const AISystemHealth: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Activity className="w-6 h-6 text-blue-500" />
+          <Activity className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">System Health</h2>
           {systemStatus && (
             <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(systemStatus.status)}`}>
@@ -221,7 +221,7 @@ export const AISystemHealth: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+          <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
         </div>
       ) : !systemStatus ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -232,7 +232,7 @@ export const AISystemHealth: React.FC = () => {
           </p>
           <button
             onClick={loadSystemStatus}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
           >
             Retry
           </button>

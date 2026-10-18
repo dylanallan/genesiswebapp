@@ -186,7 +186,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
                   isRecording 
                     ? 'bg-red-500 text-white animate-pulse' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-genesis-600 text-white hover:bg-genesis-700'
                 } transition-colors`}
               >
                 {isProcessing ? (
@@ -221,7 +221,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 <div className="flex items-center justify-center space-x-4 mb-4">
                   <button
                     onClick={playRecording}
-                    className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                    className="p-3 bg-genesis-600 text-white rounded-full hover:bg-genesis-700 transition-colors"
                   >
                     {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                   </button>
@@ -262,7 +262,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                   startRecording();
                 }}
                 disabled={isProcessing}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="text-sm text-genesis-600 hover:text-genesis-800"
               >
                 {t('Record again')}
               </button>

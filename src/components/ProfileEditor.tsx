@@ -205,7 +205,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </label>
               <textarea
                 {...register('ancestry')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                 rows={2}
                 placeholder="Describe your ancestry and heritage"
               />
@@ -220,7 +220,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </label>
               <textarea
                 {...register('culturalBackground')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                 rows={2}
                 placeholder="Describe your cultural background and influences"
               />
@@ -235,7 +235,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </label>
               <textarea
                 {...register('familyTraditions')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                 rows={2}
                 placeholder="Describe important family traditions"
               />
@@ -251,7 +251,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </label>
                 <select
                   {...register('businessType')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                 >
                   <option value="">Select business type</option>
                   <option value="sole_proprietorship">Sole Proprietorship</option>
@@ -273,7 +273,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </label>
                 <select
                   {...register('industryFocus')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                 >
                   <option value="">Select industry</option>
                   <option value="technology">Technology</option>
@@ -299,7 +299,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </label>
               <textarea
                 {...register('businessGoals')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                 rows={3}
                 placeholder="Describe your business goals and objectives"
               />
@@ -339,14 +339,14 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
         size="md"
       >
         <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+          <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
             <div className="flex items-start">
-              <InfoIcon className="w-5 h-5 text-blue-500 mt-0.5 mr-2" />
+              <InfoIcon className="w-5 h-5 text-genesis-500 mt-0.5 mr-2" />
               <div>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-genesis-800">
                   We keep a history of profile changes to help maintain the accuracy of your cultural and business information.
                 </p>
-                <p className="text-sm text-blue-800 mt-1">
+                <p className="text-sm text-genesis-800 mt-1">
                   Please provide a brief reason for this update.
                 </p>
               </div>
@@ -360,7 +360,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <textarea
               value={updateReason}
               onChange={(e) => setUpdateReason(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
               rows={3}
               placeholder="e.g., Discovered new ancestry information, Changed business focus, Relocated to new area"
             />

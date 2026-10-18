@@ -60,7 +60,7 @@ export const BackendStatusIndicator: React.FC = () => {
               {ROWS.map(({ key, label, icon: Icon }) => (
                 <div key={key} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Icon className="w-4 h-4 text-blue-500" />
+                    <Icon className="w-4 h-4 text-genesis-500" />
                     <span className="text-sm">{label}</span>
                   </div>
                   {checks[key] === 'checking' ? <Loader2 className="w-4 h-4 animate-spin text-gray-400" aria-label="Checking" />
@@ -70,7 +70,7 @@ export const BackendStatusIndicator: React.FC = () => {
               ))}
             </div>
             <div className="mt-3 pt-3 border-t border-gray-200">
-              <button onClick={refresh} className="w-full flex items-center justify-center space-x-1 text-sm text-blue-600 hover:text-blue-800 py-1 px-2 rounded hover:bg-blue-50">
+              <button onClick={refresh} className="w-full flex items-center justify-center space-x-1 text-sm text-genesis-600 hover:text-genesis-800 py-1 px-2 rounded hover:bg-genesis-50">
                 <RefreshCw className="w-3 h-3" />
                 <span>Refresh</span>
               </button>

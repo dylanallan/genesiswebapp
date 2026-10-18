@@ -123,7 +123,7 @@ export const TimelineBuilder: React.FC = () => {
     const colors = {
       birth: 'bg-green-100 text-green-800',
       marriage: 'bg-pink-100 text-pink-800',
-      migration: 'bg-blue-100 text-blue-800',
+      migration: 'bg-genesis-100 text-genesis-800',
       achievement: 'bg-purple-100 text-purple-800',
       tradition: 'bg-amber-100 text-amber-800',
       other: 'bg-gray-100 text-gray-800'
@@ -147,12 +147,12 @@ export const TimelineBuilder: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Calendar className="w-6 h-6 text-blue-500" />
+          <Calendar className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold">{t('Family Timeline')}</h2>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>{t('Add Event')}</span>
@@ -214,7 +214,7 @@ export const TimelineBuilder: React.FC = () => {
             <div className="flex space-x-3 mt-4">
               <button
                 onClick={addEvent}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
               >
                 {t('Add Event')}
               </button>
@@ -247,7 +247,7 @@ export const TimelineBuilder: React.FC = () => {
               transition={{ delay: Math.min(index, 10) * 0.05 }}
               className="relative flex items-start space-x-4"
             >
-              <div className="flex-shrink-0 w-16 h-16 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center text-2xl z-10">
+              <div className="flex-shrink-0 w-16 h-16 bg-white border-4 border-genesis-500 rounded-full flex items-center justify-center text-2xl z-10">
                 {getCategoryIcon(event.category)}
               </div>
               
@@ -284,7 +284,7 @@ export const TimelineBuilder: React.FC = () => {
                   {event.fromTree ? <span className="text-xs text-gray-400">{t('From your family tree')}</span> : <div className="flex space-x-2">
                     <button
                       onClick={() => setEditingEvent(event)}
-                      className="p-1 text-gray-400 hover:text-blue-500"
+                      className="p-1 text-gray-400 hover:text-genesis-500"
                     >
                       <Edit className="w-4 h-4" />
                     </button>

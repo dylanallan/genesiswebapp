@@ -16,7 +16,7 @@ interface Finding { hit: Hit; result: MatchResult }
 const year = (d: string | null) => (d ? Number(d.slice(0, 4)) || null : null);
 const fullName = (r: Row) => [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') || 'Unknown';
 const LEVEL_STYLE: Record<MatchResult['level'], string> = {
-  strong: 'bg-green-100 text-green-800', possible: 'bg-blue-100 text-blue-800', weak: 'bg-amber-100 text-amber-800', unlikely: 'bg-gray-100 text-gray-600',
+  strong: 'bg-green-100 text-green-800', possible: 'bg-genesis-100 text-genesis-800', weak: 'bg-amber-100 text-amber-800', unlikely: 'bg-gray-100 text-gray-600',
 };
 const LEVEL_LABEL: Record<MatchResult['level'], string> = { strong: 'Strong match', possible: 'Possible match', weak: 'Weak match', unlikely: 'Probably someone else' };
 
@@ -167,7 +167,7 @@ export const ResearchAssistant: React.FC = () => {
                     <li key={key} className="border rounded-lg p-4">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <a href={f.hit.url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-700 hover:underline inline-flex items-center gap-1">{f.hit.title}<ExternalLink className="w-3 h-3" /></a>
+                          <a href={f.hit.url} target="_blank" rel="noopener noreferrer" className="font-medium text-genesis-700 hover:underline inline-flex items-center gap-1">{f.hit.title}<ExternalLink className="w-3 h-3" /></a>
                           <p className="text-xs text-gray-500">{f.hit.sourceLabel} · {f.hit.attribution}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${LEVEL_STYLE[f.result.level]}`}>{LEVEL_LABEL[f.result.level]} · {f.result.score}/100</span>
@@ -196,7 +196,7 @@ export const ResearchAssistant: React.FC = () => {
             <ul className="mt-2 space-y-1">
               {archiveLinks(fullName(selected), selected.birth_location ?? '', year(selected.birth_date)?.toString() ?? '').map((l) => (
                 <li key={l.label} className="text-sm">
-                  <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">{l.label}</a>
+                  <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-genesis-700 hover:underline">{l.label}</a>
                   <span className="text-gray-500"> · {l.region}</span>
                 </li>
               ))}

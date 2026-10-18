@@ -157,7 +157,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col lg:flex-row items-center justify-center gap-10 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-purple-50 flex flex-col lg:flex-row items-center justify-center gap-10 p-4">
       <section className="max-w-md w-full order-2 lg:order-1">
         <h1 className="text-3xl font-bold text-gray-900">{t(TAGLINE)}</h1>
         <p className="mt-2 text-gray-600">{t("Keep your family's story alive: tree, voices, stories and records in one private place, shared with the people who matter.")}</p>
@@ -170,7 +170,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
       </section>
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 order-1 lg:order-2">
         <div className="mb-4 flex items-center justify-between gap-3 text-sm">
-          {onBack ? <button type="button" onClick={onBack} className="text-blue-700 hover:underline">{t('← Back to the home page')}</button> : <span />}
+          {onBack ? <button type="button" onClick={onBack} className="text-genesis-700 hover:underline">{t('← Back to the home page')}</button> : <span />}
           <LanguageSwitch className="text-gray-700" />
         </div>
         {invite && (
@@ -222,7 +222,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-transparent"
               placeholder="you@example.com"
               required
             />
@@ -239,13 +239,13 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-transparent"
               placeholder="••••••••"
               required
               minLength={8}
             />
             {authMode === 'signin' && (
-              <button type="button" onClick={() => setAuthMode('reset')} className="mt-1 text-sm text-blue-600 hover:text-blue-700">
+              <button type="button" onClick={() => setAuthMode('reset')} className="mt-1 text-sm text-genesis-600 hover:text-genesis-700">
                 {t('Forgot password?')}
               </button>
             )}
@@ -254,7 +254,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="w-full bg-genesis-600 text-white py-2 rounded-lg hover:bg-genesis-700 disabled:opacity-50 transition-colors"
           >
             {isLoading
               ? t(authMode === 'signin' ? 'Signing in...' : authMode === 'signup' ? 'Creating account...' : 'Sending...')
@@ -280,7 +280,7 @@ const SimpleAuth: React.FC<{ startMode?: 'signin' | 'signup'; onBack?: () => voi
 
 
 const LoadingScreen = () => (
-  <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center" role="status" aria-live="polite">
+  <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-purple-50 flex items-center justify-center" role="status" aria-live="polite">
     <div className="text-center">
       <div className="w-fit mx-auto animate-spin motion-reduce:animate-none" style={{ animationDuration: '2s' }}>
         <Logo size={48} className="mx-auto mb-4" />

@@ -110,7 +110,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
               onClick={() => setActiveTab('profile')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'profile' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -125,7 +125,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
               onClick={() => setActiveTab('cultural')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'cultural' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -140,7 +140,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
               onClick={() => setActiveTab('business')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'business' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -155,7 +155,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
               onClick={() => setActiveTab('appearance')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'appearance' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -170,7 +170,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
               onClick={() => setActiveTab('notifications')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'notifications' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -185,7 +185,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
               onClick={() => setActiveTab('security')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'security' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -248,7 +248,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder="Your full name"
                   />
                 </div>
@@ -264,7 +264,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                         type="text"
                         value={formData.location}
                         onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                         placeholder="City, Country"
                       />
                     </div>
@@ -279,7 +279,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                       <select
                         value={formData.language}
                         onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       >
                         <option value="English">English</option>
                         <option value="Spanish">Spanish</option>
@@ -301,7 +301,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                     <select
                       value={formData.timezone}
                       onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     >
                       <option value="America/New_York">Eastern Time (ET)</option>
                       <option value="America/Chicago">Central Time (CT)</option>
@@ -326,7 +326,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                   <textarea
                     value={formData.ancestry}
                     onChange={(e) => setFormData({ ...formData, ancestry: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder="Describe your ancestry and heritage"
                   />
@@ -339,7 +339,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                   <textarea
                     value={formData.culturalBackground}
                     onChange={(e) => setFormData({ ...formData, culturalBackground: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder="Describe your cultural background and influences"
                   />
@@ -352,7 +352,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                   <textarea
                     value={formData.familyTraditions}
                     onChange={(e) => setFormData({ ...formData, familyTraditions: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder="Describe important family traditions"
                   />
@@ -370,7 +370,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                   <textarea
                     value={formData.businessGoals}
                     onChange={(e) => setFormData({ ...formData, businessGoals: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder="Describe your business goals and objectives"
                   />
@@ -384,7 +384,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                     <select
                       value={formData.businessType}
                       onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     >
                       <option value="">Select business type</option>
                       <option value="sole_proprietorship">Sole Proprietorship</option>
@@ -404,7 +404,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                     <select
                       value={formData.industryFocus}
                       onChange={(e) => setFormData({ ...formData, industryFocus: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     >
                       <option value="">Select industry</option>
                       <option value="technology">Technology</option>
@@ -447,7 +447,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border border-gray-200 rounded-lg p-4 flex items-center space-x-3">
                     <div className="w-12 h-12 bg-white border border-gray-300 rounded-lg flex items-center justify-center">
-                      <div className="w-6 h-6 bg-blue-500 rounded-full"></div>
+                      <div className="w-6 h-6 bg-genesis-500 rounded-full"></div>
                     </div>
                     <div>
                       <h5 className="font-medium text-gray-900">Light Theme</h5>
@@ -457,7 +457,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                   
                   <div className="border border-gray-200 rounded-lg p-4 flex items-center space-x-3">
                     <div className="w-12 h-12 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center">
-                      <div className="w-6 h-6 bg-blue-400 rounded-full"></div>
+                      <div className="w-6 h-6 bg-genesis-400 rounded-full"></div>
                     </div>
                     <div>
                       <h5 className="font-medium text-gray-900">Dark Theme</h5>
@@ -485,7 +485,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                     />
                     <label 
                       htmlFor="email-toggle"
-                      className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-blue-500 peer-checked:before:translate-x-6"
+                      className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-genesis-500 peer-checked:before:translate-x-6"
                     ></label>
                   </div>
                 </div>
@@ -504,7 +504,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
                     />
                     <label 
                       htmlFor="app-toggle"
-                      className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-blue-500 peer-checked:before:translate-x-6"
+                      className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all before:duration-300 peer-checked:bg-genesis-500 peer-checked:before:translate-x-6"
                     ></label>
                   </div>
                 </div>
@@ -532,12 +532,12 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
             {/* Security Tab */}
             {activeTab === 'security' && (
               <div className="space-y-6">
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-genesis-50 p-4 rounded-lg">
                   <div className="flex items-start">
-                    <Shield className="w-5 h-5 text-blue-500 mt-0.5 mr-2" />
+                    <Shield className="w-5 h-5 text-genesis-500 mt-0.5 mr-2" />
                     <div>
-                      <h4 className="font-medium text-blue-900">Account Security</h4>
-                      <p className="text-sm text-blue-700 mt-1">
+                      <h4 className="font-medium text-genesis-900">Account Security</h4>
+                      <p className="text-sm text-genesis-700 mt-1">
                         Your account is protected with email and password authentication.
                       </p>
                     </div>
@@ -587,7 +587,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ isOpen, onClose }) =
             <button
               onClick={handleSaveProfile}
               disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
             >
               {isSaving ? (
                 <>

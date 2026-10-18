@@ -26,7 +26,7 @@ export const SetNewPassword: React.FC<{ onDone: () => void; onCancel?: () => voi
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-purple-50 flex items-center justify-center p-4">
       <form onSubmit={save} className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 space-y-4">
         <h2 className="text-2xl font-bold text-gray-900 text-center">{title ?? 'Choose a new password'}</h2>
         <div>
@@ -39,7 +39,7 @@ export const SetNewPassword: React.FC<{ onDone: () => void; onCancel?: () => voi
           <input id="confirm-password" type="password" autoComplete="new-password" minLength={8} required value={confirm}
             onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
         </div>
-        <button type="submit" disabled={saving} className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+        <button type="submit" disabled={saving} className="w-full bg-genesis-600 text-white py-2 rounded-lg hover:bg-genesis-700 disabled:opacity-50">
           {saving ? 'Saving...' : 'Save new password'}
         </button>
         {onCancel && <button type="button" onClick={onCancel} className="w-full text-sm text-gray-600">Cancel</button>}

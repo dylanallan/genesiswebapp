@@ -61,7 +61,7 @@ export const AIUsageStats: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <BarChart3 className="w-6 h-6 text-blue-500" />
+          <BarChart3 className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">AI Usage Statistics</h2>
         </div>
         <div className="flex items-center space-x-2">
@@ -87,33 +87,33 @@ export const AIUsageStats: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+          <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
         </div>
       ) : (
         <div className="space-y-6">
           {/* Quota Usage */}
           {quota && (
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <h3 className="font-medium text-blue-900 mb-2 flex items-center space-x-2">
-                <Zap className="w-5 h-5 text-blue-500" />
+            <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
+              <h3 className="font-medium text-genesis-900 mb-2 flex items-center space-x-2">
+                <Zap className="w-5 h-5 text-genesis-500" />
                 <span>Daily AI Messages ({quota.plan.toUpperCase()} Plan)</span>
               </h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-blue-700">
+                  <span className="text-genesis-700">
                     {formatNumber(quota.used)} / {formatNumber(quota.limit)} messages used today
                   </span>
-                  <span className="text-blue-700">
+                  <span className="text-genesis-700">
                     {getUsagePercentage().toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-genesis-100 rounded-full overflow-hidden">
                   <div 
                     className={`h-full ${getUsageColor()} transition-all duration-500`}
                     style={{ width: `${getUsagePercentage()}%` }}
                   />
                 </div>
-                <div className="flex justify-between items-center text-xs text-blue-600">
+                <div className="flex justify-between items-center text-xs text-genesis-600">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-3 h-3" />
                     <span>Resets {new Date(quota.resetDate).toLocaleString()}</span>
@@ -135,7 +135,7 @@ export const AIUsageStats: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-gray-500">Total Requests</h3>
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  <TrendingUp className="w-5 h-5 text-genesis-500" />
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{formatNumber(metrics.totalRequests)}</p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -205,13 +205,13 @@ export const AIUsageStats: React.FC = () => {
                 {Object.entries(metrics.modelUsage).map(([model, count]: [string, any]) => (
                   <div key={model} className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <div className="w-2 h-2 rounded-full bg-genesis-500"></div>
                       <span className="text-gray-700">{model}</span>
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="w-48 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-blue-500"
+                          className="h-full bg-genesis-500"
                           style={{ width: `${(count / metrics.totalRequests) * 100}%` }}
                         />
                       </div>

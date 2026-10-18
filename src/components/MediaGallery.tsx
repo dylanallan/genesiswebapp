@@ -109,7 +109,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
   const getFileIcon = (type: string) => {
     switch (type) {
       case 'image':
-        return <Image className="w-6 h-6 text-blue-500" />;
+        return <Image className="w-6 h-6 text-genesis-500" />;
       case 'audio':
         return <Music className="w-6 h-6 text-purple-500" />;
       case 'video':
@@ -195,7 +195,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('Search media...')}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
             />
           </div>
           
@@ -204,7 +204,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
               onClick={() => setSelectedType(selectedType === 'image' ? null : 'image')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${
                 selectedType === 'image' 
-                  ? 'bg-blue-100 text-blue-700' 
+                  ? 'bg-genesis-100 text-genesis-700' 
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -250,7 +250,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
         
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-genesis-500"></div>
           </div>
         ) : error ? (
           <div className="bg-red-50 p-4 rounded-lg text-red-700">
@@ -285,7 +285,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
               <div
                 key={item.id}
                 className={`border rounded-lg overflow-hidden hover:shadow-md transition-shadow ${
-                  selectedMedia?.id === item.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'
+                  selectedMedia?.id === item.id ? 'border-genesis-500 ring-1 ring-genesis-500' : 'border-gray-200'
                 }`}
               >
                 <div 
@@ -315,7 +315,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                   )}
                   
                   {item.type === 'audio' && (
-                    <div className="h-40 bg-gradient-to-r from-purple-100 to-blue-100 flex items-center justify-center">
+                    <div className="h-40 bg-gradient-to-r from-purple-100 to-genesis-100 flex items-center justify-center">
                       <Music className="w-12 h-12 text-purple-500" />
                     </div>
                   )}
@@ -340,14 +340,14 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                     <div className="flex space-x-1">
                       <button
                         onClick={() => handleDownload(item)}
-                        className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                        className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                       >
                         <Download className="w-4 h-4" />
                       </button>
                       
                       <button
                         onClick={() => window.open(item.url, '_blank')}
-                        className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                        className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </button>
@@ -416,7 +416,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                     href={selectedMedia.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     {t('Open Document')}
                   </a>

@@ -115,7 +115,7 @@ export const ConversationSummarizer: React.FC<ConversationSummarizerProps> = ({
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <FileText className="w-6 h-6 text-blue-500" />
+              <FileText className="w-6 h-6 text-genesis-500" />
               <h2 className="text-xl font-semibold text-gray-900">Conversation Summary</h2>
             </div>
             <button
@@ -132,7 +132,7 @@ export const ConversationSummarizer: React.FC<ConversationSummarizerProps> = ({
                 onClick={() => setSummaryType('concise')}
                 className={`flex-1 px-3 py-2 rounded-lg transition-colors ${
                   summaryType === 'concise'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    ? 'bg-genesis-100 text-genesis-700 border border-genesis-200'
                     : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
                 }`}
               >
@@ -142,7 +142,7 @@ export const ConversationSummarizer: React.FC<ConversationSummarizerProps> = ({
                 onClick={() => setSummaryType('detailed')}
                 className={`flex-1 px-3 py-2 rounded-lg transition-colors ${
                   summaryType === 'detailed'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    ? 'bg-genesis-100 text-genesis-700 border border-genesis-200'
                     : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
                 }`}
               >
@@ -152,7 +152,7 @@ export const ConversationSummarizer: React.FC<ConversationSummarizerProps> = ({
                 onClick={() => setSummaryType('bullet')}
                 className={`flex-1 px-3 py-2 rounded-lg transition-colors ${
                   summaryType === 'bullet'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    ? 'bg-genesis-100 text-genesis-700 border border-genesis-200'
                     : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
                 }`}
               >
@@ -163,7 +163,7 @@ export const ConversationSummarizer: React.FC<ConversationSummarizerProps> = ({
             <button
               onClick={generateSummary}
               disabled={isLoading}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+              className="w-full px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               {isLoading ? (
                 <>

@@ -52,18 +52,19 @@ export default function AccountBar() {
   return (
     <nav className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b bg-white px-4 py-2 text-sm" aria-label={t('Account')}>
       <div className="flex items-center gap-4">
-        <Link to="/" className="font-semibold text-blue-700 whitespace-nowrap">Genesis Heritage</Link>
-        <Link to="/dashboard" className="text-gray-700 hover:text-blue-700">{t('Dashboard')}</Link>
-        <Link to="/pricing" className="text-gray-700 hover:text-blue-700">{t('Plans')}</Link>
+        <Link to="/" className="font-semibold text-genesis-700 whitespace-nowrap">Genesis Heritage</Link>
+        <Link to="/dashboard" className="text-gray-700 hover:text-genesis-700">{t('Dashboard')}</Link>
+        <Link to="/pricing" className="text-gray-700 hover:text-genesis-700">{t('Plans')}</Link>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className={`rounded-full px-2 py-0.5 text-xs ${subscription.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
           {subscription.active ? 'Pro' : t('Free')}
         </span>
-        {!subscription.active && <Link to="/pricing" className="rounded bg-blue-600 px-3 py-1 text-white">{t('Upgrade')}</Link>}
+        {!subscription.active && <Link to="/pricing" className="rounded bg-genesis-600 px-3 py-1 text-white">{t('Upgrade')}</Link>}
         <span className="hidden text-gray-500 sm:inline">{user?.email}</span>
         <LanguageSwitch className="whitespace-nowrap text-gray-600" />
-        <button onClick={() => setChangingPassword(true)} className="whitespace-nowrap text-gray-600 hover:text-blue-700">{t('Change password')}</button>
+        {/* On phones this lives in My account, to keep the top bar to one short row. */}
+        <button onClick={() => setChangingPassword(true)} className="hidden sm:inline whitespace-nowrap text-gray-600 hover:text-genesis-700">{t('Change password')}</button>
         <button onClick={handleSignOut} className="whitespace-nowrap text-gray-600 hover:text-red-600">{t('Sign out')}</button>
       </div>
     </nav>

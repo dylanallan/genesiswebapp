@@ -50,7 +50,7 @@ export const AutomationDashboard: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-500">Active Workflows</h3>
-            <Workflow className="w-5 h-5 text-blue-500" />
+            <Workflow className="w-5 h-5 text-genesis-500" />
           </div>
           <p className="text-2xl font-bold text-gray-900">12</p>
           <div className="flex items-center mt-1 text-sm">
@@ -140,7 +140,7 @@ export const AutomationDashboard: React.FC = () => {
               return (
                 <div key={index} className="flex items-center space-x-3">
                   <div className="p-2 bg-gray-100 rounded-lg">
-                    <Icon className="w-5 h-5 text-blue-500" />
+                    <Icon className="w-5 h-5 text-genesis-500" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
@@ -183,7 +183,7 @@ export const AutomationDashboard: React.FC = () => {
                   <div className={`p-1 rounded-full ${
                     activity.status === 'success' ? 'bg-green-100 text-green-600' :
                     activity.status === 'warning' ? 'bg-yellow-100 text-yellow-600' :
-                    'bg-blue-100 text-blue-600'
+                    'bg-genesis-100 text-genesis-600'
                   }`}>
                     <Icon className="w-4 h-4" />
                   </div>

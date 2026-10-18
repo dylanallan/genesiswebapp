@@ -145,7 +145,7 @@ export default function AdminPayments() {
           <label className="text-sm sm:col-span-3">PayPal payment link, monthly<input className="mt-1 w-full border rounded px-2 py-1" placeholder="https://www.paypal.com/ncp/payment/…" value={settings.linkMonthly} onChange={(e) => setSettings({ ...settings, linkMonthly: e.target.value })} /></label>
           <label className="text-sm sm:col-span-3">PayPal payment link, yearly<input className="mt-1 w-full border rounded px-2 py-1" placeholder="https://www.paypal.com/ncp/payment/…" value={settings.linkYearly} onChange={(e) => setSettings({ ...settings, linkYearly: e.target.value })} /></label>
         </div>
-        <button onClick={saveSettings} className="mt-4 rounded bg-blue-600 px-4 py-2 text-white">Save</button>
+        <button onClick={saveSettings} className="mt-4 rounded bg-genesis-600 px-4 py-2 text-white">Save</button>
       </section>
     </div>
   );

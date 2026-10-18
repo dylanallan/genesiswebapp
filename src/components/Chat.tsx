@@ -227,10 +227,10 @@ export const Chat: React.FC<ChatProps> = () => {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-sm border border-blue-100">
-      <div className="flex items-center justify-between p-4 border-b border-blue-100">
+    <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-sm border border-genesis-100">
+      <div className="flex items-center justify-between p-4 border-b border-genesis-100">
         <div className="flex items-center space-x-2">
-          <Brain className="w-6 h-6 text-blue-500" />
+          <Brain className="w-6 h-6 text-genesis-500" />
           <span className="font-semibold">Genesis AI Assistant Pro</span>
           {connectionStatus !== 'connected' && (
             <div className="flex items-center space-x-1 ml-2">
@@ -307,7 +307,7 @@ export const Chat: React.FC<ChatProps> = () => {
               <h3 className="font-semibold text-gray-900">Conversations</h3>
               {/* <button
                 onClick={createNewConversation}
-                className="p-1 text-blue-600 hover:text-blue-800"
+                className="p-1 text-genesis-600 hover:text-genesis-800"
                 title="New conversation"
               >
                 <Plus className="w-4 h-4" />
@@ -323,7 +323,7 @@ export const Chat: React.FC<ChatProps> = () => {
                   key={conv.id}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     conversationId === conv.id
-                      ? 'bg-blue-50 border border-blue-200'
+                      ? 'bg-genesis-50 border border-genesis-200'
                       : 'hover:bg-gray-50'
                   }`}
                   onClick={() => { if (typeof conv.id === 'string') loadConversation(conv.id); }}
@@ -352,7 +352,7 @@ export const Chat: React.FC<ChatProps> = () => {
               <p className="text-gray-500">Start a conversation to begin</p>
               {/* <button
                 onClick={createNewConversation}
-                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="mt-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
               >
                 New Conversation
               </button> */}
@@ -369,7 +369,7 @@ export const Chat: React.FC<ChatProps> = () => {
               <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
                 <div className={`flex items-start space-x-2 ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    msg.role === 'user' ? 'bg-blue-500' : 'bg-gray-500'
+                    msg.role === 'user' ? 'bg-genesis-500' : 'bg-gray-500'
                   }`}>
                     {msg.role === 'user' ? (
                       <User className="w-4 h-4 text-white" />
@@ -379,7 +379,7 @@ export const Chat: React.FC<ChatProps> = () => {
                   </div>
                   <div className={`rounded-lg px-4 py-2 ${
                     msg.role === 'user' 
-                      ? 'bg-blue-600 text-white' 
+                      ? 'bg-genesis-600 text-white' 
                       : 'bg-gray-100 text-gray-900'
                   }`}>
                     <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -426,20 +426,20 @@ export const Chat: React.FC<ChatProps> = () => {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-blue-100">
+      <div className="p-4 border-t border-genesis-100">
         <form onSubmit={handleSubmit} className="flex space-x-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
           </button>

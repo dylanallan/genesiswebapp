@@ -262,22 +262,22 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-4 p-4 bg-blue-50 rounded-lg max-w-md w-full"
+              className="mt-4 p-4 bg-genesis-50 rounded-lg max-w-md w-full"
             >
               <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-blue-900">Response</h4>
+                <h4 className="font-medium text-genesis-900">Response</h4>
                 <button
                   onClick={toggleSpeaking}
                   className={`p-1 rounded-full ${
                     isSpeaking 
-                      ? 'bg-blue-200 text-blue-700' 
-                      : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                      ? 'bg-genesis-200 text-genesis-700' 
+                      : 'bg-genesis-100 text-genesis-600 hover:bg-genesis-200'
                   }`}
                 >
                   {isSpeaking ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-blue-800">{response}</p>
+              <p className="text-genesis-800">{response}</p>
             </motion.div>
           )}
         </div>
@@ -309,7 +309,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
                     <select
                       value={voiceSettings.voice}
                       onChange={(e) => setVoiceSettings({ ...voiceSettings, voice: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     >
                       <option value="en-US-Standard-J">Male (US)</option>
                       <option value="en-US-Standard-E">Female (US)</option>

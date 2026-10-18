@@ -102,7 +102,7 @@ export const ARHeritageViewer: React.FC = () => {
           />
           
           {!isARActive && (
-            <div className="w-full h-96 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center">
+            <div className="w-full h-96 bg-gradient-to-br from-purple-100 to-genesis-100 rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <Camera className="w-16 h-16 text-purple-500 mx-auto mb-4" />
                 <p className="text-gray-600">Point your camera at a place that matters to your family</p>

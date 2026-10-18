@@ -88,8 +88,8 @@ const EnterpriseDemo: React.FC = () => {
             </motion.div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <Zap className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+              <div className="bg-genesis-50 p-4 rounded-lg">
+                <Zap className="w-8 h-8 text-genesis-500 mx-auto mb-2" />
                 <h4 className="font-medium text-gray-900">10x Productivity</h4>
                 <p className="text-sm text-gray-600">Automate repetitive tasks and focus on high-value work</p>
               </div>
@@ -203,8 +203,8 @@ const EnterpriseDemo: React.FC = () => {
             
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <div className="text-xs text-blue-500 font-medium">CONVERSION RATE</div>
+                <div className="bg-genesis-50 p-3 rounded-lg">
+                  <div className="text-xs text-genesis-500 font-medium">CONVERSION RATE</div>
                   <div className="text-2xl font-bold text-gray-900">24.8%</div>
                   <div className="text-xs text-green-600">↑ 12% vs last month</div>
                 </div>
@@ -244,7 +244,7 @@ const EnterpriseDemo: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="mb-6"
             >
-              <Users className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <Users className="w-16 h-16 text-genesis-500 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900">Ready to Transform Your Business?</h3>
               <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
                 Join the 500+ companies already using Genesis Heritage Pro to automate their operations while honoring their cultural heritage.
@@ -289,7 +289,7 @@ const EnterpriseDemo: React.FC = () => {
       <SampleDataBanner what="figures in this demo" />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Play className="w-6 h-6 text-blue-500" />
+          <Play className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Enterprise Demo</h2>
         </div>
         
@@ -313,7 +313,7 @@ const EnterpriseDemo: React.FC = () => {
             <div
               key={index}
               className={`w-2 h-2 rounded-full ${
-                currentStep === index + 1 ? 'bg-blue-500' : 'bg-gray-300'
+                currentStep === index + 1 ? 'bg-genesis-500' : 'bg-gray-300'
               }`}
             />
           ))}
@@ -330,7 +330,7 @@ const EnterpriseDemo: React.FC = () => {
           
           <button
             onClick={handlePlayPause}
-            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="p-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>

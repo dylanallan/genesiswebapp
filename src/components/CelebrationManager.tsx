@@ -164,12 +164,12 @@ export const CelebrationManager: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Calendar className="w-6 h-6 text-blue-500" />
+          <Calendar className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">{t('Celebrations & Events')}</h2>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>{t('Add Celebration')}</span>
@@ -183,13 +183,13 @@ export const CelebrationManager: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t('Search celebrations by name, description, or location...')}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
         />
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-genesis-500"></div>
         </div>
       ) : filteredCelebrations.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -202,7 +202,7 @@ export const CelebrationManager: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('Add Celebration')}
@@ -213,7 +213,7 @@ export const CelebrationManager: React.FC = () => {
           {Object.entries(groupedCelebrations).map(([group, groupCelebrations]) => (
             <div key={group}>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <CalendarDays className="w-5 h-5 text-blue-500 mr-2" />
+                <CalendarDays className="w-5 h-5 text-genesis-500 mr-2" />
                 {group}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -233,7 +233,7 @@ export const CelebrationManager: React.FC = () => {
                       <div className="flex space-x-1">
                         <button
                           onClick={() => handleEdit(celebration)}
-                          className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                          className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -275,7 +275,7 @@ export const CelebrationManager: React.FC = () => {
                       onClick={() => setSelectedCelebration(
                         selectedCelebration?.id === celebration.id ? null : celebration
                       )}
-                      className="mt-3 text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                      className="mt-3 text-sm text-genesis-600 hover:text-genesis-800 flex items-center"
                     >
                       <Info className="w-4 h-4 mr-1" />
                       <span>{selectedCelebration?.id === celebration.id ? 'Hide details' : 'View details'}</span>
@@ -300,7 +300,7 @@ export const CelebrationManager: React.FC = () => {
                             <h4 className="text-sm font-medium text-gray-700 mb-1">{t('Participants')}</h4>
                             <div className="flex flex-wrap gap-2">
                               {celebration.participants.map((participant, index) => (
-                                <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                                <span key={index} className="px-2 py-1 bg-genesis-50 text-genesis-700 rounded-full text-xs">
                                   {participant}
                                 </span>
                               ))}
@@ -350,7 +350,7 @@ export const CelebrationManager: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Enter celebration name')}
                     required
                   />
@@ -363,7 +363,7 @@ export const CelebrationManager: React.FC = () => {
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('Describe this celebration')}
                   ></textarea>
@@ -378,7 +378,7 @@ export const CelebrationManager: React.FC = () => {
                       type="text"
                       value={formData.date_or_season}
                       onChange={(e) => setFormData({ ...formData, date_or_season: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('e.g., December 25 or Winter')}
                     />
                   </div>
@@ -391,7 +391,7 @@ export const CelebrationManager: React.FC = () => {
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('Where is this celebration held?')}
                     />
                   </div>
@@ -404,7 +404,7 @@ export const CelebrationManager: React.FC = () => {
                   <textarea
                     value={formData.significance}
                     onChange={(e) => setFormData({ ...formData, significance: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('What is the cultural or personal significance of this celebration?')}
                   ></textarea>
@@ -421,7 +421,7 @@ export const CelebrationManager: React.FC = () => {
                       ...formData, 
                       participants: e.target.value.split(',').map(p => p.trim()).filter(p => p) 
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Family members, community, etc.')}
                   />
                 </div>
@@ -439,7 +439,7 @@ export const CelebrationManager: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     {showEditForm ? 'Update Celebration' : 'Save Celebration'}
                   </button>

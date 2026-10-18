@@ -138,7 +138,7 @@ export const RecordHints: React.FC = () => {
                     <p className="font-medium break-words">{h.title}</p>
                     <p className="text-sm text-gray-600">{[h.source_label ?? h.source, h.record_date].filter(Boolean).join(' · ')}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${h.level === 'strong' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{t(LEVEL[h.level] ?? h.level)} · {h.score}/100</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${h.level === 'strong' ? 'bg-green-100 text-green-800' : 'bg-genesis-100 text-genesis-800'}`}>{t(LEVEL[h.level] ?? h.level)} · {h.score}/100</span>
                 </div>
                 {h.snippet && <p className="text-sm text-gray-700">{h.snippet}</p>}
                 <ul className="text-sm space-y-1">

@@ -156,12 +156,12 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <ImageIcon className="w-6 h-6 text-blue-500" />
+            <ImageIcon className="w-6 h-6 text-genesis-500" />
             <h2 className="text-xl font-semibold text-gray-900">{t('Family Photo Analyzer')}</h2>
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
             disabled={isAnalyzing}
           >
             {isAnalyzing ? (
@@ -213,15 +213,15 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
         {analysis && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-genesis-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Users className="w-5 h-5 text-blue-500" />
-                  <h3 className="font-medium text-blue-900">{t('People')}</h3>
+                  <Users className="w-5 h-5 text-genesis-500" />
+                  <h3 className="font-medium text-genesis-900">{t('People')}</h3>
                 </div>
                 <div className="space-y-2">
                   {analysis.faces.map((face, index) => (
                     <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm text-blue-800">
+                      <span className="text-sm text-genesis-800">
                         {face.name || `Person ${index + 1}`}
                       </span>
                       <button
@@ -229,7 +229,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
                           const name = prompt('Enter name:');
                           if (name) updatePersonName(index, name);
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-700"
+                        className="text-xs text-genesis-600 hover:text-genesis-700"
                       >
                         {t('Edit Name')}
                       </button>

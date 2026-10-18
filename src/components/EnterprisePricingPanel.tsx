@@ -147,7 +147,7 @@ const EnterprisePricingPanel: React.FC = () => {
                 'SLA with 99.9% uptime'
               ].map((feature, index) => (
                 <li key={index} className="flex items-start">
-                  <Check className="w-5 h-5 text-blue-500 flex-shrink-0 mr-2" />
+                  <Check className="w-5 h-5 text-genesis-500 flex-shrink-0 mr-2" />
                   <span className="text-gray-600">{feature}</span>
                 </li>
               ))}
@@ -164,18 +164,18 @@ const EnterprisePricingPanel: React.FC = () => {
         </motion.div>
       </div>
 
-      <div className="mt-8 bg-blue-50 rounded-lg p-4 border border-blue-100">
+      <div className="mt-8 bg-genesis-50 rounded-lg p-4 border border-genesis-100">
         <div className="flex items-start">
-          <Zap className="w-5 h-5 text-blue-500 mr-3 mt-0.5" />
+          <Zap className="w-5 h-5 text-genesis-500 mr-3 mt-0.5" />
           <div>
-            <h4 className="font-medium text-blue-900">White-label Solution Available</h4>
-            <p className="text-sm text-blue-700 mt-1">
+            <h4 className="font-medium text-genesis-900">White-label Solution Available</h4>
+            <p className="text-sm text-genesis-700 mt-1">
               Custom-branded solution with revenue sharing model. $50K setup + 20% revenue share.
               Perfect for agencies and enterprise partners.
             </p>
             <button
               onClick={() => handleUpgrade('White-label')}
-              className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-3 px-4 py-2 bg-genesis-600 text-white text-sm rounded-lg hover:bg-genesis-700 transition-colors"
             >
               Request Information
             </button>

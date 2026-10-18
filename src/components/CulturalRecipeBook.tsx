@@ -370,9 +370,9 @@ export const CulturalRecipeBook: React.FC = () => {
                 <p className="text-orange-800">{selectedRecipe.culturalSignificance}</p>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">{t('Family Story')}</h3>
-                <p className="text-blue-800">{selectedRecipe.story}</p>
+              <div className="bg-genesis-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-genesis-900 mb-2">{t('Family Story')}</h3>
+                <p className="text-genesis-800">{selectedRecipe.story}</p>
               </div>
 
               <div>
@@ -423,7 +423,7 @@ export const CulturalRecipeBook: React.FC = () => {
                         <span className="text-gray-600">{ingredient.amount}</span>
                       </div>
                       {ingredient.culturalNote && (
-                        <p className="text-xs text-blue-600 mt-1 italic">{ingredient.culturalNote}</p>
+                        <p className="text-xs text-genesis-600 mt-1 italic">{ingredient.culturalNote}</p>
                       )}
                     </li>
                   ))}

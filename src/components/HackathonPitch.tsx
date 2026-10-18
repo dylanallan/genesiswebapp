@@ -42,8 +42,8 @@ const HackathonPitch: React.FC = () => {
           </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <Brain className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+            <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
+              <Brain className="w-8 h-8 text-genesis-500 mx-auto mb-2" />
               <h3 className="font-medium text-gray-900">AI-First</h3>
               <p className="text-sm text-gray-600">Built for the AI era, not retrofitted</p>
             </div>
@@ -95,8 +95,8 @@ const HackathonPitch: React.FC = () => {
               </ul>
             </div>
             
-            <div className="bg-blue-50 p-5 rounded-lg border border-blue-100">
-              <h4 className="font-medium text-blue-900 mb-3">Our Solution</h4>
+            <div className="bg-genesis-50 p-5 rounded-lg border border-genesis-100">
+              <h4 className="font-medium text-genesis-900 mb-3">Our Solution</h4>
               <ul className="space-y-2">
                 {[
                   "AI-powered automation with cultural awareness",
@@ -105,8 +105,8 @@ const HackathonPitch: React.FC = () => {
                   "Built from the ground up for the AI era"
                 ].map((item, index) => (
                   <li key={index} className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mr-2" />
-                    <span className="text-blue-700">{item}</span>
+                    <CheckCircle className="w-5 h-5 text-genesis-500 flex-shrink-0 mr-2" />
+                    <span className="text-genesis-700">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -131,7 +131,7 @@ const HackathonPitch: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-              <Zap className="w-8 h-8 text-blue-500 mb-3" />
+              <Zap className="w-8 h-8 text-genesis-500 mb-3" />
               <h4 className="font-medium text-gray-900 mb-2">AI-Powered Automation</h4>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>• Multi-model AI routing system</li>
@@ -202,7 +202,7 @@ const HackathonPitch: React.FC = () => {
                     </tr>
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Genesis Heritage Pro</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-600 font-bold">$37M target</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-genesis-600 font-bold">$37M target</td>
                     </tr>
                   </tbody>
                 </table>
@@ -231,10 +231,10 @@ const HackathonPitch: React.FC = () => {
                       <div className="text-sm text-gray-500">Customer Retention</div>
                       <div className="text-xl font-bold text-gray-900">95%+</div>
                     </div>
-                    <Users className="w-8 h-8 text-blue-500" />
+                    <Users className="w-8 h-8 text-genesis-500" />
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '95%' }}></div>
+                    <div className="bg-genesis-500 h-2 rounded-full" style={{ width: '95%' }}></div>
                   </div>
                 </div>
                 
@@ -280,7 +280,7 @@ const HackathonPitch: React.FC = () => {
                 <li>• 10,000 AI requests</li>
                 <li>• Email support</li>
               </ul>
-              <div className="mt-3 text-xs text-blue-600">
+              <div className="mt-3 text-xs text-genesis-600">
                 Target: Small businesses
               </div>
             </div>
@@ -295,7 +295,7 @@ const HackathonPitch: React.FC = () => {
                 <li>• Priority support</li>
                 <li>• Cultural heritage tools</li>
               </ul>
-              <div className="mt-3 text-xs text-blue-600">
+              <div className="mt-3 text-xs text-genesis-600">
                 Target: Mid-market companies
               </div>
             </div>
@@ -311,23 +311,23 @@ const HackathonPitch: React.FC = () => {
                 <li>• SSO & advanced security</li>
                 <li>• SLA guarantees</li>
               </ul>
-              <div className="mt-3 text-xs text-blue-300">
+              <div className="mt-3 text-xs text-genesis-300">
                 Target: Large enterprises
               </div>
             </div>
             
-            <div className="bg-blue-900 p-4 rounded-lg border border-blue-700 shadow-sm text-white">
+            <div className="bg-genesis-900 p-4 rounded-lg border border-genesis-700 shadow-sm text-white">
               <h4 className="font-medium text-white mb-2">Tier 4: White-label</h4>
               <div className="text-xl font-bold text-white mb-1">$50K setup + 20%</div>
-              <p className="text-sm text-blue-200 mb-3">Revenue share model</p>
-              <ul className="space-y-1 text-sm text-blue-200">
+              <p className="text-sm text-genesis-200 mb-3">Revenue share model</p>
+              <ul className="space-y-1 text-sm text-genesis-200">
                 <li>• Custom branding</li>
                 <li>• Reseller capabilities</li>
                 <li>• Custom development</li>
                 <li>• Dedicated infrastructure</li>
                 <li>• Joint marketing</li>
               </ul>
-              <div className="mt-3 text-xs text-blue-300">
+              <div className="mt-3 text-xs text-genesis-300">
                 Target: Agencies & partners
               </div>
             </div>
@@ -371,8 +371,8 @@ const HackathonPitch: React.FC = () => {
                 </p>
               </div>
               
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-5 rounded-lg border border-blue-200">
-                <Brain className="w-8 h-8 text-blue-500 mb-3" />
+              <div className="bg-gradient-to-r from-genesis-50 to-genesis-100 p-5 rounded-lg border border-genesis-200">
+                <Brain className="w-8 h-8 text-genesis-500 mb-3" />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">AI-First Architecture</h4>
                 <p className="text-gray-700">
                   Built for the AI era, not retrofitted like competitors. Our multi-model AI routing system selects the optimal AI for each specific task.
@@ -462,7 +462,7 @@ const HackathonPitch: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                <div className="w-8 h-8 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center font-bold">
                   1
                 </div>
                 <h4 className="text-lg font-medium text-gray-900">Opening Hook (30 seconds)</h4>
@@ -476,7 +476,7 @@ const HackathonPitch: React.FC = () => {
             
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                <div className="w-8 h-8 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center font-bold">
                   2
                 </div>
                 <h4 className="text-lg font-medium text-gray-900">Problem Statement (1 minute)</h4>
@@ -497,7 +497,7 @@ const HackathonPitch: React.FC = () => {
             
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                <div className="w-8 h-8 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center font-bold">
                   3
                 </div>
                 <h4 className="text-lg font-medium text-gray-900">Solution Demo (3 minutes)</h4>
@@ -519,7 +519,7 @@ const HackathonPitch: React.FC = () => {
             
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                <div className="w-8 h-8 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center font-bold">
                   4
                 </div>
                 <h4 className="text-lg font-medium text-gray-900">Business Impact (2 minutes)</h4>
@@ -540,7 +540,7 @@ const HackathonPitch: React.FC = () => {
             
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                <div className="w-8 h-8 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center font-bold">
                   5
                 </div>
                 <h4 className="text-lg font-medium text-gray-900">Market Validation (1 minute)</h4>
@@ -561,7 +561,7 @@ const HackathonPitch: React.FC = () => {
             
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                <div className="w-8 h-8 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center font-bold">
                   6
                 </div>
                 <h4 className="text-lg font-medium text-gray-900">Closing & Call to Action (30 seconds)</h4>
@@ -592,8 +592,8 @@ const HackathonPitch: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
-              <div className="bg-blue-50 p-5 rounded-lg border border-blue-100">
-                <h4 className="font-medium text-blue-900 mb-3">Technical Excellence (30%)</h4>
+              <div className="bg-genesis-50 p-5 rounded-lg border border-genesis-100">
+                <h4 className="font-medium text-genesis-900 mb-3">Technical Excellence (30%)</h4>
                 <ul className="space-y-2">
                   {[
                     "Advanced AI integration with multiple models",
@@ -602,8 +602,8 @@ const HackathonPitch: React.FC = () => {
                     "Clean, maintainable code with proper testing"
                   ].map((item, index) => (
                     <li key={index} className="flex items-start">
-                      <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mr-2" />
-                      <span className="text-blue-700">{item}</span>
+                      <CheckCircle className="w-5 h-5 text-genesis-500 flex-shrink-0 mr-2" />
+                      <span className="text-genesis-700">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -767,7 +767,7 @@ const HackathonPitch: React.FC = () => {
             className={`p-2 rounded-full transition-colors ${
               isPlaying
                 ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                : 'bg-genesis-100 text-genesis-600 hover:bg-genesis-200'
             }`}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}

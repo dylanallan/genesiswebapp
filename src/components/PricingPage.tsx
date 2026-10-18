@@ -111,8 +111,8 @@ export default function PricingPage() {
         </section>
 
         {(['monthly', 'yearly'] as const).map((plan) => (
-          <section key={plan} className="rounded-xl border-2 border-blue-600 bg-white p-6">
-            <h2 className="text-xl font-semibold">Pro {plan === 'yearly' && <span className="ml-1 rounded bg-blue-100 px-2 text-xs text-blue-800">Best value</span>}</h2>
+          <section key={plan} className="rounded-xl border-2 border-genesis-600 bg-white p-6">
+            <h2 className="text-xl font-semibold">Pro {plan === 'yearly' && <span className="ml-1 rounded bg-genesis-100 px-2 text-xs text-genesis-800">Best value</span>}</h2>
             <p className="my-3 text-2xl font-bold">{plan === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE}</p>
             <ul className="mb-5 space-y-2 text-sm">{PRO_FEATURES.map((f) => <li key={f} className="flex gap-2"><Check className="h-4 w-4 text-green-600 mt-0.5" />{f}</li>)}</ul>
             {autoPayPal && (

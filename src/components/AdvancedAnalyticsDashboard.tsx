@@ -103,7 +103,7 @@ export const AdvancedAnalyticsDashboard: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+        <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
       </div>
     );
   }
@@ -131,7 +131,7 @@ export const AdvancedAnalyticsDashboard: React.FC = () => {
                 onClick={() => setSelectedCategory(category.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                   selectedCategory === category.id
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-genesis-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -214,7 +214,7 @@ export const AdvancedAnalyticsDashboard: React.FC = () => {
                     <ul className="space-y-1">
                       {insight.actionItems.map((item, itemIndex) => (
                         <li key={itemIndex} className="text-sm text-gray-600 flex items-start">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0" />
+                          <span className="w-1.5 h-1.5 bg-genesis-500 rounded-full mt-2 mr-2 flex-shrink-0" />
                           {item}
                         </li>
                       ))}
@@ -243,7 +243,7 @@ export const AdvancedAnalyticsDashboard: React.FC = () => {
             <span>AI Router performance optimized</span>
           </div>
           <div className="flex items-center space-x-3 text-sm">
-            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+            <div className="w-2 h-2 bg-genesis-500 rounded-full" />
             <span className="text-gray-600">{new Date(Date.now() - 30000).toLocaleTimeString()}</span>
             <span>New analytics insight generated</span>
           </div>

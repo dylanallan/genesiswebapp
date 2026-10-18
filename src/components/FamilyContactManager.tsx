@@ -147,7 +147,7 @@ export const FamilyContactManager: React.FC = () => {
 
   const getRelationshipColor = (relationship: string) => {
     const colors: Record<string, string> = {
-      'parent': 'bg-blue-100 text-blue-800',
+      'parent': 'bg-genesis-100 text-genesis-800',
       'grandparent': 'bg-purple-100 text-purple-800',
       'sibling': 'bg-green-100 text-green-800',
       'cousin': 'bg-yellow-100 text-yellow-800',
@@ -172,7 +172,7 @@ export const FamilyContactManager: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Users className="w-6 h-6 text-blue-500" />
+          <Users className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">{t('Family Contacts')}</h2>
         </div>
         <button
@@ -189,7 +189,7 @@ export const FamilyContactManager: React.FC = () => {
               related_names: []
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>{t('Add Contact')}</span>
@@ -203,13 +203,13 @@ export const FamilyContactManager: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t('Search contacts by name, relationship, or location...')}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
         />
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-genesis-500"></div>
         </div>
       ) : filteredContacts.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -222,7 +222,7 @@ export const FamilyContactManager: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('Add Contact')}
@@ -250,7 +250,7 @@ export const FamilyContactManager: React.FC = () => {
                 <div className="flex space-x-1">
                   <button
                     onClick={() => handleEdit(contact)}
-                    className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                    className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
@@ -354,7 +354,7 @@ export const FamilyContactManager: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Enter contact name')}
                     required
                   />
@@ -368,7 +368,7 @@ export const FamilyContactManager: React.FC = () => {
                     type="text"
                     value={formData.relationship}
                     onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('e.g., Mother, Cousin, Grandfather')}
                   />
                 </div>
@@ -385,7 +385,7 @@ export const FamilyContactManager: React.FC = () => {
                         ...formData, 
                         contact_info: { ...formData.contact_info, email: e.target.value } 
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder="email@example.com"
                     />
                   </div>
@@ -401,7 +401,7 @@ export const FamilyContactManager: React.FC = () => {
                         ...formData, 
                         contact_info: { ...formData.contact_info, phone: e.target.value } 
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder="(123) 456-7890"
                     />
                   </div>
@@ -416,7 +416,7 @@ export const FamilyContactManager: React.FC = () => {
                       type="date"
                       value={formData.birth_date || ''}
                       onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     />
                   </div>
 
@@ -428,7 +428,7 @@ export const FamilyContactManager: React.FC = () => {
                       type="text"
                       value={formData.location || ''}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('City, Country')}
                     />
                   </div>
@@ -445,7 +445,7 @@ export const FamilyContactManager: React.FC = () => {
                       ...formData, 
                       contact_info: { ...formData.contact_info, address: e.target.value } 
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Full address')}
                   />
                 </div>
@@ -457,7 +457,7 @@ export const FamilyContactManager: React.FC = () => {
                   <textarea
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('Additional notes about this contact')}
                   ></textarea>
@@ -474,7 +474,7 @@ export const FamilyContactManager: React.FC = () => {
                       ...formData, 
                       related_names: e.target.value.split(',').map(name => name.trim()).filter(name => name) 
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('John Doe, Jane Smith, etc.')}
                   />
                 </div>
@@ -494,7 +494,7 @@ export const FamilyContactManager: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     {isEditing ? 'Update Contact' : 'Save Contact'}
                   </button>

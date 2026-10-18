@@ -216,7 +216,7 @@ export const AutomationHub: React.FC = () => {
 
   const getWorkflowIcon = (tags: string[]) => {
     if (tags.includes('email') || tags.includes('mail')) {
-      return <Mail className="w-5 h-5 text-blue-500" />;
+      return <Mail className="w-5 h-5 text-genesis-500" />;
     } else if (tags.includes('document') || tags.includes('documents')) {
       return <FileText className="w-5 h-5 text-orange-500" />;
     } else if (tags.includes('data') || tags.includes('database')) {
@@ -239,20 +239,20 @@ export const AutomationHub: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Workflow className="w-6 h-6 text-blue-500" />
+          <Workflow className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Automation Hub</h2>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowAssistant(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-genesis-50 text-genesis-600 rounded-lg hover:bg-genesis-100 transition-colors"
           >
             <Bot className="w-5 h-5" />
             <span>Automation Assistant</span>
           </button>
           <button
             onClick={handleShowCreateForm}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Create Workflow</span>
@@ -270,7 +270,7 @@ export const AutomationHub: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-500">Active Workflows</h3>
-            <Workflow className="w-5 h-5 text-blue-500" />
+            <Workflow className="w-5 h-5 text-genesis-500" />
           </div>
           <p className="text-2xl font-bold text-gray-900">{metrics.activeWorkflows}</p>
           <div className="flex items-center mt-1 text-sm">
@@ -338,7 +338,7 @@ export const AutomationHub: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search workflows by name, description, or tags..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
               />
             </div>
             
@@ -351,7 +351,7 @@ export const AutomationHub: React.FC = () => {
                     onClick={() => setSelectedCategory(selectedCategory === tag ? null : tag)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                       selectedCategory === tag
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-genesis-100 text-genesis-700'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -380,7 +380,7 @@ export const AutomationHub: React.FC = () => {
 
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-genesis-500" />
             </div>
           ) : filteredWorkflows.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -395,7 +395,7 @@ export const AutomationHub: React.FC = () => {
               </p>
               <button
                 onClick={handleShowCreateForm}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="inline-flex items-center px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Create Workflow
@@ -409,7 +409,7 @@ export const AutomationHub: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                    selectedWorkflow?.id === workflow.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'
+                    selectedWorkflow?.id === workflow.id ? 'border-genesis-500 ring-1 ring-genesis-500' : 'border-gray-200'
                   }`}
                   onClick={() => setSelectedWorkflow(
                     selectedWorkflow?.id === workflow.id ? null : workflow
@@ -447,7 +447,7 @@ export const AutomationHub: React.FC = () => {
                           toast.success(`${workflow.status === 'active' ? 'Paused' : 'Activated'} ${workflow.name}`);
                           handleEditWorkflow(workflow.id, { status: workflow.status === 'active' ? 'inactive' : 'active' });
                         }}
-                        className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                        className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                       >
                         {workflow.status === 'active' ? (
                           <Pause className="w-4 h-4" />
@@ -460,7 +460,7 @@ export const AutomationHub: React.FC = () => {
                           e.stopPropagation();
                           window.open(workflow.n8nUrl, '_blank');
                         }}
-                        className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                        className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </button>
@@ -559,7 +559,7 @@ export const AutomationHub: React.FC = () => {
                     href={n8nUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                    className="text-genesis-600 hover:text-genesis-800 flex items-center space-x-1"
                   >
                     <span className="truncate max-w-[150px]">{n8nUrl}</span>
                     <ExternalLink className="w-3 h-3" />
@@ -582,7 +582,7 @@ export const AutomationHub: React.FC = () => {
                     setIsN8NConnected(true);
                     toast.success('Connected to n8n successfully');
                   }}
-                  className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  className="w-full px-3 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors text-sm"
                 >
                   Connect to n8n
                 </button>
@@ -596,7 +596,7 @@ export const AutomationHub: React.FC = () => {
             <div className="space-y-2">
               <button
                 onClick={() => setShowAssistant(true)}
-                className="w-full flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                className="w-full flex items-center space-x-2 px-3 py-2 bg-genesis-50 text-genesis-700 rounded-lg hover:bg-genesis-100 transition-colors text-sm"
               >
                 <Bot className="w-4 h-4" />
                 <span>Ask Automation Assistant</span>
@@ -631,15 +631,15 @@ export const AutomationHub: React.FC = () => {
           </div>
           
           {/* Time Saved Stats */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+          <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
+            <h4 className="font-medium text-genesis-900 mb-2 flex items-center">
               <Clock className="w-4 h-4 mr-2" />
               Time Saved with Automation
             </h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-2xl font-bold text-blue-700">{metrics.timeSaved}</p>
-                <p className="text-sm text-blue-600">Hours/month</p>
+                <p className="text-2xl font-bold text-genesis-700">{metrics.timeSaved}</p>
+                <p className="text-sm text-genesis-600">Hours/month</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-700">${(metrics.timeSaved * 50).toLocaleString()}</p>
@@ -676,7 +676,7 @@ export const AutomationHub: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder="Enter workflow name"
                   />
                 </div>
@@ -686,7 +686,7 @@ export const AutomationHub: React.FC = () => {
                     Description
                   </label>
                   <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder="Describe what this workflow does"
                   ></textarea>
@@ -698,7 +698,7 @@ export const AutomationHub: React.FC = () => {
                       Trigger Type
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     >
                       <option value="">Select trigger</option>
                       <option value="webhook">Webhook</option>
@@ -715,7 +715,7 @@ export const AutomationHub: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder="e.g., sales, email, customer"
                     />
                   </div>
@@ -737,7 +737,7 @@ export const AutomationHub: React.FC = () => {
                           type="button"
                           className="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
                         >
-                          <Icon className="w-5 h-5 text-blue-500" />
+                          <Icon className="w-5 h-5 text-genesis-500" />
                           <span className="font-medium text-gray-700">{template.name}</span>
                         </button>
                       );
@@ -760,7 +760,7 @@ export const AutomationHub: React.FC = () => {
                       setShowAddForm(false);
                       window.open('https://n8n.yourdomain.com/workflow/new', '_blank');
                     }}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     Create in n8n
                   </button>
@@ -782,7 +782,7 @@ export const AutomationHub: React.FC = () => {
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div className="flex items-center space-x-2">
-                <Bot className="w-5 h-5 text-blue-500" />
+                <Bot className="w-5 h-5 text-genesis-500" />
                 <h2 className="text-lg font-semibold text-gray-900">Automation Assistant</h2>
                 <div className="flex items-center space-x-1 ml-2">
                   <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
@@ -809,7 +809,7 @@ export const AutomationHub: React.FC = () => {
               </div>
               
               <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-lg p-3 bg-blue-600 text-white">
+                <div className="max-w-[85%] rounded-lg p-3 bg-genesis-600 text-white">
                   <p className="whitespace-pre-wrap">I need to create a workflow that automatically sends welcome emails to new customers</p>
                 </div>
               </div>
@@ -839,11 +839,11 @@ Would you like me to help you set up this workflow in n8n now?</p>
                 <input
                   type="text"
                   placeholder="Ask about automation..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-genesis-500"
                 />
                 <button
                   type="submit"
-                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="p-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
                 >
                   <Send className="w-5 h-5" />
                 </button>

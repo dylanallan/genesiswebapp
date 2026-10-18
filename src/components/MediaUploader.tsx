@@ -88,7 +88,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
   const getFileTypeIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) {
-      return <Image className="w-8 h-8 text-blue-500" />;
+      return <Image className="w-8 h-8 text-genesis-500" />;
     } else if (fileType.startsWith('audio/')) {
       return <Music className="w-8 h-8 text-purple-500" />;
     } else if (fileType.startsWith('video/')) {
@@ -161,8 +161,8 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             onDrop={handleDrop}
             className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
               isDragging 
-                ? 'border-blue-500 bg-blue-50' 
-                : 'border-gray-300 hover:border-blue-400'
+                ? 'border-genesis-500 bg-genesis-50' 
+                : 'border-gray-300 hover:border-genesis-400'
             }`}
           >
             <input
@@ -174,7 +174,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             />
             
             <div className="flex flex-col items-center justify-center">
-              <Upload className="w-12 h-12 text-blue-500 mb-4" />
+              <Upload className="w-12 h-12 text-genesis-500 mb-4" />
               
               <h3 className="text-lg font-medium text-gray-900 mb-1">{label}</h3>
               
@@ -185,7 +185,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50"
               >
                 {isUploading ? (
                   <div className="flex items-center space-x-2">

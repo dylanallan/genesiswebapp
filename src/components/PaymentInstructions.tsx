@@ -18,7 +18,7 @@ export const PaymentInstructions: React.FC<{ request: ManualPayment; manual: Man
   useLang();
   const amount = <strong>{formatCad(request.amount_cents)}</strong>;
   return (
-    <section className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-6 text-blue-950" aria-live="polite" data-testid="payment-instructions">
+    <section className="mt-8 rounded-xl border border-genesis-200 bg-genesis-50 p-6 text-genesis-950" aria-live="polite" data-testid="payment-instructions">
       <h2 className="text-lg font-semibold mb-2">{request.method === 'paypal_link' ? t('Pay with PayPal') : t('Send your Interac e-Transfer')}</h2>
       <ol className="list-decimal pl-5 space-y-1 text-sm">
         <li>
@@ -38,7 +38,7 @@ export const PaymentInstructions: React.FC<{ request: ManualPayment; manual: Man
         )}
         <li>{done ?? t('We’ll switch on Pro as soon as the payment arrives (usually within one business day). This page will show it.')}</li>
       </ol>
-      {footnote && <p className="mt-3 text-xs text-blue-800">{t('One-time payments do not renew automatically. Pay again any time to extend; days are never lost.')}</p>}
+      {footnote && <p className="mt-3 text-xs text-genesis-800">{t('One-time payments do not renew automatically. Pay again any time to extend; days are never lost.')}</p>}
     </section>
   );
 };

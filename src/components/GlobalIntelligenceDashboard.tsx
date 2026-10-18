@@ -166,7 +166,7 @@ const GlobalIntelligenceDashboard: React.FC = () => {
             </div>
             <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-2">Processing Rate</h3>
-              <p className="text-3xl font-bold text-blue-400">
+              <p className="text-3xl font-bold text-genesis-400">
                 {(metrics.processingRate * 100).toFixed(1)}%
               </p>
             </div>
@@ -238,7 +238,7 @@ const GlobalIntelligenceDashboard: React.FC = () => {
               {recommendations.slice(0, 8).map((rec, index) => (
                 <div key={index} className="p-4 bg-white/5 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-blue-400">
+                    <span className="text-sm font-semibold text-genesis-400">
                       {rec.type.replace('_', ' ')}
                     </span>
                     <span className={`text-sm px-2 py-1 rounded ${getPriorityColor(rec.priority)}`}>

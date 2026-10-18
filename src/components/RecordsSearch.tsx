@@ -63,7 +63,7 @@ export default function RecordsSearch() {
         <input aria-label={t('Name')} className="border rounded px-3 py-2 sm:col-span-2" placeholder={t('Name (e.g. Maria Gonzalez)')} value={name} onChange={(e) => setName(e.target.value)} required />
         <input aria-label={t('Place')} className="border rounded px-3 py-2" placeholder={t('Place (optional)')} value={place} onChange={(e) => setPlace(e.target.value)} />
         <input aria-label={t('Year')} className="border rounded px-3 py-2" placeholder={t('Year (optional)')} inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))} />
-        <button disabled={loading} className="sm:col-span-4 inline-flex items-center justify-center gap-2 rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50">
+        <button disabled={loading} className="sm:col-span-4 inline-flex items-center justify-center gap-2 rounded bg-genesis-600 px-4 py-2 text-white disabled:opacity-50">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? 'Searching archives…' : 'Search records'}
         </button>
       </form>
@@ -81,7 +81,7 @@ export default function RecordsSearch() {
                   <li key={key} className="rounded-lg border p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <a href={h.url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-700 hover:underline inline-flex items-center gap-1">{h.title}<ExternalLink className="h-3 w-3" /></a>
+                        <a href={h.url} target="_blank" rel="noopener noreferrer" className="font-medium text-genesis-700 hover:underline inline-flex items-center gap-1">{h.title}<ExternalLink className="h-3 w-3" /></a>
                         {h.date && <span className="ml-2 text-xs text-gray-500">{h.date}</span>}
                         {h.snippet && <p className="mt-1 text-sm text-gray-700">{h.snippet}</p>}
                         <p className="mt-1 text-xs text-gray-500">{h.sourceLabel} · {h.attribution}{h.license ? ` · ${h.license}` : ''}</p>
@@ -111,7 +111,7 @@ export default function RecordsSearch() {
               <ul className="mt-1 space-y-1">
                 {links.map((l) => (
                   <li key={l.label} className="text-sm">
-                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline inline-flex items-center gap-1">{l.label}<ExternalLink className="h-3 w-3" /></a>
+                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-genesis-700 hover:underline inline-flex items-center gap-1">{l.label}<ExternalLink className="h-3 w-3" /></a>
                     {l.note && <span className="ml-2 text-gray-500">{l.note}</span>}
                   </li>
                 ))}

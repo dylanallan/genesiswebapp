@@ -23,7 +23,7 @@ const workflowCategories = [
     id: 'documents',
     name: 'Document Management',
     icon: FileText,
-    color: 'text-blue-400',
+    color: 'text-genesis-400',
     description: 'Automate document processing and organization',
     templates: [
       'Document Approval Flow',

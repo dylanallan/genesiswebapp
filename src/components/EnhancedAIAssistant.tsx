@@ -221,11 +221,11 @@ What would you like to find out?`,
   const availableModels = chatApi.getAvailableModels();
 
   return (
-    <div className="flex flex-col h-[700px] bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-lg border border-blue-200">
+    <div className="flex flex-col h-[700px] bg-gradient-to-br from-white to-genesis-50 rounded-xl shadow-lg border border-genesis-200">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-blue-200 bg-white/80 backdrop-blur-sm rounded-t-xl">
+      <div className="flex items-center justify-between p-4 border-b border-genesis-200 bg-white/80 backdrop-blur-sm rounded-t-xl">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-genesis-500 to-purple-600 flex items-center justify-center">
             <Brain className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -236,7 +236,7 @@ What would you like to find out?`,
       </div>
 
       {/* Messages Area */}
-      <div ref={messagesBoxRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-blue-50/30">
+      <div ref={messagesBoxRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-genesis-50/30">
         {messages.map((message, index) => (
           <motion.div 
             key={message.id}
@@ -248,14 +248,14 @@ What would you like to find out?`,
               message.role === 'assistant' ? 'justify-start' : 'justify-end'
             }`}>
               {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-genesis-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
               )}
               
               <div className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
                 message.role === 'user' 
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
+                  ? 'bg-gradient-to-r from-genesis-600 to-genesis-700 text-white' 
                   : 'bg-white text-gray-900 border border-gray-200'
               }`}>
                 <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
@@ -307,16 +307,16 @@ What would you like to find out?`,
             animate={{ opacity: 1, y: 0 }}
             className="flex items-start space-x-3"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-genesis-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
               <Bot className="w-4 h-4 text-white" />
             </div>
             <div className="max-w-[85%] rounded-2xl p-4 bg-white text-gray-900 border border-gray-200 shadow-sm">
               <div className="whitespace-pre-wrap leading-relaxed">{streamingContent}</div>
               <div className="mt-2 flex items-center space-x-2">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
                 <span className="text-xs text-gray-500">AI is typing...</span>
               </div>
@@ -331,9 +331,9 @@ What would you like to find out?`,
             className="flex items-center justify-center space-x-3 text-gray-500 py-8"
           >
             <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
             <span className="text-sm font-medium">AI is thinking...</span>
           </motion.div>
@@ -343,13 +343,13 @@ What would you like to find out?`,
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-blue-50 border border-blue-200 p-4 rounded-xl mx-4"
+            className="bg-genesis-50 border border-genesis-200 p-4 rounded-xl mx-4"
           >
             <div className="flex items-center space-x-2 mb-2">
-              <Mic className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Listening...</span>
+              <Mic className="w-4 h-4 text-genesis-600" />
+              <span className="text-sm font-medium text-genesis-700">Listening...</span>
             </div>
-            <p className="text-sm text-blue-800">{transcript}</p>
+            <p className="text-sm text-genesis-800">{transcript}</p>
           </motion.div>
         )}
         
@@ -357,7 +357,7 @@ What would you like to find out?`,
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-blue-200 bg-white rounded-b-xl">
+      <div className="p-4 border-t border-genesis-200 bg-white rounded-b-xl">
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex space-x-3">
             <button
@@ -378,7 +378,7 @@ What would you like to find out?`,
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about an ancestor, a record, or your family's history..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500 shadow-sm"
                 disabled={isLoading}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -402,7 +402,7 @@ What would you like to find out?`,
               aria-label="Send"
               title="Send"
               disabled={isLoading || !input.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-gradient-to-r from-genesis-600 to-genesis-700 text-white rounded-xl hover:from-genesis-700 hover:to-genesis-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <Send className="w-5 h-5" />
             </button>
@@ -413,7 +413,7 @@ What would you like to find out?`,
             <button
               type="button"
               onClick={() => setInput("Help me with genealogy research")}
-              className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+              className="px-3 py-1.5 text-xs bg-genesis-100 text-genesis-700 rounded-full hover:bg-genesis-200 transition-colors"
             >
               Genealogy Research
             </button>
@@ -460,7 +460,7 @@ What would you like to find out?`,
                   <select
                     value={currentModel}
                     onChange={(e) => setCurrentModel(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                   >
                     {availableModels.map(model => (
                       <option key={model.id} value={model.id}>
@@ -474,7 +474,7 @@ What would you like to find out?`,
                   <h4 className="font-medium text-gray-900 mb-2">Custom Instructions</h4>
                   <button
                     onClick={() => setShowCustomInstructionsEditor(true)}
-                    className="w-full flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                    className="w-full flex items-center space-x-2 px-4 py-2 bg-genesis-100 text-genesis-700 rounded-lg hover:bg-genesis-200 transition-colors"
                   >
                     <Brain className="w-4 h-4" />
                     <span>Edit Custom Instructions</span>
@@ -487,7 +487,7 @@ What would you like to find out?`,
                       setShowSettings(false);
                       toast.success('Settings saved');
                     }}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     Save Settings
                   </button>

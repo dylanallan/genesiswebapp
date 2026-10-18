@@ -194,7 +194,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
         );
       case 'user':
         return (
-          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+          <span className="px-2 py-1 bg-genesis-100 text-genesis-800 rounded-full text-xs font-medium">
             {t('User Added')}
           </span>
         );
@@ -236,7 +236,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <Users className="w-6 h-6 text-blue-500" />
+          <Users className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">{t('People in your tree')}</h2>
         </div>
         <div className="flex items-center space-x-2">
@@ -260,7 +260,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
           </button>
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
           >
             <UserPlus className="w-5 h-5" />
             <span>{t('Add Member')}</span>
@@ -276,7 +276,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('Search family members...')}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
           />
         </div>
         <div className="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
@@ -288,7 +288,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
               className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
                 (category === 'All' && !filterRelationship) || 
                 filterRelationship === category.toLowerCase()
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-genesis-100 text-genesis-700'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -312,7 +312,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
             {!searchTerm && !filterRelationship && (
               <button
                 onClick={() => setShowAddForm(true)}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="mt-4 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
               >
                 {t('Add Family Member')}
               </button>
@@ -338,7 +338,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                       <h3 className="font-medium text-gray-900">{member.name}</h3>
                       {member.source !== 'user' && getSourceBadge(member.source)}
                     </div>
-                    {labelOf(member) && <p className="text-sm text-blue-600">{t(labelOf(member))}</p>}
+                    {labelOf(member) && <p className="text-sm text-genesis-600">{t(labelOf(member))}</p>}
                   </div>
                 </div>
                 <div className="flex space-x-1">
@@ -346,7 +346,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                     onClick={() => toggleExpand(member.id)}
                     aria-label={t(expandedMemberId === member.id ? 'Hide details' : 'Show details')}
                     aria-expanded={expandedMemberId === member.id}
-                    className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                    className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                   >
                     {expandedMemberId === member.id ? (
                       <ChevronUp className="w-5 h-5" />
@@ -357,7 +357,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                   <button
                     onClick={() => startEdit(member)}
                     aria-label={t('Edit {name}', { name: member.name })}
-                    className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                    className="p-1 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                   >
                     <Edit className="w-5 h-5" />
                   </button>
@@ -444,7 +444,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-medium text-gray-900">{member.name}</h3>
-                    <p className="text-sm text-blue-600">{t(member.relationship)}</p>
+                    <p className="text-sm text-genesis-600">{t(member.relationship)}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <span className="text-xs text-gray-500">{t('Confidence:')}</span>
                       <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -530,7 +530,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Full name')}
                     required
                   />
@@ -544,7 +544,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                     type="text"
                     value={formData.relationship}
                     onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('e.g., Mother, Grandfather, Cousin')}
                     required
                   />
@@ -559,7 +559,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                       type="date"
                       value={formData.birthDate}
                       onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     />
                   </div>
                   <div className="space-y-1">
@@ -570,7 +570,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                       type="text"
                       value={formData.birthPlace}
                       onChange={(e) => setFormData({ ...formData, birthPlace: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('City, Country')}
                     />
                   </div>
@@ -585,7 +585,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                       type="date"
                       value={formData.deathDate}
                       onChange={(e) => setFormData({ ...formData, deathDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     />
                   </div>
                   <div className="space-y-1">
@@ -596,7 +596,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                       type="text"
                       value={formData.deathPlace}
                       onChange={(e) => setFormData({ ...formData, deathPlace: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('City, Country')}
                     />
                   </div>
@@ -609,7 +609,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                   <textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('Additional information, stories, etc.')}
                   />
@@ -626,7 +626,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
                   <button
                     type="button"
                     onClick={editingMember ? handleUpdateMember : handleAddMember}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors flex items-center justify-center space-x-2"
                   >
                     <Save className="w-4 h-4" />
                     <span>{t(editingMember ? 'Update Member' : 'Add Member')}</span>

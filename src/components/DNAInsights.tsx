@@ -133,7 +133,7 @@ export const DNAInsights: React.FC = () => {
             </div>
           </div>
 
-          <p className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
+          <p className="flex items-start gap-2 rounded-lg bg-genesis-50 p-3 text-sm text-genesis-900">
             <Info className="w-4 h-4 mt-0.5 shrink-0" />
             {t('Coming soon: ethnicity estimates built on open scientific reference data (1000 Genomes and HGDP), and paternal and maternal haplogroups. We show only results we can measure from your own data. This tool does not give medical or health information.')}
           </p>

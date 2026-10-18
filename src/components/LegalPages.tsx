@@ -12,7 +12,7 @@ const Page: React.FC<{ title: string; children: React.ReactNode }> = ({ title, c
   useLang();
   return (
   <main className="max-w-3xl mx-auto px-4 py-10 text-gray-800 leading-relaxed">
-    <a href="/" className="text-sm text-blue-700 hover:underline">← Genesis Heritage</a>
+    <a href="/" className="text-sm text-genesis-700 hover:underline">← Genesis Heritage</a>
     <h1 className="text-3xl font-bold mt-4">{title}</h1>
     <p className="text-sm text-gray-500 mb-6">{t('Last updated {date}', { date: updated() })}</p>
     <div className="space-y-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-8 [&_ul]:list-disc [&_ul]:pl-6">{children}</div>
@@ -70,7 +70,7 @@ export const PrivacyPolicy: React.FC = () => {
 
     <h2>{t('Contact')}</h2>
     <p>{t('Questions or requests: contact us at {contact}. If we change this policy in an important way, we will tell you in the app first.', { contact: contact() })}</p>
-    <p><Link to="/terms" className="text-blue-700 hover:underline">{t('Terms of Service')}</Link></p>
+    <p><Link to="/terms" className="text-genesis-700 hover:underline">{t('Terms of Service')}</Link></p>
   </Page>
   );
 };
@@ -120,7 +120,7 @@ export const TermsOfService: React.FC = () => {
 
     <h2>{t('Contact')}</h2>
     <p>{t('Contact us at {contact}.', { contact: contact() })}</p>
-    <p><Link to="/privacy" className="text-blue-700 hover:underline">{t('Privacy Policy')}</Link></p>
+    <p><Link to="/privacy" className="text-genesis-700 hover:underline">{t('Privacy Policy')}</Link></p>
   </Page>
   );
 };

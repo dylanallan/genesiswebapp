@@ -380,7 +380,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'document':
-        return <FileText className="w-5 h-5 text-blue-500" />;
+        return <FileText className="w-5 h-5 text-genesis-500" />;
       case 'note':
         return <FileText className="w-5 h-5 text-green-500" />;
       case 'reference':
@@ -406,7 +406,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Brain className="w-6 h-6 text-blue-500" />
+              <Brain className="w-6 h-6 text-genesis-500" />
               <h2 className="text-xl font-semibold text-gray-900">AI Context Manager</h2>
             </div>
             <button
@@ -422,7 +422,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
               onClick={() => setActiveTab('knowledge')}
               className={`px-4 py-2 rounded-lg transition-colors ${
                 activeTab === 'knowledge'
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-genesis-100 text-genesis-700'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -435,7 +435,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
               onClick={() => setActiveTab('memory')}
               className={`px-4 py-2 rounded-lg transition-colors ${
                 activeTab === 'memory'
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-genesis-100 text-genesis-700'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -458,14 +458,14 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search knowledge base..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                   />
                 </div>
                 
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setShowAddForm(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     <Plus className="w-5 h-5" />
                     <span>Add Content</span>
@@ -488,12 +488,12 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
               </div>
               
               {selectedFile && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-between">
+                <div className="mb-6 p-4 bg-genesis-50 rounded-lg border border-genesis-100 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <FileText className="w-5 h-5 text-blue-500" />
+                    <FileText className="w-5 h-5 text-genesis-500" />
                     <div>
-                      <p className="font-medium text-blue-900">{selectedFile.name}</p>
-                      <p className="text-sm text-blue-700">{(selectedFile.size / 1024).toFixed(2)} KB</p>
+                      <p className="font-medium text-genesis-900">{selectedFile.name}</p>
+                      <p className="text-sm text-genesis-700">{(selectedFile.size / 1024).toFixed(2)} KB</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -506,7 +506,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                     <button
                       onClick={uploadFile}
                       disabled={isUploading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50"
                     >
                       {isUploading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -538,7 +538,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                       <select
                         value={contentType}
                         onChange={(e) => setContentType(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       >
                         <option value="document">Document</option>
                         <option value="note">Note</option>
@@ -553,7 +553,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                       <textarea
                         value={contentText}
                         onChange={(e) => setContentText(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                         rows={8}
                         placeholder="Enter content to add to the AI knowledge base..."
                       />
@@ -569,7 +569,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                       <button
                         onClick={addContent}
                         disabled={isUploading || !contentText.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50"
                       >
                         {isUploading ? (
                           <Loader2 className="w-5 h-5 animate-spin" />
@@ -584,7 +584,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
               
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+                  <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -598,7 +598,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                   <div className="flex justify-center space-x-4">
                     <button
                       onClick={() => setShowAddForm(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                     >
                       Add Content
                     </button>
@@ -644,7 +644,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                       </div>
                       
                       <div className="mt-3 flex items-center space-x-2">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                        <span className="px-2 py-1 bg-genesis-100 text-genesis-700 rounded-full text-xs">
                           {item.contentType}
                         </span>
                         {item.metadata?.fileType && (
@@ -669,7 +669,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
               
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+                  <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
                 </div>
               ) : conversationMemory.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -688,7 +688,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start space-x-3">
-                          <Memory className="w-5 h-5 text-blue-500" />
+                          <Memory className="w-5 h-5 text-genesis-500" />
                           <div>
                             <h4 className="font-medium text-gray-900">Session {memory.sessionId.substring(0, 8)}...</h4>
                             <p className="text-sm text-gray-500">
@@ -705,7 +705,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                       </div>
                       
                       <div className="mt-3 flex items-center justify-between">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                        <span className="px-2 py-1 bg-genesis-100 text-genesis-700 rounded-full text-xs">
                           {memory.messages} messages
                         </span>
                         <button
@@ -713,7 +713,7 @@ export const AIContextManager: React.FC<AIContextManagerProps> = ({ onClose }) =
                             // View memory details (in a real implementation)
                             toast.info('Memory details view not implemented in this demo');
                           }}
-                          className="text-sm text-blue-600 hover:text-blue-800"
+                          className="text-sm text-genesis-600 hover:text-genesis-800"
                         >
                           View Details
                         </button>

@@ -94,7 +94,7 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-2">
-              <Brain className="w-6 h-6 text-blue-500" />
+              <Brain className="w-6 h-6 text-genesis-500" />
               <h2 className="text-xl font-semibold text-gray-900">Custom AI Instructions</h2>
             </div>
             <button
@@ -107,7 +107,7 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+              <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
             </div>
           ) : (
             <div className="space-y-4">
@@ -115,10 +115,10 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={toggleEnabled}
-                    className="p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-genesis-500"
                   >
                     {isEnabled ? (
-                      <CheckSquare className="w-5 h-5 text-blue-500" />
+                      <CheckSquare className="w-5 h-5 text-genesis-500" />
                     ) : (
                       <Square className="w-5 h-5 text-gray-400" />
                     )}
@@ -134,19 +134,19 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
                 <textarea
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                   rows={8}
                   placeholder="Enter your custom instructions for the AI assistant..."
                   disabled={!isEnabled}
                 />
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
                 <div className="flex items-start">
-                  <Info className="w-5 h-5 text-blue-500 mt-0.5 mr-2" />
+                  <Info className="w-5 h-5 text-genesis-500 mt-0.5 mr-2" />
                   <div>
-                    <h3 className="font-medium text-blue-900">Instruction Tips</h3>
-                    <ul className="mt-2 space-y-1 text-sm text-blue-700">
+                    <h3 className="font-medium text-genesis-900">Instruction Tips</h3>
+                    <ul className="mt-2 space-y-1 text-sm text-genesis-700">
                       <li>• Include your role, industry, or background</li>
                       <li>• Specify your preferred response format</li>
                       <li>• Mention topics you're interested in</li>
@@ -181,7 +181,7 @@ export const AICustomInstructionsEditor: React.FC<AICustomInstructionsEditorProp
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                  className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
                 >
                   {isSaving ? (
                     <>

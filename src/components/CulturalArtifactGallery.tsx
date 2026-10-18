@@ -70,7 +70,7 @@ export const CulturalArtifactGallery: React.FC = () => {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'image':
-        return <Image className="w-5 h-5 text-blue-500" />;
+        return <Image className="w-5 h-5 text-genesis-500" />;
       case 'document':
         return <FileText className="w-5 h-5 text-green-500" />;
       case 'audio':
@@ -230,12 +230,12 @@ export const CulturalArtifactGallery: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Globe className="w-6 h-6 text-blue-500" />
+          <Globe className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">{t('Cultural Artifacts')}</h2>
         </div>
         <button
           onClick={handleAddArtifact}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>{t('Add Artifact')}</span>
@@ -250,7 +250,7 @@ export const CulturalArtifactGallery: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('Search artifacts...')}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
           />
         </div>
         <div className="flex space-x-2">
@@ -260,7 +260,7 @@ export const CulturalArtifactGallery: React.FC = () => {
               onClick={() => setSelectedCategory(selectedCategory === category ? null : category)}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 selectedCategory === category
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-genesis-100 text-genesis-700'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -280,7 +280,7 @@ export const CulturalArtifactGallery: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-genesis-500"></div>
         </div>
       ) : filteredArtifacts.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -295,7 +295,7 @@ export const CulturalArtifactGallery: React.FC = () => {
           </p>
           <button
             onClick={handleAddArtifact}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('Add Artifact')}
@@ -407,7 +407,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                       href={selectedArtifact.media_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-blue-600 hover:text-blue-800"
+                      className="flex items-center space-x-2 text-genesis-600 hover:text-genesis-800"
                     >
                       <ExternalLink className="w-4 h-4" />
                       <span>View {selectedArtifact.media_type}</span>
@@ -428,7 +428,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                     handleEditArtifact(selectedArtifact);
                     setSelectedArtifact(null);
                   }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                 >
                   {t('Edit Artifact')}
                 </button>
@@ -479,7 +479,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Enter artifact title')}
                     required
                   />
@@ -492,7 +492,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('Describe the cultural significance of this artifact')}
                   />
@@ -506,7 +506,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       required
                     >
                       <option value="">{t('Select a category')}</option>
@@ -526,7 +526,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                       type="text"
                       value={formData.media_url}
                       onChange={(e) => setFormData({ ...formData, media_url: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder="https://example.com/media.jpg"
                     />
                   </div>
@@ -547,13 +547,13 @@ export const CulturalArtifactGallery: React.FC = () => {
                           addTag();
                         }
                       }}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('Add a tag and press Enter')}
                     />
                     <button
                       type="button"
                       onClick={addTag}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                     >
                       <Plus className="w-5 h-5" />
                     </button>
@@ -590,7 +590,7 @@ export const CulturalArtifactGallery: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     {showEditForm ? 'Update Artifact' : 'Save Artifact'}
                   </button>

@@ -142,7 +142,7 @@ export const TraditionsManager: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Globe className="w-6 h-6 text-blue-500" />
+          <Globe className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">{t('Cultural Traditions')}</h2>
         </div>
         <button
@@ -159,7 +159,7 @@ export const TraditionsManager: React.FC = () => {
               participants: []
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span>{t('Add Tradition')}</span>
@@ -173,13 +173,13 @@ export const TraditionsManager: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t('Search traditions by name, description, or origin...')}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
         />
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-genesis-500"></div>
         </div>
       ) : filteredTraditions.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -192,7 +192,7 @@ export const TraditionsManager: React.FC = () => {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('Add Tradition')}
@@ -214,7 +214,7 @@ export const TraditionsManager: React.FC = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <MapPin className="w-4 h-4 text-blue-500" />
+                      <MapPin className="w-4 h-4 text-genesis-500" />
                       <span className="font-medium">{t('Origin:')}</span>
                       <span>{tradition.origin || t('Not specified')}</span>
                     </div>
@@ -228,7 +228,7 @@ export const TraditionsManager: React.FC = () => {
                   
                   <div className="flex flex-wrap gap-2 mt-4">
                     {tradition.participants && tradition.participants.map((participant, index) => (
-                      <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                      <span key={index} className="px-2 py-1 bg-genesis-50 text-genesis-700 rounded-full text-xs">
                         {participant}
                       </span>
                     ))}
@@ -238,7 +238,7 @@ export const TraditionsManager: React.FC = () => {
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(tradition)}
-                    className="p-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                    className="p-2 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                   >
                     <Edit className="w-5 h-5" />
                   </button>
@@ -255,7 +255,7 @@ export const TraditionsManager: React.FC = () => {
                 onClick={() => setSelectedTradition(
                   selectedTradition?.id === tradition.id ? null : tradition
                 )}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                className="mt-4 text-sm text-genesis-600 hover:text-genesis-800 flex items-center"
               >
                 <span>{selectedTradition?.id === tradition.id ? 'Hide details' : 'View details'}</span>
               </button>
@@ -315,7 +315,7 @@ export const TraditionsManager: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Enter tradition name')}
                     required
                   />
@@ -328,7 +328,7 @@ export const TraditionsManager: React.FC = () => {
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('Describe this tradition')}
                   ></textarea>
@@ -343,7 +343,7 @@ export const TraditionsManager: React.FC = () => {
                       type="text"
                       value={formData.origin}
                       onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                       placeholder={t('Where did this tradition originate?')}
                     />
                   </div>
@@ -355,7 +355,7 @@ export const TraditionsManager: React.FC = () => {
                     <select
                       value={formData.frequency}
                       onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     >
                       <option value="">{t('Select frequency')}</option>
                       <option value="Daily">{t('Daily')}</option>
@@ -374,7 +374,7 @@ export const TraditionsManager: React.FC = () => {
                   <textarea
                     value={formData.historical_context}
                     onChange={(e) => setFormData({ ...formData, historical_context: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('Describe the historical context of this tradition')}
                   ></textarea>
@@ -387,7 +387,7 @@ export const TraditionsManager: React.FC = () => {
                   <textarea
                     value={formData.modern_application}
                     onChange={(e) => setFormData({ ...formData, modern_application: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={3}
                     placeholder={t('How is this tradition practiced today?')}
                   ></textarea>
@@ -404,7 +404,7 @@ export const TraditionsManager: React.FC = () => {
                       ...formData, 
                       participants: e.target.value.split(',').map(p => p.trim()).filter(p => p) 
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     placeholder={t('Family members, community, etc.')}
                   />
                 </div>
@@ -419,7 +419,7 @@ export const TraditionsManager: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
                     {isEditing ? 'Update Tradition' : 'Save Tradition'}
                   </button>
