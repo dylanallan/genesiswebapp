@@ -279,4 +279,16 @@ export const FR_REST: Record<string, string> = {
   'Add a family story': 'Ajouter une histoire de famille',
   'Edit this story': 'Modifier cette histoire',
   'Card and PayPal payments are processed securely by PayPal. We never see or store your card or bank details.': 'Les paiements par carte et PayPal sont traités de façon sécurisée par PayPal. Nous ne voyons ni ne conservons jamais vos renseignements de carte ou bancaires.',
+  // Listen: stories read aloud
+  'Listen': 'Écouter',
+  'Resume': 'Reprendre',
+  'Stop': 'Arrêter',
+  'Reading aloud…': 'Lecture à voix haute…',
+  'Paused': 'En pause',
+  'Listen to the whole book': 'Écouter tout le livre',
+  'Read aloud with': 'Lire à voix haute avec',
+  'This device’s voice': 'La voix de cet appareil',
+  '{name}’s voice': 'La voix de {name}',
+  'Getting the family voice ready…': 'Préparation de la voix familiale…',
+  'The family voice could not read this. Please try again.': 'La voix familiale n’a pas pu lire ce texte. Veuillez réessayer.',
 };

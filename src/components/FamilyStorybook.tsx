@@ -10,6 +10,7 @@ import { useSaveGuard } from '../lib/use-save-guard';
 import { BookSize, photoCaption, printBookHtml } from '../lib/storybook-print';
 import { currentUserId, signedUrl } from '../lib/storage';
 import { locale, t, useLang } from '../lib/i18n';
+import ListenButton, { VoicePicker, useVoiceProfiles } from './ListenButton';
 
 interface SavedBook { id: string; title: string; chapters: Chapter[]; created_at: string }
 
@@ -71,6 +72,8 @@ export const FamilyStorybook: React.FC = () => {
   const [progress, setProgress] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedBook[]>([]);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const voices = useVoiceProfiles();
+  const [voiceId, setVoiceId] = useState('');
 
   const loadSaved = async () => {
     const { data } = await supabase.from('storybooks').select('id,title,chapters,created_at').order('created_at', { ascending: false });
@@ -177,10 +180,17 @@ export const FamilyStorybook: React.FC = () => {
       {chapters.length > 0 && (
         <article className="border rounded-lg p-6 bg-amber-50/40 font-serif space-y-6">
           <h1 className="text-3xl text-center">{title}</h1>
+          {!progress && (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <ListenButton label={t('Listen to the whole book')} title={title} text={chapters.map((c) => `${t(c.heading)}.\n\n${c.body}`).join('\n\n')} voiceProfileId={voiceId || null} />
+              <VoicePicker profiles={voices} value={voiceId} onChange={setVoiceId} />
+            </div>
+          )}
           {chapters.map((c, i) => (
             <section key={i}>
               <h2 className="text-xl font-semibold border-b pb-1 mb-2">{t(c.heading)}</h2>
               {c.body.split(/\n{2,}/).map((p, j) => <p key={j} className="mb-3 leading-relaxed">{p}</p>)}
+              <ListenButton title={t(c.heading)} text={c.body} voiceProfileId={voiceId || null} />
             </section>
           ))}
           <div className="flex flex-wrap items-center gap-3 font-sans">

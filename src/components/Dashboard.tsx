@@ -107,7 +107,8 @@ import {
   Server,
   Trophy,
   ListChecks,
-  Send
+  Send,
+  ScanText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { t, useLang } from '../lib/i18n';
@@ -208,6 +209,7 @@ const FamilyFacts = lazy(() => import('./FamilyFacts'));
 const MyAccount = lazy(() => import('./MyAccount'));
 const FamilySearch = lazy(() => import('./FamilySearch'));
 const PhotoRestore = lazy(() => import('./PhotoRestore'));
+const DocumentReader = lazy(() => import('./DocumentReader'));
 const LifeStory = lazy(() => import('./LifeStory'));
 const SavedRecordsTableFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SavedRecordsTableFeature })));
 const SEOFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SEOFeature })));
@@ -302,6 +304,14 @@ const features = [
     icon: Image,
     component: PhotoRestore,
     description: 'Repair and colourise old photos',
+    category: 'heritage',
+  },
+  {
+    id: 'document-reader',
+    name: 'Read an old document',
+    icon: ScanText,
+    component: DocumentReader,
+    description: 'Transcribe and translate old records and letters',
     category: 'heritage',
   },
   {
@@ -972,7 +982,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
     ['photo-restore', 'Restore old photos'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
-  { id: 'research', name: 'Research', icon: Search, items: [['record-hints', 'Record hints'], ['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
+  { id: 'research', name: 'Research', icon: Search, items: [['document-reader', 'Read an old document'], ['record-hints', 'Record hints'], ['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
   { id: 'ai', name: 'AI helper', icon: Brain, items: [
     ['family-tree-voice', 'Talk about my tree'],
   ] },

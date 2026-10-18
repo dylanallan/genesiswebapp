@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import InstallApp from './InstallApp';
 import { CheckCircle2, Circle, Upload, Users, Mic, BookOpen, Search, Sparkles, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -118,6 +119,8 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
         <h2 className="text-2xl font-semibold">{t('Welcome to Genesis Heritage')}</h2>
         <p className="text-gray-600 mt-1">{t('Keep your family’s story alive, not just its names and dates. Here is how to get started.')}</p>
       </div>
+
+      <InstallApp />
 
       {loaded && counts.people > 0 && <OnThisDay />}
 

@@ -3,6 +3,7 @@ import { Users, Link2, Copy, Mail, MessageCircle, Eye, BookOpen, Send } from 'lu
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { t, useLang } from '../lib/i18n';
+import ListenButton from './ListenButton';
 
 interface Invite { id: string; invitee_name: string | null; member_name: string | null; role: 'viewer' | 'contributor'; status: 'pending' | 'active' | 'revoked'; token: string; created_at: string }
 interface SharedFamily { owner_id: string; owner_name: string; role: 'viewer' | 'contributor' }
@@ -68,7 +69,8 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
           {snap.storybooks.map((b) => (
             <details key={b.id} className="border rounded-lg p-3 mb-2">
               <summary className="cursor-pointer font-medium">{b.title}</summary>
-              {b.chapters.map((c, i) => (<div key={i} className="mt-3"><h5 className="font-semibold">{c.heading}</h5><p className="whitespace-pre-line text-gray-700">{c.body}</p></div>))}
+              <div className="mt-3"><ListenButton label={t('Listen to the whole book')} title={b.title} text={b.chapters.map((c) => `${t(c.heading)}.\n\n${c.body}`).join('\n\n')} /></div>
+              {b.chapters.map((c, i) => (<div key={i} className="mt-3"><h5 className="font-semibold">{t(c.heading)}</h5><p className="whitespace-pre-line text-gray-700">{c.body}</p></div>))}
             </details>
           ))}
         </section>
@@ -80,6 +82,7 @@ const SharedFamilyView: React.FC<{ family: SharedFamily; onBack: () => void }> =
           <details key={s.id} className="border rounded-lg p-3 mb-2">
             <summary className="cursor-pointer font-medium">{s.title}{s.storyteller ? ` — ${t('told by {name}', { name: s.storyteller })}` : ''}</summary>
             <p className="whitespace-pre-line text-gray-700 mt-2">{s.content}</p>
+            <div className="mt-2"><ListenButton title={s.title} text={s.content} /></div>
           </details>
         ))}
       </section>

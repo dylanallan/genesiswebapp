@@ -30,6 +30,7 @@ export interface MockState {
   familyRows?: unknown[];   // rows returned for family_members
   recordHits?: unknown[];   // hits returned by records-search
   storyRows?: unknown[];    // rows returned for cultural_stories
+  storybookRows?: unknown[]; // rows returned for storybooks
   posted?: Record<string, unknown[]>; // bodies of POSTs, by table
   storageFiles?: Record<string, string[]>;
   waitlistRows?: unknown[];
@@ -156,6 +157,7 @@ export async function installMockBackend(page: Page, state: MockState) {
       }
       if (table === 'family_members' && ['GET', 'HEAD'].includes(req.method()) && state.familyRows) rows = state.familyRows;
       if (table === 'cultural_stories' && req.method() === 'GET' && state.storyRows) rows = state.storyRows;
+      if (table === 'storybooks' && req.method() === 'GET' && state.storybookRows) rows = state.storybookRows;
       if (table === 'waitlist_signups' && req.method() === 'GET' && state.waitlistRows) rows = state.waitlistRows;
       if (table === 'gift_codes' && req.method() === 'GET' && state.giftRows) rows = state.giftRows;
       // Hints the page saved come back when it reloads, as the database would return them.

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Search, Plus, Edit, Trash, Globe, Calendar, User, Check, X, Tag, Info, Clock, MapPin } from 'lucide-react';
+import { BookOpen, Search, Plus, Edit, Trash, Calendar, User, Check, X, Info, Clock, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { signedUrl } from '../lib/storage';
 import { useSaveGuard } from '../lib/use-save-guard';
 import { locale, t, useLang } from '../lib/i18n';
+import ListenButton, { VoicePicker, useVoiceProfiles } from './ListenButton';
 
 interface CulturalStory {
   id: string;
@@ -39,6 +40,8 @@ export const CulturalStoryLibrary: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStory, setSelectedStory] = useState<CulturalStory | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const voices = useVoiceProfiles();
+  const [voiceId, setVoiceId] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<CulturalStory>>({
     title: '',
@@ -229,6 +232,7 @@ export const CulturalStoryLibrary: React.FC = () => {
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
         />
       </div>
+      {voices.length > 0 && <div className="mb-6"><VoicePicker profiles={voices} value={voiceId} onChange={setVoiceId} /></div>}
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
@@ -324,14 +328,17 @@ export const CulturalStoryLibrary: React.FC = () => {
                 </div>
               </div>
               
-              <button
-                onClick={() => setSelectedStory(
-                  selectedStory?.id === story.id ? null : story
-                )}
-                className="mt-4 text-sm text-genesis-600 hover:text-genesis-800 flex items-center"
-              >
-                <span>{t(selectedStory?.id === story.id ? 'Hide full story' : 'Read full story')}</span>
-              </button>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setSelectedStory(
+                    selectedStory?.id === story.id ? null : story
+                  )}
+                  className="text-sm text-genesis-600 hover:text-genesis-800 flex items-center min-h-[44px]"
+                >
+                  <span>{t(selectedStory?.id === story.id ? 'Hide full story' : 'Read full story')}</span>
+                </button>
+                <ListenButton title={story.title} text={story.content} lang={story.language} voiceProfileId={voiceId || null} />
+              </div>
               
               {selectedStory?.id === story.id && (
                 <motion.div
