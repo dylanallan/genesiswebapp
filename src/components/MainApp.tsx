@@ -323,6 +323,8 @@ export const MainApp: React.FC = () => {
   if (!session) {
     // Visitors see the home page; invite links and "Sign in"/"Start free" go straight to the account form.
     if (authView || path.startsWith('/join/')) return <SimpleAuth startMode={authView ?? undefined} onBack={path.startsWith('/join/') ? undefined : () => setAuthView(null)} />;
+    // Visitors comparing prices can see the plans before making an account.
+    if (path === '/pricing') return <Suspense fallback={<LoadingScreen />}><Router><PricingPage signedOut /></Router></Suspense>;
     return <LandingPage onStart={() => setAuthView('signup')} onSignIn={() => setAuthView('signin')} />;
   }
   if (passwordRecovery) return <SetNewPassword onDone={finishPasswordRecovery} />;

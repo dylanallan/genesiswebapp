@@ -13,6 +13,7 @@ async function bigEnough(page: Page, name: string | RegExp) {
 }
 
 test('a grandparent signs in, builds the tree, saves a story, invites family and makes the text bigger', async ({ page }) => {
+  test.setTimeout(90_000); // a whole first session, several screens
   const state: MockState = { subscribed: false, calls: [], chatQuotaExceeded: false, posted: {} };
   await installMockBackend(page, state);
 

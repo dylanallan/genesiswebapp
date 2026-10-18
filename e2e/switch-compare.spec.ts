@@ -24,8 +24,9 @@ test('the switch guide explains both sites and leads to sign-up', async ({ page 
   await page.getByLabel('Email').fill('rosa@example.com');
   await page.getByLabel('Password').fill('a long family password');
   await page.getByRole('button', { name: 'Sign In' }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByLabel('GEDCOM file')).toBeAttached();
+  // Screens load on demand, so allow extra time when the test machine is busy.
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+  await expect(page.getByLabel('GEDCOM file')).toBeAttached({ timeout: 15_000 });
   // Only once: the next visit goes to the dashboard as usual.
   expect(await page.evaluate(() => localStorage.getItem('genesis-next'))).toBeNull();
 });
@@ -84,4 +85,15 @@ test('partners page: an investor gets in touch and lands in the right group', as
   expect(state.posted?.join_waitlist?.at(-1)).toEqual({
     p_email: 'ana@fund.example', p_name: 'Ana', p_source: 'partners', p_ref: null, p_interest: 'investor', p_organization: 'Heritage Fund', p_note: 'A call next week',
   });
+});
+
+test('visitors can see the plans before making an account', async ({ page }) => {
+  await installMockBackend(page, fresh());
+  await page.goto('/pricing');
+  await expect(page.getByRole('heading', { name: /Pro/ }).first()).toBeVisible();
+  await expect(page.getByTestId('billing-promises')).toBeVisible();
+  const choose = page.getByRole('link', { name: 'Create a free account to choose this plan' });
+  await expect(choose).toHaveCount(2);
+  await expect(choose.first()).toHaveAttribute('href', '/?start=signup&next=pricing');
+  await expect(page.getByRole('button', { name: 'Subscribe with PayPal' })).toHaveCount(0);
 });

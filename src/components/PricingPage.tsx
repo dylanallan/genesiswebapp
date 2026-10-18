@@ -32,7 +32,8 @@ const PRO_FEATURES = [
   'Everything in Free', 'Generous daily AI limits: write storybooks as often as you like', 'Restore and colourise old photos (10 a day)', 'Priority support',
 ];
 
-export default function PricingPage() {
+/** Plans and payment. `signedOut`: a visitor comparing prices; each plan offers a free account first. */
+export default function PricingPage({ signedOut = false }: { signedOut?: boolean } = {}) {
   useLang();
   const { subscription, subscriptionLoading, refreshSubscription } = useSession();
   const [busy, setBusy] = useState<string | null>(null);
@@ -41,9 +42,10 @@ export default function PricingPage() {
   const [request, setRequest] = useState<ManualPayment | null>(null);
 
   useEffect(() => {
+    if (signedOut) return; // payment options are shown once they have an account
     getManualPaymentSettings().then(setManual).catch(() => setManual(null));
     paypalSubscriptionsEnabled().then(setAutoPayPal);
-  }, []);
+  }, [signedOut]);
 
   const run = async (key: string, fn: () => Promise<void>) => {
     setBusy(key);
@@ -63,7 +65,7 @@ export default function PricingPage() {
     toast.success('Subscription cancelled. It will not renew.');
   });
 
-  if (subscriptionLoading) {
+  if (subscriptionLoading && !signedOut) {
     return <div className="p-12 flex justify-center"><Loader2 className="animate-spin" aria-label="Loading plan" /></div>;
   }
 
@@ -112,34 +114,39 @@ export default function PricingPage() {
 
         {(['monthly', 'yearly'] as const).map((plan) => (
           <section key={plan} className="rounded-xl border-2 border-genesis-600 bg-white p-6">
-            <h2 className="text-xl font-semibold">Pro {plan === 'yearly' && <span className="ml-1 rounded bg-genesis-100 px-2 text-xs text-genesis-800">Best value</span>}</h2>
+            <h2 className="text-xl font-semibold">Pro {plan === 'yearly' && <span className="ml-1 rounded bg-genesis-100 px-2 text-xs text-genesis-800">{t('Best value')}</span>}</h2>
             <p className="my-3 text-2xl font-bold">{plan === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE}</p>
             <ul className="mb-5 space-y-2 text-sm">{PRO_FEATURES.map((f) => <li key={f} className="flex gap-2"><Check className="h-4 w-4 text-green-600 mt-0.5" />{f}</li>)}</ul>
-            {autoPayPal && (
+            {signedOut && (
+              <a href="/?start=signup&next=pricing" className="block w-full rounded bg-genesis-600 py-2 text-center font-semibold text-white">
+                {t('Create a free account to choose this plan')}
+              </a>
+            )}
+            {!signedOut && autoPayPal && (
               <button
                 onClick={() => run(plan, () => startCheckout(plan))}
                 disabled={renewing || busy !== null}
                 className="w-full rounded bg-[#ffc439] py-2 font-semibold text-gray-900 disabled:opacity-50"
               >
-                {renewing ? 'Current plan' : busy === plan ? 'Opening PayPal…' : 'Subscribe with PayPal'}
+                {t(renewing ? 'Current plan' : busy === plan ? 'Opening PayPal…' : 'Subscribe with PayPal')}
               </button>
             )}
-            {manual && isPayPalLink(manual.paypalLinks[plan]) && (
+            {!signedOut && manual && isPayPalLink(manual.paypalLinks[plan]) && (
               <button
                 onClick={() => run(`pl-${plan}`, async () => setRequest(await createManualPaymentRequest(plan, 'paypal_link')))}
                 disabled={renewing || busy !== null}
                 className={`${autoPayPal ? 'mt-2 border border-gray-300 text-sm text-gray-800' : 'bg-[#ffc439] font-semibold text-gray-900'} w-full rounded py-2 disabled:opacity-50`}
               >
-                {busy === `pl-${plan}` ? 'Preparing…' : `Pay with PayPal or card (${formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents)})`}
+                {busy === `pl-${plan}` ? t('Preparing…') : t('Pay with PayPal or card ({price})', { price: formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents) })}
               </button>
             )}
-            {manual?.etransferEmail && (
+            {!signedOut && manual?.etransferEmail && (
               <button
                 onClick={() => run(`et-${plan}`, async () => setRequest(await createManualPaymentRequest(plan, 'etransfer')))}
                 disabled={busy !== null}
                 className="mt-2 w-full rounded border border-gray-300 py-2 text-sm text-gray-800 disabled:opacity-50"
               >
-                {busy === `et-${plan}` ? 'Preparing…' : `Pay by Interac e-Transfer (${formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents)})`}
+                {busy === `et-${plan}` ? t('Preparing…') : t('Pay by Interac e-Transfer ({price})', { price: formatCad(plan === 'monthly' ? manual.monthlyCents : manual.yearlyCents) })}
               </button>
             )}
           </section>

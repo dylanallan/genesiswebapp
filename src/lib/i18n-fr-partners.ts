@@ -2,6 +2,15 @@
 export const FR_PARTNERS: Record<string, string> = {
   'Partners & investors': 'Partenaires et investisseurs',
   'This email is already signed up. We’ll write to it when Genesis Heritage opens.': 'Cette adresse est déjà inscrite. Nous vous écrirons à l’ouverture de Genesis Heritage.',
+  // Plans page buttons
+  'Your first name': 'Votre prénom',
+  'Best value': 'Meilleure valeur',
+  'Current plan': 'Forfait actuel',
+  'Opening PayPal…': 'Ouverture de PayPal…',
+  'Subscribe with PayPal': 'S’abonner avec PayPal',
+  'Create a free account to choose this plan': 'Créer un compte gratuit pour choisir ce forfait',
+  'Pay with PayPal or card ({price})': 'Payer par PayPal ou carte ({price})',
+  'Pay by Interac e-Transfer ({price})': 'Payer par virement Interac ({price})',
   'My family': 'Ma famille',
   'A genealogy society, library or archive': 'Une société de généalogie, une bibliothèque ou un centre d’archives',
   'A business that wants to partner': 'Une entreprise qui souhaite devenir partenaire',

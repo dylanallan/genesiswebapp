@@ -3,7 +3,7 @@
 // link may open a new tab, and used once. The answer is kept for the rest of the visit, so a screen drawn twice
 // still gets the same answer.
 const KEY = 'genesis-next';
-const PLACES: Record<string, string> = { import: '/dashboard?feature=tree-import', gift: '/gift', redeem: '/redeem' };
+const PLACES: Record<string, string> = { import: '/dashboard?feature=tree-import', gift: '/gift', redeem: '/redeem', pricing: '/pricing' };
 let taken: string | null | undefined;
 
 /** Call on any page load: remembers ?next= if it names a known place. */

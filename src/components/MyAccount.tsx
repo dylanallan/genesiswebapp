@@ -93,7 +93,7 @@ export const MyAccount: React.FC = () => {
         <p className="text-sm text-gray-600">{t('Signed in as')} <strong>{email || '…'}</strong></p>
         <label htmlFor="account-name" className="block text-sm font-medium">{t('Your name')}</label>
         <div className="flex flex-wrap gap-2">
-          <input id="account-name" disabled={!loaded} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('How should we greet you?')} className="flex-1 min-w-0 px-3 py-2 border rounded-lg" maxLength={80} />
+          <input id="account-name" disabled={!loaded} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Your first name')} className="flex-1 min-w-0 px-3 py-2 border rounded-lg" maxLength={80} />
           <button disabled={busy === 'name' || name.trim() === savedName} className="px-4 py-2 bg-genesis-600 text-white rounded-lg disabled:opacity-50">{t('Save name')}</button>
         </div>
       </form>
