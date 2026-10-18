@@ -123,12 +123,12 @@ export const GetStarted: React.FC<Props> = ({ open }) => {
 
       <ol className="space-y-2">
         {steps.map((s) => (
-          <li key={s.label} className="flex items-center justify-between gap-3 border rounded-lg px-4 py-3">
+          <li key={s.label} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border rounded-lg px-4 py-3">
             <span className="flex items-center gap-3">
               {s.done ? <CheckCircle2 className="w-5 h-5 shrink-0 text-green-600" /> : <Circle className="w-5 h-5 shrink-0 text-gray-300" />}
               <span className={s.done ? 'text-gray-500' : 'font-medium'}>{s.label}</span>
             </span>
-            {s.action && <button onClick={s.action} className="text-sm text-genesis-700 hover:underline whitespace-nowrap">{s.cta} →</button>}
+            {s.action && <button onClick={s.action} className="ml-8 sm:ml-0 min-h-[44px] text-sm text-genesis-700 hover:underline whitespace-nowrap">{s.cta} →</button>}
           </li>
         ))}
       </ol>

@@ -234,7 +234,7 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
           <Users className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">{t('People in your tree')}</h2>
@@ -262,8 +262,8 @@ export const FamilyTreeVisualizer: React.FC<FamilyTreeVisualizerProps> = ({
             onClick={() => setShowAddForm(true)}
             className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
           >
-            <UserPlus className="w-5 h-5" />
-            <span>{t('Add Family Member')}</span>
+            <UserPlus className="w-5 h-5 shrink-0" />
+            <span className="whitespace-nowrap">{t('Add person')}</span>
           </button>
         </div>
       </div>

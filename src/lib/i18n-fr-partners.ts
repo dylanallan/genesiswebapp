@@ -4,6 +4,7 @@ export const FR_PARTNERS: Record<string, string> = {
   'This email is already signed up. We’ll write to it when Genesis Heritage opens.': 'Cette adresse est déjà inscrite. Nous vous écrirons à l’ouverture de Genesis Heritage.',
   'Family stories': 'Histoires de famille',
   'Start by adding your first family story': 'Commencez par ajouter votre première histoire de famille',
+  'Add person': 'Ajouter une personne',
   // Plans page buttons
   'Your first name': 'Votre prénom',
   'Best value': 'Meilleure valeur',
