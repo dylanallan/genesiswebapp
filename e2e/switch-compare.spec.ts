@@ -97,3 +97,10 @@ test('visitors can see the plans before making an account', async ({ page }) => 
   await expect(choose.first()).toHaveAttribute('href', '/?start=signup&next=pricing');
   await expect(page.getByRole('button', { name: 'Subscribe with PayPal' })).toHaveCount(0);
 });
+
+test('a failed Google sign-in explains itself', async ({ page }) => {
+  await installMockBackend(page, fresh());
+  await page.goto('/?error=access_denied&error_description=Google+refused+the+sign-in');
+  await expect(page.getByText(/Sign-in didn’t work: Google refused the sign-in/)).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+});

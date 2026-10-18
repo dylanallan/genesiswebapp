@@ -18,8 +18,15 @@ Do them in this order. Tick each box when it's done.
       makes it live by itself. (Claude also made a spare site, genesisheritage-r68e, before finding this; it isn't
       needed and can be deleted in Netlify.) If you later buy your own domain (for example genesisheritage.ca), add it
       in Netlify → Domain management, then ask Claude to run `node scripts/set-site-url.mjs <address>`.
-- [ ] **5. Sign-in addresses.** Supabase → Authentication → URL Configuration: set **Site URL** to
-      https://genesisheritage.netlify.app (or your own domain) and add it under **Redirect URLs**.
+- [ ] **5. Sign-in settings (needed for sign-in, Google, password reset and email links).**
+  - Supabase → Authentication → URL Configuration: **Site URL** `https://genesisheritage.netlify.app`. Under
+    **Redirect URLs** add `https://genesisheritage.netlify.app/**`, `https://deploy-preview-*--genesisheritage.netlify.app/**`
+    and `http://localhost:5173/**`. (It still points at `localhost:3000`, which sends people to a developer's computer.)
+  - Google: console.cloud.google.com → APIs & Services → Credentials → the OAuth client used in Supabase →
+    Authentication → Providers → Google. Add the redirect URI
+    `https://yomgwdeqsvbapvqpuspq.supabase.co/auth/v1/callback` and the JavaScript origin
+    `https://genesisheritage.netlify.app`. If the OAuth consent screen says "Testing", click **Publish app** (or add
+    yourself as a test user).
 - [ ] **6. Email sending.** Make a free account at resend.com, add your domain, then in Supabase →
       Authentication → SMTP Settings paste Resend's SMTP details. Without this, sign-up emails are limited.
 - [ ] **7. Contact details.** Send Claude the contact email and the legal owner's name for the privacy and terms

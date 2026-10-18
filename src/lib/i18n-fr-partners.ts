@@ -16,6 +16,7 @@ export const FR_PARTNERS: Record<string, string> = {
   '{n} AI messages per day': '{n} messages à l’assistant IA par jour',
   'Generous daily AI limits: write storybooks as often as you like': 'Limites quotidiennes généreuses pour l’IA : écrivez des livres d’histoires aussi souvent que vous voulez',
   'Restore and colourise old photos (10 a day)': 'Restaurez et colorisez de vieilles photos (10 par jour)',
+  'Sign-in didn’t work: {reason}. Please try again, or sign in with your email and password.': 'La connexion n’a pas fonctionné : {reason}. Veuillez réessayer ou vous connecter avec votre courriel et votre mot de passe.',
   // Plans page buttons
   'Your first name': 'Votre prénom',
   'Best value': 'Meilleure valeur',

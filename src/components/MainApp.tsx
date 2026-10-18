@@ -302,6 +302,16 @@ const AfterSignIn: React.FC = () => {
 
 export const MainApp: React.FC = () => {
   const { session, loading, passwordRecovery, finishPasswordRecovery } = useSession();
+  // Google (or a sign-in email link) can send people back with an error instead of a session. Say so plainly
+  // instead of leaving them on the home page wondering what happened, then tidy the address bar.
+  useEffect(() => {
+    const read = (q: string) => new URLSearchParams(q.replace(/^[#?]/, ''));
+    const params = [read(window.location.search), read(window.location.hash)];
+    const problem = params.map((p) => p.get('error_description') ?? p.get('error')).find(Boolean);
+    if (!problem) return;
+    toast.error(t('Sign-in didn’t work: {reason}. Please try again, or sign in with your email and password.', { reason: problem.replace(/\+/g, ' ') }), { duration: 12000 });
+    window.history.replaceState(null, '', window.location.pathname);
+  }, []);
   // ?start=signup (from the switch guide and comparison pages) opens the sign-up form straight away.
   const [authView, setAuthView] = useState<'signin' | 'signup' | null>(() => (new URLSearchParams(window.location.search).get('start') === 'signup' ? 'signup' : null));
 
