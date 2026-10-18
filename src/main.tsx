@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import './index.css';
 import { installErrorReporting } from './lib/error-report';
 import { applyTextSize } from './lib/text-size';
+import './lib/install'; // catches the browser's install offer early
 
 installErrorReporting();
 applyTextSize();
