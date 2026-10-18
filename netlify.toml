@@ -6,6 +6,10 @@
   NODE_VERSION = "20"
   # Same install as the GitHub checks (some packages list older peer versions).
   NPM_FLAGS = "--legacy-peer-deps"
+  # Always build against the live database ("genesis dashboard"). These public values override any old ones left in
+  # the Netlify site settings (an old project there makes sign-in fail before it reaches the database).
+  VITE_SUPABASE_URL = "https://yomgwdeqsvbapvqpuspq.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbWd3ZGVxc3ZiYXB2cXB1c3BxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2MDIzNjUsImV4cCI6MjA2NDE3ODM2NX0.HBjnzvpUBuPdTkFkJDwu673d0BqsJanaoMFkhTwEdvk"
 
 [[redirects]]
   from = "/*"
