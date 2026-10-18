@@ -9,6 +9,8 @@ export interface MatchPerson {
   deathYear: number | null;
   birthPlace: string | null;
   deathPlace: string | null;
+  /** Other surnames the person was recorded under: a birth (maiden) name, a "dit" name. */
+  otherSurnames?: string[];
 }
 
 export interface RecordFacts {
@@ -44,13 +46,59 @@ export function soundex(word: string): string {
   return (out + '000').slice(0, 4);
 }
 
+/**
+ * French sound-alike key, for Quebec and Acadian spellings that American Soundex misses or over-matches:
+ * Thibodeau/Thibaudeau/Thibodeaux, Ouellet/Ouellette, Lévesque/Levêque, Gagnon/Gagnion, Tremblay/Tramblay.
+ */
+export function frenchKey(word: string): string {
+  let w = normalizeName(word).replace(/\s/g, '');
+  if (!w) return '';
+  w = w.replace(/^(l|d)(?=[aeiouy])/, '') // L'Évêque -> eveque, D'Amours -> amours
+    .replace(/(eaux|eau|aux|ault|aud|aut|ot|au)$/, 'o').replace(/eau|au/g, 'o')
+    .replace(/(ette|ete|et)$/, 'et').replace(/(er|ez)$/, '').replace(/[sxtdz]$/, '').replace(/e$/, '')
+    .replace(/ph/g, 'f').replace(/qu/g, 'k').replace(/gu(?=[ei])/g, 'g').replace(/c(?=[eiy])/g, 's').replace(/c/g, 'k')
+    .replace(/gn/g, 'n').replace(/ni(?=[aeiou])/g, 'n').replace(/ou/g, 'u').replace(/w/g, 'u').replace(/(ai|ei|ay|ey)/g, 'e').replace(/y/g, 'i')
+    .replace(/h/g, '').replace(/an|en|am|em/g, 'an').replace(/(.)\1+/g, '$1');
+  return w;
+}
+
+/** Surnames to look for: the last name, the name after "dit", and any other recorded surnames (birth name). */
+export function surnameSet(person: MatchPerson): string[] {
+  const full = normalizeName(person.name);
+  const [main, dit] = full.split(' dit ');
+  const mainParts = main.split(' ').filter(Boolean);
+  const names = [mainParts.length > 1 ? mainParts[mainParts.length - 1] : mainParts[0] ?? '', ...(dit ? [dit.split(' ')[0]] : [])];
+  for (const o of person.otherSurnames ?? []) for (const part of normalizeName(o).split(/ dit | /)) if (part.length > 1) names.push(part);
+  return [...new Set(names.filter(Boolean))];
+}
+
+/** First names to look for: every given name, with hyphenated ones split too (Marie-Louise -> marie, louise). */
+export function givenNames(name: string): string[] {
+  const before = name.split(/\s+dit\s+/i)[0].trim().split(/\s+/);
+  const given = before.length > 1 ? before.slice(0, -1) : [];
+  const out: string[] = [];
+  for (const g of given) {
+    const whole = normalizeName(g);
+    if (whole) out.push(whole);
+    for (const piece of g.split('-')) { const n = normalizeName(piece); if (n && n !== whole) out.push(n); }
+  }
+  return [...new Set(out)];
+}
+
 const NICKNAMES: Record<string, string[]> = {
   william: ['bill', 'will', 'billy', 'wm'], robert: ['bob', 'rob', 'bobby'], elizabeth: ['liz', 'beth', 'betty', 'eliza', 'bess'],
   margaret: ['maggie', 'peggy', 'meg', 'marge'], john: ['jack', 'johnny', 'jno'], james: ['jim', 'jimmy', 'jas'],
   catherine: ['kate', 'kathy', 'cathy', 'kitty'], mary: ['molly', 'polly', 'mae', 'maria', 'marie'], richard: ['dick', 'rick'],
   charles: ['charlie', 'chas', 'chuck'], thomas: ['tom', 'tommy', 'thos'], joseph: ['joe', 'jos', 'jose'], francisco: ['paco', 'pancho'],
   jose: ['pepe', 'joseph'], guadalupe: ['lupe'], dolores: ['lola'], ignacio: ['nacho'], alexander: ['alex', 'sandy', 'alejandro'],
+  // French Canadian forms
+  jeanbaptiste: ['baptiste', 'jb', 'jnbte'], louis: ['ls'], francois: ['frs', 'francis'], guillaume: ['william'],
+  pierre: ['peter'], jacques: ['jacob', 'james'], marguerite: ['margaret', 'margot'], genevieve: ['vivi'],
+  elisabeth: ['elizabeth', 'babette', 'isabelle'], antoine: ['anthony', 'tony'], etienne: ['stephen'],
 };
+// In Quebec almost everyone was baptised Marie (girls) or Joseph (boys) before the name they actually used, so a
+// record of "Marie Rose" and a tree entry "Rose" are the same person; on their own these two names prove little.
+const CUSTOMARY_FIRST = new Set(['marie', 'joseph']);
 const sameGiven = (a: string, b: string) =>
   a === b || (NICKNAMES[a] ?? []).includes(b) || (NICKNAMES[b] ?? []).includes(a) || (a.length > 2 && b.length > 2 && (a.startsWith(b) || b.startsWith(a)));
 
@@ -67,21 +115,34 @@ export function scoreMatch(person: MatchPerson, record: RecordFacts): MatchResul
   const norm = normalizeName(text);
 
   // Names
-  const parts = normalizeName(person.name).split(' ').filter(Boolean);
-  const surname = parts.length > 1 ? parts[parts.length - 1] : parts[0] ?? '';
-  const given = parts.length > 1 ? parts[0] : '';
-  const shown = person.name.trim().split(/\s+/); // original spelling, for the evidence wording
+  const surnames = surnameSet(person);
+  const surname = surnames[0] ?? '';
+  const shown = person.name.trim().split(/\s+dit\s+/i)[0].split(/\s+/); // original spelling, for the evidence wording
   const surnameShown = shown.length > 1 ? shown[shown.length - 1] : shown[0] ?? surname;
-  const givenShown = shown.length > 1 ? shown[0] : given;
   const recordWords = norm.split(' ');
-  if (surname && recordWords.includes(surname)) { score += 30; evidence.push({ kind: 'support', text: t('Surname “{name}” matches exactly.', { name: surnameShown }) }); }
+  const capitalised = nameWords(text).filter((w) => w.length >= 3);
+  const exact = surnames.find((s) => recordWords.includes(s));
   // Sound-alike matching only against capitalised, name-like words, so "Moore" doesn't match the word "more".
-  else if (surname && soundex(surname) && nameWords(text).some((w) => w.length >= 3 && soundex(w) === soundex(surname))) {
-    score += 18; evidence.push({ kind: 'support', text: t('Surname sounds the same (a spelling variant of “{name}”).', { name: surnameShown }) });
+  const soundAlike = !exact && surnames.find((s) => (soundex(s) && capitalised.some((w) => soundex(w) === soundex(s)))
+    || (frenchKey(s).length >= 3 && capitalised.some((w) => frenchKey(w) === frenchKey(s))));
+  if (exact) {
+    score += 30;
+    evidence.push({ kind: 'support', text: exact === surname
+      ? t('Surname “{name}” matches exactly.', { name: surnameShown })
+      : t('Matches “{name}”, another surname this person used (birth name or “dit” name).', { name: exact }) });
+  } else if (soundAlike) {
+    score += 18; evidence.push({ kind: 'support', text: t('Surname sounds the same (a spelling variant of “{name}”).', { name: soundAlike === surname ? surnameShown : soundAlike }) });
   } else if (surname) { score -= 25; evidence.push({ kind: 'conflict', text: t('Surname “{name}” does not appear.', { name: surnameShown }) }); }
-  if (given) {
-    if (recordWords.includes(given)) { score += 20; evidence.push({ kind: 'support', text: t('First name “{name}” matches.', { name: givenShown }) }); }
-    else if (recordWords.some((w) => sameGiven(w, given))) { score += 12; evidence.push({ kind: 'support', text: t('First name is a known variant or nickname of “{name}”.', { name: givenShown }) }); }
+
+  const givens = givenNames(person.name);
+  const meaningful = givens.filter((g) => !CUSTOMARY_FIRST.has(g));
+  const toCheck = meaningful.length ? meaningful : givens;
+  const givenShown = shown.length > 1 ? shown[0] : '';
+  if (toCheck.length) {
+    const hit = toCheck.find((g) => recordWords.includes(g));
+    if (hit) { score += 20; evidence.push({ kind: 'support', text: t('First name “{name}” matches.', { name: hit === normalizeName(givenShown) ? givenShown : hit }) }); }
+    // "Marie" or "Joseph" in the record is not a variant of "Marie-Louise": skip them when a real given name is known.
+    else if (toCheck.some((g) => recordWords.some((w) => !(meaningful.length && CUSTOMARY_FIRST.has(w)) && sameGiven(w, g)))) { score += 12; evidence.push({ kind: 'support', text: t('First name is a known variant or nickname of “{name}”.', { name: givenShown }) }); }
     else { score -= 10; evidence.push({ kind: 'conflict', text: t('First name “{name}” does not appear.', { name: givenShown }) }); }
   }
 

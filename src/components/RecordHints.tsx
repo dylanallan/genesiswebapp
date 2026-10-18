@@ -32,7 +32,7 @@ export const RecordHints: React.FC = () => {
 
   const load = async () => {
     const [rows, checks, found] = await Promise.all([
-      loadAllFamilyRows<HintPerson>('id,first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location,is_living'),
+      loadAllFamilyRows<HintPerson>('id,first_name,middle_name,last_name,maiden_name,birth_date,death_date,birth_location,death_location,is_living'),
       supabase.from('record_hint_checks').select('family_member_id,checked_at'),
       supabase.from('record_hints').select('*').eq('status', 'new').order('score', { ascending: false }).limit(300),
     ]);
@@ -60,7 +60,7 @@ export const RecordHints: React.FC = () => {
           try { const body = await (error as { context?: Response }).context?.json(); if (body?.error) message = body.error; } catch { /* default */ }
           throw new Error(message);
         }
-        const me = { name: fullName(p), birthYear: year(p.birth_date), deathYear: year(p.death_date), birthPlace: p.birth_location, deathPlace: p.death_location };
+        const me = { name: fullName(p), birthYear: year(p.birth_date), deathYear: year(p.death_date), birthPlace: p.birth_location, deathPlace: p.death_location, otherSurnames: p.maiden_name ? [p.maiden_name] : [] };
         const good = ((data?.hits ?? []) as Hit[]).map((hit) => ({ hit, r: scoreMatch(me, hit) })).filter(({ r }) => worthShowing(r));
         if (good.length) {
           // A hint already decided (saved or "not them") is left alone, so it never comes back.

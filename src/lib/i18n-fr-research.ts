@@ -209,4 +209,5 @@ export const FR_RESEARCH: Record<string, string> = {
   '{name} and {parent} are linked as both parent and child.': '{name} et {parent} sont liés à la fois comme parent et comme enfant.',
   '{name} may be listed twice (both born {year}).': '{name} figure peut-être en double (tous deux nés en {year}).',
   '{name} may be listed twice.': '{name} figure peut-être en double.',
+  'Matches “{name}”, another surname this person used (birth name or “dit” name).': 'Correspond à « {name} », un autre nom de famille de cette personne (nom de naissance ou nom « dit »).',
 };

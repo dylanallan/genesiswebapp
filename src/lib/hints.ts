@@ -7,6 +7,7 @@ export interface HintPerson {
   first_name: string | null;
   middle_name: string | null;
   last_name: string | null;
+  maiden_name?: string | null; // a woman's birth name: Quebec records use it all her life
   birth_date: string | null;
   death_date: string | null;
   birth_location: string | null;

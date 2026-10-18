@@ -9,7 +9,7 @@ import { MatchPerson, MatchResult, RecordFacts, scoreMatch, verificationRequest 
 import { archiveLinks } from '../lib/archive-links';
 import { t, useLang } from '../lib/i18n';
 
-interface Row { id: string; first_name: string | null; middle_name: string | null; last_name: string | null; birth_date: string | null; death_date: string | null; birth_location: string | null; death_location: string | null }
+interface Row { id: string; first_name: string | null; middle_name: string | null; last_name: string | null; maiden_name?: string | null; birth_date: string | null; death_date: string | null; birth_location: string | null; death_location: string | null }
 interface Hit { source: string; sourceLabel: string; sourceId: string; title: string; snippet?: string; date?: string; url: string; license?: string; attribution: string; facts?: RecordFacts['facts'] }
 interface Finding { hit: Hit; result: MatchResult }
 
@@ -42,7 +42,7 @@ export const ResearchAssistant: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadAllFamilyRows<Row>('id,first_name,middle_name,last_name,birth_date,death_date,birth_location,death_location')
+    loadAllFamilyRows<Row>('id,first_name,middle_name,last_name,maiden_name,birth_date,death_date,birth_location,death_location')
       .then((rows) => {
         setPeople(rows);
         // Opened from "Research this person" in the tree: start straight away.
@@ -59,7 +59,7 @@ export const ResearchAssistant: React.FC = () => {
     return (f ? people.filter((p) => fullName(p).toLowerCase().includes(f)) : people).slice(0, 200);
   }, [people, filter]);
 
-  const person = (r: Row): MatchPerson => ({ name: fullName(r), birthYear: year(r.birth_date), deathYear: year(r.death_date), birthPlace: r.birth_location, deathPlace: r.death_location });
+  const person = (r: Row): MatchPerson => ({ name: fullName(r), birthYear: year(r.birth_date), deathYear: year(r.death_date), birthPlace: r.birth_location, deathPlace: r.death_location, otherSurnames: r.maiden_name ? [r.maiden_name] : [] });
 
   const research = async (r: Row) => {
     const me = person(r);
