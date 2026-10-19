@@ -7,7 +7,7 @@ import { installMockBackend, signIn, type MockState } from './support/mockBacken
 // Every screen in the customer menu.
 const ALL = ['welcome', 'tree-import', 'family-tree-chart', 'family-map', 'heritage-mix', 'family-facts', 'life-story', 'family-tree-viz',
   'tree-checkup', 'timeline-builder', 'family-contacts', 'family-sharing', 'dna-insights', 'cultural-stories', 'cultural-recipes',
-  'traditions', 'celebrations', 'cultural-artifacts', 'family-photos', 'album-scan', 'photo-restore', 'photo-date', 'document-reader', 'media-gallery', 'family-interview',
+  'traditions', 'celebrations', 'cultural-artifacts', 'family-photos', 'slideshow', 'album-scan', 'photo-restore', 'photo-date', 'document-reader', 'media-gallery', 'family-interview',
   'voice-recorder', 'family-storybook', 'family-search', 'research-assistant', 'records-search', 'data-table', 'family-tree-voice',
   'my-account', 'privacy-center', 'ask-relative', 'record-hints'];
 const FEATURES = process.env.A11Y_FEATURES?.split(',') ?? ALL;

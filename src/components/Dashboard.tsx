@@ -111,6 +111,7 @@ import {
   ScanText,
   CalendarClock,
   BookImage,
+  Clapperboard,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { t, useLang } from '../lib/i18n';
@@ -214,6 +215,7 @@ const PhotoRestore = lazy(() => import('./PhotoRestore'));
 const DocumentReader = lazy(() => import('./DocumentReader'));
 const PhotoDater = lazy(() => import('./PhotoDater'));
 const AlbumScan = lazy(() => import('./AlbumScan'));
+const SlideshowMaker = lazy(() => import('./SlideshowMaker'));
 const LifeStory = lazy(() => import('./LifeStory'));
 const SavedRecordsTableFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SavedRecordsTableFeature })));
 const SEOFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SEOFeature })));
@@ -308,6 +310,14 @@ const features = [
     icon: Image,
     component: PhotoRestore,
     description: 'Repair and colourise old photos',
+    category: 'heritage',
+  },
+  {
+    id: 'slideshow',
+    name: 'Slideshow video',
+    icon: Clapperboard,
+    component: SlideshowMaker,
+    description: 'Photos and a voice telling the story, as a video',
     category: 'heritage',
   },
   {
@@ -998,7 +1008,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
     ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
-    ['family-interview', 'Interview a relative'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
+    ['family-interview', 'Interview a relative'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'], ['slideshow', 'Slideshow video'],
     ['album-scan', 'Scan an album page'], ['photo-restore', 'Restore old photos'], ['photo-date', 'Date an old photo'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
