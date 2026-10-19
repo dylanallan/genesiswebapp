@@ -8,6 +8,13 @@ into marketing. No numbers below are estimates of ours; every figure is quoted f
 
 ---
 
+## Status (19 October 2026)
+
+All eight below are built, tested and on the `heritage-features` branch:
+Listen (read aloud) · Read an old document · Date an old photo · Scan an album page · Quebec names in record hints ·
+living relatives hidden from view-only family plus an "edit the tree" level · Slideshow video · Put Genesis on your phone.
+The document reader, photo dating and album scan use the same Google AI key as photo restore (GEMINI_API_KEY in Supabase).
+
 ## Top 8 to build next
 
 Each one is software only, 1 to 5 days of work, and needs no licensed records, DNA lab or big user base.
