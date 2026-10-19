@@ -15,6 +15,25 @@ Listen (read aloud) · Read an old document · Date an old photo · Scan an albu
 living relatives hidden from view-only family plus an "edit the tree" level · Slideshow video · Put Genesis on your phone.
 The document reader, photo dating and album scan use the same Google AI key as photo restore (GEMINI_API_KEY in Supabase).
 
+## Records (19 October 2026)
+
+Genesis does not own or license a record collection, so it cannot honestly claim to match Ancestry's or MyHeritage's
+record counts (their own figures: "more than 30 billion" and "over 35 billion", quoted below). What it does instead:
+
+- **One free search across open sources, no paywall:** WikiTree, Wikidata, Chronicling America, Internet Archive,
+  DPLA, Europeana, Trove, Gallica (BnF), the US National Archives catalog and, new, **Open Archives**
+  (openarchieven.nl: Dutch, Belgian and other civil and church records; free API, docs at
+  https://www.openarchieven.nl/api/docs/). Open Archives and Gallica stay off until tested live
+  (`RECORDS_ENABLE_OPENARCH=true`, `RECORDS_ENABLE_GALLICA=true`); DPLA, Europeana, Trove and NARA need free keys.
+- **One-tap links into the big free databases** (no scraping; the name is filled in where the site's search address
+  is known): FamilySearch, Find a Grave, BillionGraves, Geneanet, Europeana, Open Archives, Library and Archives
+  Canada (collection and census search), Canadiana, BAnQ, PRDH (free search, paid full records), Canadian Headstones,
+  US National Archives, FreeBMD, FreeCEN, Irish Genealogy, PARES and Trove.
+- Not added: Canadiana and Library and Archives Canada have no documented public search API that could be verified;
+  FamilySearch's records API is for approved partners only (apply on its developer site before building it in).
+
+Marketing line that stays true: "Search more than 20 free archives from one place, with no paywall." (10 searched at once, the rest one tap away.) Do not claim a record count.
+
 ## Top 8 to build next
 
 Each one is software only, 1 to 5 days of work, and needs no licensed records, DNA lab or big user base.

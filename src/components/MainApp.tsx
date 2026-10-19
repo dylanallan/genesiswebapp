@@ -319,6 +319,9 @@ export const MainApp: React.FC = () => {
   // A relative answering an "Ask a relative" link: no account, works whether or not anyone is signed in.
   const memoryToken = /^\/memories\/([A-Za-z0-9]{24,64})\/?$/.exec(path)?.[1];
   if (memoryToken) return <Suspense fallback={<LoadingScreen />}><AnswerMemories token={memoryToken} /></Suspense>;
+  // The same page for a weekly story-questions link: a new question opens each week.
+  const weeklyToken = /^\/weekly\/([A-Za-z0-9-]{24,64})\/?$/.exec(path)?.[1];
+  if (weeklyToken) return <Suspense fallback={<LoadingScreen />}><AnswerMemories token={weeklyToken} weekly /></Suspense>;
   // Public guides, open to everyone whether or not they are signed in.
   if (path === '/gift' || path === '/redeem') {
     return <React.Suspense fallback={<LoadingScreen />}>{path === '/gift' ? <GiftPage /> : <RedeemPage />}</React.Suspense>;

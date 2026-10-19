@@ -12,6 +12,7 @@ import { FR_SWITCH } from './i18n-fr-switch';
 import { FR_GIFT } from './i18n-fr-gift';
 import { FR_HELPER } from './i18n-fr-helper';
 import { FR_DOCS } from './i18n-fr-docs';
+import { FR_WEEKLY } from './i18n-fr-weekly';
 
 export const FR: Record<string, string> = {
   ...FR_REST,
@@ -26,6 +27,7 @@ export const FR: Record<string, string> = {
   ...FR_GIFT,
   ...FR_HELPER,
   ...FR_DOCS,
+  ...FR_WEEKLY,
   // Brand and shared
   'Ancestry gives you the foundation, but Genesis takes you on the journey.': 'Ancestry vous donne les bases. Genesis vous emmène dans le voyage.',
   'Start free': 'Commencer gratuitement',

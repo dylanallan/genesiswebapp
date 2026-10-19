@@ -112,6 +112,7 @@ import {
   CalendarClock,
   BookImage,
   Clapperboard,
+  CalendarHeart,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { t, useLang } from '../lib/i18n';
@@ -197,6 +198,7 @@ const RecordsSearch = lazy(() => import('./RecordsSearch'));
 const AdminPayments = lazy(() => import('./AdminPayments'));
 const AdminWaitlist = lazy(() => import('./AdminWaitlist').then((m) => ({ default: m.AdminWaitlist })));
 const AskRelative = lazy(() => import('./AskRelative').then((m) => ({ default: m.AskRelative })));
+const WeeklyQuestions = lazy(() => import('./WeeklyQuestions'));
 const RecordHints = lazy(() => import('./RecordHints').then((m) => ({ default: m.RecordHints })));
 const TreeImport = lazy(() => import('./TreeImport'));
 const FamilySharing = lazy(() => import('./FamilySharing'));
@@ -262,6 +264,14 @@ const features = [
     icon: Sparkles,
     component: RecordHints,
     description: 'Likely records for people in your tree, with the evidence',
+    category: 'heritage',
+  },
+  {
+    id: 'weekly-questions',
+    name: 'Weekly story questions',
+    icon: CalendarHeart,
+    component: WeeklyQuestions,
+    description: 'One question a week for a year, answered without an account',
     category: 'heritage',
   },
   {
@@ -1008,7 +1018,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
     ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
-    ['family-interview', 'Interview a relative'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'], ['slideshow', 'Slideshow video'],
+    ['family-interview', 'Interview a relative'], ['weekly-questions', 'Weekly story questions'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'], ['slideshow', 'Slideshow video'],
     ['album-scan', 'Scan an album page'], ['photo-restore', 'Restore old photos'], ['photo-date', 'Date an old photo'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },

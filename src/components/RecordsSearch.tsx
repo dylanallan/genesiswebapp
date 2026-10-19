@@ -64,14 +64,14 @@ export default function RecordsSearch() {
         <input aria-label={t('Place')} className="border rounded px-3 py-2" placeholder={t('Place (optional)')} value={place} onChange={(e) => setPlace(e.target.value)} />
         <input aria-label={t('Year')} className="border rounded px-3 py-2" placeholder={t('Year (optional)')} inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))} />
         <button disabled={loading} className="sm:col-span-4 inline-flex items-center justify-center gap-2 rounded bg-genesis-600 px-4 py-2 text-white disabled:opacity-50">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? 'Searching archives…' : 'Search records'}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? t('Searching archives…') : t('Search records')}
         </button>
       </form>
 
       {hits && (
         <div className="mt-5">
           <p className="mb-3 text-xs text-gray-500">
-            {sources.map((s) => `${s.label}: ${s.status === 'ok' ? s.count : s.status === 'not_configured' ? 'not set up' : 'unavailable'}`).join(' · ')}
+            {sources.map((s) => t('{source}: {status}', { source: t(s.label), status: s.status === 'ok' ? s.count : s.status === 'not_configured' ? t('not set up') : t('unavailable') })).join(' · ')}
           </p>
           {hits.length === 0 ? <p className="text-gray-600">{t('No records found. Try a different spelling, or remove the place or year.')}</p> : (
             <ul className="space-y-3">
@@ -86,8 +86,8 @@ export default function RecordsSearch() {
                         {h.snippet && <p className="mt-1 text-sm text-gray-700">{h.snippet}</p>}
                         <p className="mt-1 text-xs text-gray-500">{h.sourceLabel} · {h.attribution}{h.license ? ` · ${h.license}` : ''}</p>
                       </div>
-                      <button onClick={() => save(h)} disabled={saved.has(key)} className="shrink-0 inline-flex items-center gap-1 rounded border px-2 py-1 text-sm disabled:opacity-50" aria-label={`Save ${h.title}`}>
-                        <BookmarkPlus className="h-4 w-4" />{saved.has(key) ? 'Saved' : 'Save'}
+                      <button onClick={() => save(h)} disabled={saved.has(key)} className="shrink-0 inline-flex items-center gap-1 rounded border px-2 py-1 text-sm disabled:opacity-50" aria-label={t('Save {title}', { title: h.title })}>
+                        <BookmarkPlus className="h-4 w-4" />{saved.has(key) ? t('Saved') : t('Save')}
                       </button>
                     </div>
                   </li>
@@ -100,19 +100,19 @@ export default function RecordsSearch() {
 
       {hits && (
         <details className="mt-6 rounded-lg border p-4" open={hits.length < 5}>
-          <summary className="cursor-pointer font-medium">Search more free archives for "{name}"</summary>
+          <summary className="cursor-pointer font-medium">{t('Search more free archives for “{name}”', { name })}</summary>
           <p className="mt-1 mb-3 text-sm text-gray-600">{t('These official archives are free to search on their own websites. Each link opens a search for this name.')}</p>
           {Object.entries(archiveLinks(name, place, year).reduce<Record<string, ReturnType<typeof archiveLinks>>>((acc, l) => {
             (acc[l.region] ??= []).push(l);
             return acc;
           }, {})).map(([region, links]) => (
             <div key={region} className="mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">{region}</h3>
+              <h3 className="text-sm font-semibold text-gray-700">{t(region)}</h3>
               <ul className="mt-1 space-y-1">
                 {links.map((l) => (
                   <li key={l.label} className="text-sm">
-                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-genesis-700 hover:underline inline-flex items-center gap-1">{l.label}<ExternalLink className="h-3 w-3" /></a>
-                    {l.note && <span className="ml-2 text-gray-500">{l.note}</span>}
+                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-genesis-700 hover:underline inline-flex items-center gap-1">{t(l.label)}<ExternalLink className="h-3 w-3" /></a>
+                    {l.note && <span className="ml-2 text-gray-500">{t(l.note)}</span>}
                   </li>
                 ))}
               </ul>

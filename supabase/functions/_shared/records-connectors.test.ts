@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { CONNECTORS, parseGallica, parseNara, searchAll } from './records-connectors.ts'
+import { CONNECTORS, parseGallica, parseNara, parseOpenArch, searchAll } from './records-connectors.ts'
 
 Deno.test('reads Gallica Dublin Core records and keeps only real Gallica links', () => {
   const xml = `<srw:searchRetrieveResponse><srw:records>
@@ -38,7 +38,24 @@ Deno.test('untested sources stay off until switched on', async () => {
     const { sources } = await searchAll({ name: 'Rosa Tremblay' }, 50)
     assert.equal(sources.find((s) => s.id === 'gallica')?.status, 'not_configured')
     assert.equal(sources.find((s) => s.id === 'nara')?.status, 'not_configured')
+    assert.equal(sources.find((s) => s.id === 'openarch')?.status, 'not_configured')
   } finally {
     globalThis.fetch = realFetch
   }
+})
+
+Deno.test('reads Open Archives results, links each record and cites the archive', () => {
+  const hits = parseOpenArch({ response: { number_found: 3, docs: [
+    { pid: 'p1', identifier: 'C0DDBB5D', archive_code: 'nha', archive_org: 'Noord-Hollands Archief', personname: 'Jan de Vries',
+      relationtype: 'Bruidegom', eventtype: 'Marriage', eventdate: { day: 3, month: 5, year: 1851 }, eventplace: ['Haarlem'], sourcetype: 'BS Huwelijk' },
+    { personname: 'Has own link', url: 'https://www.openarchieven.nl/hga:8AA6', eventdate: '1820' },
+    { personname: 'No way to link' },
+  ] } })
+  assert.equal(hits.length, 2)
+  assert.equal(hits[0].url, 'https://www.openarchieven.nl/nha:C0DDBB5D')
+  assert.equal(hits[0].date, '1851-05-03')
+  assert.equal(hits[0].attribution, 'Noord-Hollands Archief')
+  assert.match(hits[0].snippet ?? '', /Marriage, Haarlem/)
+  assert.equal(hits[1].url, 'https://www.openarchieven.nl/hga:8AA6')
+  assert.deepEqual(parseOpenArch({}), [])
 })

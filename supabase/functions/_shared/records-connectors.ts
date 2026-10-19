@@ -238,7 +238,53 @@ const nara: Connector = {
   },
 }
 
-export const CONNECTORS: Connector[] = [wikitree, wikidata, chroniclingAmerica, internetArchive, dpla, europeana, trove, gallica, nara]
+// Open Archives (openarchieven.nl): hundreds of millions of indexed civil and church records, mostly Dutch and
+// Belgian, plus other European archives. Free JSON API (https://www.openarchieven.nl/api/docs/): no key for search,
+// at most 4 requests a second, identify the program by name, and cite the archive as the source.
+// The exact shape of search results is not fully documented, so the parser accepts both plain and nested values.
+// Off until tested live: set RECORDS_ENABLE_OPENARCH=true.
+const openArchValue = (v: unknown): string => {
+  if (Array.isArray(v)) return openArchValue(v[0])
+  if (v && typeof v === 'object') {
+    const d = v as Record<string, unknown>
+    if ('year' in d) return [d.year, d.month, d.day].filter((x) => x !== undefined && x !== null && x !== '').map(String)
+      .map((x, i) => (i ? x.padStart(2, '0') : x)).join('-')
+  }
+  return typeof v === 'string' || typeof v === 'number' ? String(v) : ''
+}
+
+export function parseOpenArch(data: any): RecordHit[] {
+  return (data?.response?.docs ?? []).map((d: any): RecordHit | null => {
+    const archive = openArchValue(d?.archive_code ?? d?.archive)
+    const id = openArchValue(d?.identifier ?? d?.pid)
+    const own = openArchValue(d?.url)
+    const url = own.startsWith('https://') ? own : archive && id ? `https://www.openarchieven.nl/${encodeURIComponent(archive)}:${encodeURIComponent(id)}` : ''
+    if (!url) return null
+    const name = openArchValue(d?.personname) || 'Record'
+    const event = [openArchValue(d?.eventtype), openArchValue(d?.eventplace)].filter(Boolean).join(', ')
+    const role = openArchValue(d?.relationtype)
+    return {
+      source: 'openarch', sourceLabel: 'Open Archives', sourceId: `${archive}:${id}` || url,
+      title: name, snippet: clip([role, event, openArchValue(d?.sourcetype)].filter(Boolean).join(' · ')),
+      date: openArchValue(d?.eventdate), url,
+      license: 'See record page', attribution: openArchValue(d?.archive_org) || 'Open Archives (openarchieven.nl)',
+    }
+  }).filter((h: RecordHit | null): h is RecordHit => h !== null)
+}
+
+const openArch: Connector = {
+  id: 'openarch',
+  label: 'Open Archives (Netherlands, Belgium and more)',
+  enabledBy: 'RECORDS_ENABLE_OPENARCH',
+  async search(q, signal) {
+    const name = q.year ? `${q.name} ${q.year}` : q.name
+    const params = new URLSearchParams({ name, number_show: '8', lang: 'en' })
+    if (q.place) params.set('eventplace', q.place)
+    return parseOpenArch(await getJson(`https://api.openarch.nl/1.1/records/search.json?${params}`, signal))
+  },
+}
+
+export const CONNECTORS: Connector[] = [wikitree, wikidata, chroniclingAmerica, internetArchive, dpla, europeana, trove, gallica, nara, openArch]
 
 export interface SearchOutcome {
   hits: RecordHit[]

@@ -4,9 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useSaveGuard } from '../lib/use-save-guard';
 import Logo from './Logo';
 import LanguageSwitch from './LanguageSwitch';
-import { getLang, t, useLang } from '../lib/i18n';
+import { getLang, locale, t, useLang } from '../lib/i18n';
 
-interface MemoryRequest { from_name: string; relative_name: string; questions: string[]; answered: number[]; closed: boolean }
+// A weekly link (story_series) sends only the questions open so far, plus how many there will be and when the next opens.
+interface MemoryRequest { from_name: string; relative_name: string; questions: string[]; answered: number[]; closed: boolean; total?: number; next_on?: string | null }
 
 type Recognition = { lang: string; continuous: boolean; interimResults: boolean; start(): void; stop(): void; onresult: ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
 const SpeechRecognition = (): (new () => Recognition) | null => {
@@ -15,7 +16,7 @@ const SpeechRecognition = (): (new () => Recognition) | null => {
 };
 
 /** The page a relative opens from an "Ask a relative" link: no account, big text, type or speak each answer. */
-export const AnswerMemories: React.FC<{ token: string }> = ({ token }) => {
+export const AnswerMemories: React.FC<{ token: string; weekly?: boolean }> = ({ token, weekly = false }) => {
   useLang();
   const [req, setReq] = useState<MemoryRequest | null | undefined>(undefined);
   const [index, setIndex] = useState(0);
@@ -29,13 +30,13 @@ export const AnswerMemories: React.FC<{ token: string }> = ({ token }) => {
   const canSpeak = SpeechRecognition() !== null;
 
   useEffect(() => {
-    supabase.rpc('get_memory_request', { p_token: token }).then(({ data, error: e }: { data: unknown; error: unknown }) => {
+    supabase.rpc(weekly ? 'get_story_series' : 'get_memory_request', { p_token: token }).then(({ data, error: e }: { data: unknown; error: unknown }) => {
       if (e) { setReq(null); return; }
       const r = data as MemoryRequest | null;
       setReq(r);
       if (r) setIndex(Math.max(0, r.questions.findIndex((_, i) => !r.answered.includes(i))));
     });
-  }, [token]);
+  }, [token, weekly]);
 
   useEffect(() => { setText(''); setSaved(false); setError(''); }, [index]);
   useEffect(() => () => recognition.current?.stop(), []);
@@ -65,7 +66,7 @@ export const AnswerMemories: React.FC<{ token: string }> = ({ token }) => {
     if (!req || !text.trim()) return;
     recognition.current?.stop();
     setSaving(true); setError('');
-    const { error: e } = await supabase.rpc('answer_memory_request', { p_token: token, p_index: index, p_text: text });
+    const { error: e } = await supabase.rpc(weekly ? 'answer_story_series' : 'answer_memory_request', { p_token: token, p_index: index, p_text: text });
     setSaving(false);
     if (e) { setError(e.message ? t(e.message) : t('That didn’t save. Please try again.')); return; }
     setReq({ ...req, answered: req.answered.includes(index) ? req.answered : [...req.answered, index] });
@@ -88,6 +89,7 @@ export const AnswerMemories: React.FC<{ token: string }> = ({ token }) => {
   const total = req.questions.length;
   const done = req.answered.length;
   const allDone = done === total;
+  const nextOn = weekly && req.next_on ? new Date(`${req.next_on}T12:00:00`).toLocaleDateString(locale(), { weekday: 'long', month: 'long', day: 'numeric' }) : null;
   const last = index === total - 1;
 
   return shell(
@@ -96,6 +98,7 @@ export const AnswerMemories: React.FC<{ token: string }> = ({ token }) => {
         <h1 className="font-serif text-3xl sm:text-4xl font-bold leading-tight">{t('Hello {name}', { name: req.relative_name })}</h1>
         <p className="text-[#3d4a43]">{t('{from} is saving your family’s stories and would love to hear yours. Answer as much or as little as you like. You can type, or press the microphone and just talk.', { from: req.from_name })}</p>
         <p className="text-base text-[#5c6660]" aria-live="polite">{t('{done} of {total} answered', { done, total })}</p>
+        {weekly && <p className="text-base text-[#5c6660]">{t('A new question opens every week. Keep this link to come back.')}</p>}
       </div>
 
       <section className="rounded-2xl bg-white border border-black/10 p-6 space-y-4">
@@ -125,7 +128,9 @@ export const AnswerMemories: React.FC<{ token: string }> = ({ token }) => {
         <button onClick={() => setIndex(index + 1)} disabled={last} className="flex items-center gap-1 px-5 py-3 rounded-xl border-2 border-[#2E5A44] bg-white text-[#1f3a2e] font-semibold disabled:opacity-40">{t(saved ? 'Next question' : 'Skip')} <ChevronRight className="w-6 h-6" /></button>
       </div>
 
-      {allDone && <p className="rounded-xl bg-[#e3efe7] p-4 text-[#1f3a2e]" role="status">{t('You’ve answered every question. Thank you, {name}! {from} will treasure these. You can go back and add more to any answer.', { name: req.relative_name, from: req.from_name })}</p>}
+      {allDone && (nextOn
+        ? <p className="rounded-xl bg-[#e3efe7] p-4 text-[#1f3a2e]" role="status">{t('That’s this week’s question done. Thank you, {name}! The next one opens on {date}.', { name: req.relative_name, date: nextOn })}</p>
+        : <p className="rounded-xl bg-[#e3efe7] p-4 text-[#1f3a2e]" role="status">{t('You’ve answered every question. Thank you, {name}! {from} will treasure these. You can go back and add more to any answer.', { name: req.relative_name, from: req.from_name })}</p>)}
       <p className="text-base text-[#5c6660]">{t('Your answers go only to {from}’s private family tree on Genesis Heritage.', { from: req.from_name })}</p>
     </main>,
   );
