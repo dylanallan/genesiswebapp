@@ -113,7 +113,13 @@ export async function syncSubscription(subscriptionId: string, expectedUserId?: 
     const { data: stillPaid } = await db.rpc('has_pro_access', { p_user: userId })
     if (stillPaid) return { userId, status: 'unchanged', currentPeriodEnd: existing.current_period_end }
   }
-  const periodEnd = sub.billing_info?.next_billing_time ?? (status === 'canceled' ? existing?.current_period_end ?? null : null)
+  let periodEnd = sub.billing_info?.next_billing_time ?? (status === 'canceled' ? existing?.current_period_end ?? null : null)
+  // Switching from time paid another way (e-Transfer, a payment link, a gift): never end access earlier than
+  // what was already paid for.
+  if (status === 'active' && existing?.provider && existing.provider !== 'paypal' && existing.current_period_end
+      && (!periodEnd || new Date(existing.current_period_end) > new Date(periodEnd))) {
+    periodEnd = existing.current_period_end
+  }
 
   const { error } = await db.from('subscriptions').upsert({
     user_id: userId,

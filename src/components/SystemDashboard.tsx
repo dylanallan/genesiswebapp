@@ -111,7 +111,7 @@ export const SystemDashboard: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+        <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
       </div>
     );
   }
@@ -143,7 +143,7 @@ export const SystemDashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">
+            <div className="text-3xl font-bold text-genesis-600">
               {Math.round(overallHealth * 100)}%
             </div>
             <div className="text-sm text-gray-600">Overall Health</div>
@@ -170,7 +170,7 @@ export const SystemDashboard: React.FC = () => {
 
         <div className="w-full bg-gray-200 rounded-full h-3">
           <div 
-            className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-genesis-500 to-green-500 h-3 rounded-full transition-all duration-500"
             style={{ width: `${overallHealth * 100}%` }}
           />
         </div>
@@ -185,7 +185,7 @@ export const SystemDashboard: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             className={`bg-white rounded-xl shadow-sm border-2 p-6 cursor-pointer transition-all duration-200 hover:shadow-md ${
-              selectedComponent === component.id ? 'border-blue-500' : 'border-gray-200'
+              selectedComponent === component.id ? 'border-genesis-500' : 'border-gray-200'
             }`}
             onClick={() => setSelectedComponent(
               selectedComponent === component.id ? null : component.id
@@ -245,7 +245,7 @@ export const SystemDashboard: React.FC = () => {
                         e.stopPropagation();
                         handleForceOptimization(component.id);
                       }}
-                      className="w-full mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                      className="w-full mt-3 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors text-sm"
                     >
                       Force Optimization
                     </button>
@@ -267,7 +267,7 @@ export const SystemDashboard: React.FC = () => {
             <span>AI Router optimization completed</span>
           </div>
           <div className="flex items-center space-x-2 text-sm">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-genesis-500 rounded-full"></div>
             <span className="text-gray-600">{new Date(Date.now() - 60000).toLocaleTimeString()}</span>
             <span>Database layer performance improved</span>
           </div>

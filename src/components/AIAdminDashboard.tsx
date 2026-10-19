@@ -40,15 +40,13 @@ export const AIAdminDashboard: React.FC = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from('admin_roles')
-        .select('*')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .maybeSingle();
+      // is_admin() checks admin_roles on the server (reading admin_roles directly is not allowed for everyone).
+      const { data, error } = await supabase.rpc('is_admin');
+      if (error) throw error;
       
-      setIsAdmin(!!data);
+      setIsAdmin(data === true);
       
-      if (!data) {
+      if (data !== true) {
         toast.error('Admin access required');
       }
     } catch (error) {
@@ -99,7 +97,7 @@ export const AIAdminDashboard: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+        <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
       </div>
     );
   }
@@ -148,7 +146,7 @@ export const AIAdminDashboard: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-            <Users className="w-5 h-5 text-blue-500" />
+            <Users className="w-5 h-5 text-genesis-500" />
           </div>
           <p className="text-2xl font-bold text-gray-900">{metrics.totalUsers}</p>
           <div className="flex items-center mt-1 text-sm">

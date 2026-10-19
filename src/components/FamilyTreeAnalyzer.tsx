@@ -215,13 +215,13 @@ export const FamilyTreeAnalyzer: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <FileTree className="w-6 h-6 text-blue-500" />
+          <FileTree className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Family Tree Analyzer</h2>
         </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
             disabled={isAnalyzing}
           >
             {isAnalyzing ? (
@@ -255,7 +255,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
           </p>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
           >
             <Upload className="w-5 h-5" />
             <span>Upload File</span>
@@ -266,7 +266,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
         </div>
       ) : isAnalyzing ? (
         <div className="text-center py-16 bg-gray-50 rounded-lg">
-          <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-16 h-16 text-genesis-500 animate-spin mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Analyzing Your Family Tree</h3>
           <p className="text-gray-500 max-w-md mx-auto">
             Our AI is processing your data to extract family members, locations, events, and patterns
@@ -306,7 +306,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                 onClick={() => setActiveTab('members')}
                 className={`px-4 py-2 text-sm font-medium border-b-2 ${
                   activeTab === 'members'
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-genesis-500 text-genesis-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -316,7 +316,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                 onClick={() => setActiveTab('locations')}
                 className={`px-4 py-2 text-sm font-medium border-b-2 ${
                   activeTab === 'locations'
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-genesis-500 text-genesis-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -326,7 +326,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                 onClick={() => setActiveTab('events')}
                 className={`px-4 py-2 text-sm font-medium border-b-2 ${
                   activeTab === 'events'
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-genesis-500 text-genesis-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -336,7 +336,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                 onClick={() => setActiveTab('patterns')}
                 className={`px-4 py-2 text-sm font-medium border-b-2 ${
                   activeTab === 'patterns'
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-genesis-500 text-genesis-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -353,7 +353,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Search family members..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                   />
                 </div>
                 
@@ -372,11 +372,11 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                             <h4 className="font-medium text-gray-900">{member.name}</h4>
                             {getConfidenceIcon(member.confidence)}
                           </div>
-                          <p className="text-blue-600 text-sm">{member.relationship}</p>
+                          <p className="text-genesis-600 text-sm">{member.relationship}</p>
                         </div>
                         <button
                           onClick={() => toast.success(`Added ${member.name} to your family tree`)}
-                          className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full hover:bg-blue-100 transition-colors"
+                          className="text-xs bg-genesis-50 text-genesis-600 px-2 py-1 rounded-full hover:bg-genesis-100 transition-colors"
                         >
                           Add to Tree
                         </button>
@@ -429,7 +429,7 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                             <p className="text-sm text-gray-500">{location.period}</p>
                           )}
                         </div>
-                        <MapPin className="w-5 h-5 text-blue-500" />
+                        <MapPin className="w-5 h-5 text-genesis-500" />
                       </div>
                       
                       <p className="mt-2 text-gray-700">{location.significance}</p>
@@ -466,14 +466,14 @@ export const FamilyTreeAnalyzer: React.FC = () => {
                             <p className="text-sm text-gray-500">{event.date}</p>
                           )}
                         </div>
-                        <Calendar className="w-5 h-5 text-blue-500" />
+                        <Calendar className="w-5 h-5 text-genesis-500" />
                       </div>
                       
                       <div className="mt-2">
                         <p className="text-xs text-gray-500 mb-1">People Involved:</p>
                         <div className="flex flex-wrap gap-1">
                           {event.people.map((person, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                            <span key={idx} className="px-2 py-1 bg-genesis-50 text-genesis-700 rounded-full text-xs">
                               {person}
                             </span>
                           ))}
@@ -530,15 +530,15 @@ export const FamilyTreeAnalyzer: React.FC = () => {
             )}
           </div>
 
-          <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <h3 className="font-medium text-blue-900 mb-2">Recommendations</h3>
+          <div className="mt-6 bg-genesis-50 p-4 rounded-lg border border-genesis-100">
+            <h3 className="font-medium text-genesis-900 mb-2">Recommendations</h3>
             <ul className="space-y-2">
               {analysisResult.recommendations.map((recommendation, index) => (
                 <li key={index} className="flex items-start">
-                  <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs mr-2 flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center text-xs mr-2 flex-shrink-0 mt-0.5">
                     {index + 1}
                   </span>
-                  <span className="text-blue-800">{recommendation}</span>
+                  <span className="text-genesis-800">{recommendation}</span>
                 </li>
               ))}
             </ul>

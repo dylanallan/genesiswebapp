@@ -7,6 +7,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
+  // Screens load on demand; on a busy test machine the first load of a screen can take a few seconds.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: process.env.BASE_URL || 'http://127.0.0.1:5173',
     trace: 'on-first-retry',

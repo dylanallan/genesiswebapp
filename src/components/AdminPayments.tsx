@@ -14,6 +14,8 @@ export default function AdminPayments() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [status, setStatus] = useState<'pending' | 'confirmed' | 'rejected'>('pending');
   const [rows, setRows] = useState<Row[]>([]);
+  // Which payments buy a gift (the code goes to someone else; the payer does not get Pro).
+  const [gifts, setGifts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState({ email: '', monthly: '', yearly: '', linkMonthly: '', linkYearly: '' });
 
@@ -26,7 +28,13 @@ export default function AdminPayments() {
       if (!notAdmin) toast.error('Could not load payments');
     } else {
       setIsAdmin(true);
-      setRows((data ?? []) as Row[]);
+      const list = (data ?? []) as Row[];
+      setRows(list);
+      const ids = list.map((r) => r.id);
+      const { data: giftRows } = ids.length
+        ? await supabase.from('gift_codes').select('payment_id,recipient_name').in('payment_id', ids)
+        : { data: [] };
+      setGifts(Object.fromEntries(((giftRows ?? []) as Array<{ payment_id: string; recipient_name: string | null }>).map((g) => [g.payment_id, g.recipient_name ?? ''])));
     }
     setLoading(false);
   }, [status]);
@@ -48,11 +56,13 @@ export default function AdminPayments() {
   }, []);
 
   const review = async (row: Row, approve: boolean) => {
-    const note = window.prompt(approve ? `Confirm ${formatCad(row.amount_cents)} by ${row.method === 'paypal_link' ? 'PayPal' : 'e-Transfer'} from ${row.email} (${row.reference_code})? Optional note:` : 'Reason for rejecting (optional):', '');
+    const giftNote = row.id in gifts ? 'This is a GIFT: the buyer gets a code to give away, not Pro. ' : '';
+    const note = window.prompt(approve ? `${giftNote}Confirm ${formatCad(row.amount_cents)} by ${row.method === 'paypal_link' ? 'PayPal' : 'e-Transfer'} from ${row.email} (${row.reference_code})? Optional note:` : 'Reason for rejecting (optional):', '');
     if (note === null) return;
     const { error } = await supabase.rpc('review_manual_payment', { p_payment_id: row.id, p_approve: approve, p_note: note || null });
     if (error) return toast.error(error.message);
-    toast.success(approve ? `Pro activated for ${row.email}` : 'Payment rejected');
+    const gift = row.id in gifts;
+    toast.success(approve ? (gift ? `Gift code ready for ${row.email} to give` : `Pro activated for ${row.email}`) : 'Payment rejected');
     void load();
   };
 
@@ -103,7 +113,7 @@ export default function AdminPayments() {
                   <td className="py-2 font-mono">{r.reference_code}</td>
                   <td>{r.method === 'paypal_link' ? 'PayPal' : 'e-Transfer'}</td>
                   <td>{r.email}</td>
-                  <td>{r.plan}</td>
+                  <td>{r.plan}{r.id in gifts && <span className="ml-1 rounded bg-amber-100 px-1.5 text-xs text-amber-900" title={gifts[r.id] ? `Gift for ${gifts[r.id]}` : 'Gift'}>Gift{gifts[r.id] ? ` for ${gifts[r.id]}` : ''}</span>}</td>
                   <td>{formatCad(r.amount_cents)}</td>
                   <td>{new Date(r.created_at).toLocaleDateString()}</td>
                   <td className="text-right whitespace-nowrap">
@@ -135,7 +145,7 @@ export default function AdminPayments() {
           <label className="text-sm sm:col-span-3">PayPal payment link, monthly<input className="mt-1 w-full border rounded px-2 py-1" placeholder="https://www.paypal.com/ncp/payment/…" value={settings.linkMonthly} onChange={(e) => setSettings({ ...settings, linkMonthly: e.target.value })} /></label>
           <label className="text-sm sm:col-span-3">PayPal payment link, yearly<input className="mt-1 w-full border rounded px-2 py-1" placeholder="https://www.paypal.com/ncp/payment/…" value={settings.linkYearly} onChange={(e) => setSettings({ ...settings, linkYearly: e.target.value })} /></label>
         </div>
-        <button onClick={saveSettings} className="mt-4 rounded bg-blue-600 px-4 py-2 text-white">Save</button>
+        <button onClick={saveSettings} className="mt-4 rounded bg-genesis-600 px-4 py-2 text-white">Save</button>
       </section>
     </div>
   );

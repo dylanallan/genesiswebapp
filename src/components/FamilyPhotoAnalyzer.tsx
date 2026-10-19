@@ -5,6 +5,7 @@ import { Upload, Image as ImageIcon, Loader2, Users, Tag, MapPin, Calendar } fro
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { uploadOwnFile } from '../lib/storage';
+import { t, useLang } from '../lib/i18n';
 
 interface PhotoAnalysis {
   faces: Face[];
@@ -58,9 +59,12 @@ interface Relationship {
 }
 
 export const FamilyPhotoAnalyzer: React.FC = () => {
+  useLang();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<PhotoAnalysis | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // The stored file path identifies the photo for good; the on-screen preview link changes on every visit.
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, reset } = useForm();
@@ -75,8 +79,9 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
 
       // Upload to Supabase storage
       // Private upload into the user's own folder
-      const photoPath = await uploadOwnFile('family-photos', file.name, file);
-      const uploadData = { path: photoPath };
+      const storedPath = await uploadOwnFile('family-photos', file.name, file);
+      setPhotoPath(storedPath);
+      const uploadData = { path: storedPath };
 
       // Call Google Vision AI through Edge Function
       const { data: analysisData, error: analysisError } = await supabase.functions
@@ -87,7 +92,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
       if (analysisError) throw analysisError;
 
       setAnalysis(analysisData);
-      toast.success('Photo analysis complete!');
+      toast.success(t('Photo analysis complete!'));
 
       // Store analysis results
       const { error: dbError } = await supabase
@@ -102,7 +107,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
 
     } catch (error) {
       console.error('Error analyzing photo:', error);
-      toast.error('Failed to analyze photo. Please try again.');
+      toast.error(t('Failed to analyze photo. Please try again.'));
     } finally {
       setIsAnalyzing(false);
     }
@@ -128,18 +133,21 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
     setAnalysis(updatedAnalysis);
 
     try {
-      await supabase
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
         .from('face_names')
         .upsert({
-          face_id: `${selectedImage}-${faceIndex}`,
+          user_id: auth?.user?.id,
+          face_id: `${photoPath ?? selectedImage}-${faceIndex}`,
           name,
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'user_id,face_id' });
+      if (error) throw error;
 
       toast.success(`Name updated to ${name}`);
     } catch (error) {
       console.error('Error updating name:', error);
-      toast.error('Failed to update name');
+      toast.error(t('Failed to update name'));
     }
   };
 
@@ -148,12 +156,12 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <ImageIcon className="w-6 h-6 text-blue-500" />
-            <h2 className="text-xl font-semibold text-gray-900">Family Photo Analyzer</h2>
+            <ImageIcon className="w-6 h-6 text-genesis-500" />
+            <h2 className="text-xl font-semibold text-gray-900">{t('Family Photo Analyzer')}</h2>
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
             disabled={isAnalyzing}
           >
             {isAnalyzing ? (
@@ -161,7 +169,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
             ) : (
               <>
                 <Upload className="w-5 h-5" />
-                <span>Upload Photo</span>
+                <span>{t('Upload Photo')}</span>
               </>
             )}
           </button>
@@ -178,7 +186,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
           <div className="relative mb-6">
             <img
               src={selectedImage}
-              alt="Selected family photo"
+              alt={t('Selected family photo')}
               className="w-full rounded-lg"
             />
             {analysis?.faces.map((face, index) => (
@@ -205,15 +213,15 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
         {analysis && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-genesis-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Users className="w-5 h-5 text-blue-500" />
-                  <h3 className="font-medium text-blue-900">People</h3>
+                  <Users className="w-5 h-5 text-genesis-500" />
+                  <h3 className="font-medium text-genesis-900">{t('People')}</h3>
                 </div>
                 <div className="space-y-2">
                   {analysis.faces.map((face, index) => (
                     <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm text-blue-800">
+                      <span className="text-sm text-genesis-800">
                         {face.name || `Person ${index + 1}`}
                       </span>
                       <button
@@ -221,9 +229,9 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
                           const name = prompt('Enter name:');
                           if (name) updatePersonName(index, name);
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-700"
+                        className="text-xs text-genesis-600 hover:text-genesis-700"
                       >
-                        Edit Name
+                        {t('Edit Name')}
                       </button>
                     </div>
                   ))}
@@ -233,7 +241,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
               <div className="bg-green-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <Tag className="w-5 h-5 text-green-500" />
-                  <h3 className="font-medium text-green-900">Labels</h3>
+                  <h3 className="font-medium text-green-900">{t('Labels')}</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {analysis.labels.map((label, index) => (
@@ -250,7 +258,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
               <div className="bg-purple-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <MapPin className="w-5 h-5 text-purple-500" />
-                  <h3 className="font-medium text-purple-900">Details</h3>
+                  <h3 className="font-medium text-purple-900">{t('Details')}</h3>
                 </div>
                 <div className="space-y-2 text-sm text-purple-800">
                   {analysis.location && (
@@ -267,7 +275,7 @@ export const FamilyPhotoAnalyzer: React.FC = () => {
               <div className="bg-amber-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-3">
                   <Users className="w-5 h-5 text-amber-500" />
-                  <h3 className="font-medium text-amber-900">Relationships</h3>
+                  <h3 className="font-medium text-amber-900">{t('Relationships')}</h3>
                 </div>
                 <div className="space-y-2">
                   {analysis.relationships.map((rel, index) => (

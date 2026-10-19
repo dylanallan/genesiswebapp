@@ -1,13 +1,15 @@
 // Cache bust: 2024-07-01-1
-import React, { useState, useEffect } from 'react';
+import { takeNextFeature } from '../lib/next-step';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link as RouterLink } from 'react-router-dom';
 import { 
   Home, 
   Users, 
   Calendar, 
   FileText, 
   Globe, 
+  Sparkles,
+  MessageCircle,
   Settings, 
   Plus,
   Search,
@@ -103,98 +105,319 @@ import {
   CreditCard,
   Table,
   Server,
-  Trophy
+  Trophy,
+  ListChecks,
+  Send,
+  ScanText,
+  CalendarClock,
+  BookImage,
+  Clapperboard,
+  CalendarHeart,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { t, useLang } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
-import UniversalSearch from './UniversalSearch';
-import { DataSourceAdmin } from './DataSourceAdmin';
 import { useSession } from '../lib/session-context';
-import { useAtom } from 'jotai';
-import { userPreferencesAtom } from '../lib/store';
 import { cn } from '../lib/utils';
-import { CulturalArtifactGallery } from './CulturalArtifactGallery';
-import { TraditionsManager } from './TraditionsManager';
-import { FamilyContactManager } from './FamilyContactManager';
-import { CelebrationManager } from './CelebrationManager';
-import { CulturalStoryLibrary } from './CulturalStoryLibrary';
-import { CulturalRecipeBook } from './CulturalRecipeBook';
-import { TimelineBuilder } from './TimelineBuilder';
-import { AutomationHub } from './AutomationHub';
-import { UserProfileManager } from './UserProfileManager';
-import { UserProfileButton } from './UserProfileButton';
 import { ErrorBoundary } from '../lib/error-boundary';
 import { chatApi } from '../api/chat';
-import { FamilyTreeAnalyzer } from './FamilyTreeAnalyzer';
-import { FamilyTreeVisualizer } from './FamilyTreeVisualizer';
-import { VoiceAgent } from './VoiceAgent';
-import { MediaGallery } from './MediaGallery';
-import { WorkflowGenerator } from './WorkflowGenerator';
-import { AISettings } from './AISettings';
-import { SystemHealthMonitor } from './SystemHealthMonitor';
-import { AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
-import { AIUsageStats } from './AIUsageStats';
-import { AIContextManager } from './AIContextManager';
-import { GenesisVoiceAssistant } from './GenesisVoiceAssistant';
-import { FamilyPhotoAnalyzer } from './FamilyPhotoAnalyzer';
-import { DNAInsights } from './DNAInsights';
-import { ConversationSummarizer } from './ConversationSummarizer';
-import { ARHeritageViewer } from './ARHeritageViewer';
-import { N8NIntegration } from './N8NIntegration';
-import { StartupAdvisor } from './StartupAdvisor';
-import { MarketingAutomation } from './MarketingAutomation';
-import { EnterpriseROICalculator } from './EnterpriseROICalculator';
-import EnterpriseValueProposition from './EnterpriseValueProposition';
-import EnterpriseFeatureComparison from './EnterpriseFeatureComparison';
-import EnterprisePricingPanel from './EnterprisePricingPanel';
-import EnterpriseMetricsPanel from './EnterpriseMetricsPanel';
-import EnterpriseDemo from './EnterpriseDemo';
-import HackathonDemoPage from './HackathonDemoPage';
-import HackathonLandingPage from './HackathonLandingPage';
-import HackathonPitch from './HackathonPitch';
-import EliteHackathonApp from './EliteHackathonApp';
-import { FamilyTreeVoiceAgent } from './FamilyTreeVoiceAgent';
-import { FlowBuilder } from './FlowBuilder';
-import { AutomationInterface } from './AutomationInterface';
-import { AutomationDashboard } from './AutomationDashboard';
-import { AutomationFlow } from './AutomationFlow';
-import { AIAdminDashboard } from './AIAdminDashboard';
-import { AICustomInstructionsEditor } from './AICustomInstructionsEditor';
-import { AIFeedbackAnalytics } from './AIFeedbackAnalytics';
-import { AISystemHealth } from './AISystemHealth';
-import { BackendStatusIndicator } from './BackendStatusIndicator';
-import { ColorSettings } from './ColorSettings';
-import { CulturalArtifactForm } from './CulturalArtifactForm';
-import { DataTable } from './DataTable';
-import { EmptyState } from './EmptyState';
-import { LoadingSpinner } from './LoadingSpinner';
-import { MetricsCard } from './MetricsCard';
-import { PaymentForm } from './PaymentForm';
-import { ProfileEditor } from './ProfileEditor';
-import { ProfileHistoryViewer } from './ProfileHistoryViewer';
-import { SEO } from './SEO';
-import { SystemDashboard } from './SystemDashboard';
-import { UserProfile } from './UserProfile';
-import { UserSettings } from './UserSettings';
-import { VideoPlayer } from './VideoPlayer';
-import { VoiceCloning } from './VoiceCloning';
-import { VoiceRecorder } from './VoiceRecorder';
-import { AudioPlayer } from './AudioPlayer';
-import { MediaPlayer } from './MediaPlayer';
-import { MediaUploader } from './MediaUploader';
-import { MediaDemo } from './MediaDemo';
-import SettingsPanel from './Settings';
-import FamilySummary from './FamilySummary';
-import RecordsSearch from './RecordsSearch';
-import AdminPayments from './AdminPayments';
-import { SavedRecordsTableFeature, SEOFeature, FamilyTreeFeature, ROICalculatorFeature, MetricsFeature, VideoFeature, AudioFeature, MediaFeature, SummarizerFeature } from './features/FeatureAdapters';
+import GetStarted from './GetStarted';
+import { useSearchParams } from 'react-router-dom';
+
+// Each screen loads only when it is opened, so the dashboard itself opens fast (especially on phones).
+const CulturalArtifactGallery = lazy(() => import('./CulturalArtifactGallery').then((m) => ({ default: m.CulturalArtifactGallery })));
+const TraditionsManager = lazy(() => import('./TraditionsManager').then((m) => ({ default: m.TraditionsManager })));
+const FamilyContactManager = lazy(() => import('./FamilyContactManager').then((m) => ({ default: m.FamilyContactManager })));
+const CelebrationManager = lazy(() => import('./CelebrationManager').then((m) => ({ default: m.CelebrationManager })));
+const CulturalStoryLibrary = lazy(() => import('./CulturalStoryLibrary').then((m) => ({ default: m.CulturalStoryLibrary })));
+const CulturalRecipeBook = lazy(() => import('./CulturalRecipeBook').then((m) => ({ default: m.CulturalRecipeBook })));
+const TimelineBuilder = lazy(() => import('./TimelineBuilder').then((m) => ({ default: m.TimelineBuilder })));
+const AutomationHub = lazy(() => import('./AutomationHub').then((m) => ({ default: m.AutomationHub })));
+const UserProfileManager = lazy(() => import('./UserProfileManager').then((m) => ({ default: m.UserProfileManager })));
+const FamilyTreeAnalyzer = lazy(() => import('./FamilyTreeAnalyzer').then((m) => ({ default: m.FamilyTreeAnalyzer })));
+const FamilyTreeVisualizer = lazy(() => import('./FamilyTreeVisualizer').then((m) => ({ default: m.FamilyTreeVisualizer })));
+const VoiceAgent = lazy(() => import('./VoiceAgent').then((m) => ({ default: m.VoiceAgent })));
+const MediaGallery = lazy(() => import('./MediaGallery').then((m) => ({ default: m.MediaGallery })));
+const WorkflowGenerator = lazy(() => import('./WorkflowGenerator').then((m) => ({ default: m.WorkflowGenerator })));
+const AISettings = lazy(() => import('./AISettings').then((m) => ({ default: m.AISettings })));
+const SystemHealthMonitor = lazy(() => import('./SystemHealthMonitor').then((m) => ({ default: m.SystemHealthMonitor })));
+const AdvancedAnalyticsDashboard = lazy(() => import('./AdvancedAnalyticsDashboard').then((m) => ({ default: m.AdvancedAnalyticsDashboard })));
+const AIUsageStats = lazy(() => import('./AIUsageStats').then((m) => ({ default: m.AIUsageStats })));
+const AIContextManager = lazy(() => import('./AIContextManager').then((m) => ({ default: m.AIContextManager })));
+const GenesisVoiceAssistant = lazy(() => import('./GenesisVoiceAssistant').then((m) => ({ default: m.GenesisVoiceAssistant })));
+const FamilyPhotoAnalyzer = lazy(() => import('./FamilyPhotoAnalyzer').then((m) => ({ default: m.FamilyPhotoAnalyzer })));
+const DNAInsights = lazy(() => import('./DNAInsights').then((m) => ({ default: m.DNAInsights })));
+const ConversationSummarizer = lazy(() => import('./ConversationSummarizer').then((m) => ({ default: m.ConversationSummarizer })));
+const ARHeritageViewer = lazy(() => import('./ARHeritageViewer').then((m) => ({ default: m.ARHeritageViewer })));
+const N8NIntegration = lazy(() => import('./N8NIntegration').then((m) => ({ default: m.N8NIntegration })));
+const StartupAdvisor = lazy(() => import('./StartupAdvisor').then((m) => ({ default: m.StartupAdvisor })));
+const MarketingAutomation = lazy(() => import('./MarketingAutomation').then((m) => ({ default: m.MarketingAutomation })));
+const EnterpriseROICalculator = lazy(() => import('./EnterpriseROICalculator').then((m) => ({ default: m.EnterpriseROICalculator })));
+const EnterpriseValueProposition = lazy(() => import('./EnterpriseValueProposition'));
+const EnterpriseFeatureComparison = lazy(() => import('./EnterpriseFeatureComparison'));
+const EnterprisePricingPanel = lazy(() => import('./EnterprisePricingPanel'));
+const EnterpriseMetricsPanel = lazy(() => import('./EnterpriseMetricsPanel'));
+const EnterpriseDemo = lazy(() => import('./EnterpriseDemo'));
+const HackathonDemoPage = lazy(() => import('./HackathonDemoPage'));
+const HackathonLandingPage = lazy(() => import('./HackathonLandingPage'));
+const HackathonPitch = lazy(() => import('./HackathonPitch'));
+const EliteHackathonApp = lazy(() => import('./EliteHackathonApp'));
+const FamilyTreeVoiceAgent = lazy(() => import('./FamilyTreeVoiceAgent').then((m) => ({ default: m.FamilyTreeVoiceAgent })));
+const FlowBuilder = lazy(() => import('./FlowBuilder').then((m) => ({ default: m.FlowBuilder })));
+const AutomationInterface = lazy(() => import('./AutomationInterface').then((m) => ({ default: m.AutomationInterface })));
+const AutomationDashboard = lazy(() => import('./AutomationDashboard').then((m) => ({ default: m.AutomationDashboard })));
+const AutomationFlow = lazy(() => import('./AutomationFlow').then((m) => ({ default: m.AutomationFlow })));
+const AIAdminDashboard = lazy(() => import('./AIAdminDashboard').then((m) => ({ default: m.AIAdminDashboard })));
+const AICustomInstructionsEditor = lazy(() => import('./AICustomInstructionsEditor').then((m) => ({ default: m.AICustomInstructionsEditor })));
+const AIFeedbackAnalytics = lazy(() => import('./AIFeedbackAnalytics').then((m) => ({ default: m.AIFeedbackAnalytics })));
+const AISystemHealth = lazy(() => import('./AISystemHealth').then((m) => ({ default: m.AISystemHealth })));
+const BackendStatusIndicator = lazy(() => import('./BackendStatusIndicator').then((m) => ({ default: m.BackendStatusIndicator })));
+const ColorSettings = lazy(() => import('./ColorSettings').then((m) => ({ default: m.ColorSettings })));
+const CulturalArtifactForm = lazy(() => import('./CulturalArtifactForm').then((m) => ({ default: m.CulturalArtifactForm })));
+const DataTable = lazy(() => import('./DataTable').then((m) => ({ default: m.DataTable })));
+const EmptyState = lazy(() => import('./EmptyState').then((m) => ({ default: m.EmptyState })));
+const LoadingSpinner = lazy(() => import('./LoadingSpinner').then((m) => ({ default: m.LoadingSpinner })));
+const MetricsCard = lazy(() => import('./MetricsCard').then((m) => ({ default: m.MetricsCard })));
+const PaymentForm = lazy(() => import('./PaymentForm').then((m) => ({ default: m.PaymentForm })));
+const ProfileEditor = lazy(() => import('./ProfileEditor').then((m) => ({ default: m.ProfileEditor })));
+const ProfileHistoryViewer = lazy(() => import('./ProfileHistoryViewer').then((m) => ({ default: m.ProfileHistoryViewer })));
+const SEO = lazy(() => import('./SEO').then((m) => ({ default: m.SEO })));
+const SystemDashboard = lazy(() => import('./SystemDashboard').then((m) => ({ default: m.SystemDashboard })));
+const UserProfile = lazy(() => import('./UserProfile').then((m) => ({ default: m.UserProfile })));
+const UserSettings = lazy(() => import('./UserSettings').then((m) => ({ default: m.UserSettings })));
+const VideoPlayer = lazy(() => import('./VideoPlayer').then((m) => ({ default: m.VideoPlayer })));
+const VoiceCloning = lazy(() => import('./VoiceCloning').then((m) => ({ default: m.VoiceCloning })));
+const VoiceRecorder = lazy(() => import('./VoiceRecorder').then((m) => ({ default: m.VoiceRecorder })));
+const AudioPlayer = lazy(() => import('./AudioPlayer').then((m) => ({ default: m.AudioPlayer })));
+const MediaPlayer = lazy(() => import('./MediaPlayer').then((m) => ({ default: m.MediaPlayer })));
+const MediaUploader = lazy(() => import('./MediaUploader').then((m) => ({ default: m.MediaUploader })));
+const MediaDemo = lazy(() => import('./MediaDemo').then((m) => ({ default: m.MediaDemo })));
+const SettingsPanel = lazy(() => import('./Settings'));
+const RecordsSearch = lazy(() => import('./RecordsSearch'));
+const AdminPayments = lazy(() => import('./AdminPayments'));
+const AdminWaitlist = lazy(() => import('./AdminWaitlist').then((m) => ({ default: m.AdminWaitlist })));
+const AskRelative = lazy(() => import('./AskRelative').then((m) => ({ default: m.AskRelative })));
+const WeeklyQuestions = lazy(() => import('./WeeklyQuestions'));
+const RecordHints = lazy(() => import('./RecordHints').then((m) => ({ default: m.RecordHints })));
+const TreeImport = lazy(() => import('./TreeImport'));
+const FamilySharing = lazy(() => import('./FamilySharing'));
+const FamilyStorybook = lazy(() => import('./FamilyStorybook'));
+const FamilyInterview = lazy(() => import('./FamilyInterview'));
+const PrivacyCenter = lazy(() => import('./PrivacyCenter'));
+const TreeCheckup = lazy(() => import('./TreeCheckup'));
+const ResearchAssistant = lazy(() => import('./ResearchAssistant'));
+const PedigreeChart = lazy(() => import('./PedigreeChart'));
+const FamilyMap = lazy(() => import('./FamilyMap'));
+const HeritageMix = lazy(() => import('./HeritageMix'));
+const FamilyFacts = lazy(() => import('./FamilyFacts'));
+const MyAccount = lazy(() => import('./MyAccount'));
+const FamilySearch = lazy(() => import('./FamilySearch'));
+const PhotoRestore = lazy(() => import('./PhotoRestore'));
+const DocumentReader = lazy(() => import('./DocumentReader'));
+const PhotoDater = lazy(() => import('./PhotoDater'));
+const AlbumScan = lazy(() => import('./AlbumScan'));
+const SlideshowMaker = lazy(() => import('./SlideshowMaker'));
+const LifeStory = lazy(() => import('./LifeStory'));
+const SavedRecordsTableFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SavedRecordsTableFeature })));
+const SEOFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SEOFeature })));
+const FamilyTreeFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.FamilyTreeFeature })));
+const ROICalculatorFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.ROICalculatorFeature })));
+const MetricsFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.MetricsFeature })));
+const VideoFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.VideoFeature })));
+const AudioFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.AudioFeature })));
+const MediaFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.MediaFeature })));
+const SummarizerFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SummarizerFeature })));
 
 interface DashboardProps {
   onViewModeChange: (mode: 'standard' | 'enterprise' | 'hackathon') => void;
 }
 
 const features = [
+  {
+    id: 'welcome',
+    name: 'Get started',
+    icon: Home,
+    component: GetStarted,
+    description: 'Your first steps',
+    category: 'heritage',
+  },
+  {
+    id: 'tree-import',
+    name: 'Import or export tree',
+    icon: Upload,
+    component: TreeImport,
+    description: 'Bring your tree from Ancestry, MyHeritage or FamilySearch',
+    category: 'heritage',
+  },
+  {
+    id: 'family-sharing',
+    name: 'Share with family',
+    icon: Share,
+    component: FamilySharing,
+    description: 'Invite relatives to view and add memories',
+    category: 'heritage',
+  },
+  {
+    id: 'record-hints',
+    name: 'Record hints',
+    icon: Sparkles,
+    component: RecordHints,
+    description: 'Likely records for people in your tree, with the evidence',
+    category: 'heritage',
+  },
+  {
+    id: 'weekly-questions',
+    name: 'Weekly story questions',
+    icon: CalendarHeart,
+    component: WeeklyQuestions,
+    description: 'One question a week for a year, answered without an account',
+    category: 'heritage',
+  },
+  {
+    id: 'ask-relative',
+    name: 'Ask a relative by link',
+    icon: Send,
+    component: AskRelative,
+    description: 'Send a private link; they answer on their phone, no account needed',
+    category: 'heritage',
+  },
+  {
+    id: 'family-interview',
+    name: 'Interview a relative',
+    icon: Mic,
+    component: FamilyInterview,
+    description: 'Guided voice interviews, recorded and written down',
+    category: 'heritage',
+  },
+  {
+    id: 'family-storybook',
+    name: 'Family storybook',
+    icon: BookOpen,
+    component: FamilyStorybook,
+    description: 'Turn your family history into a printable book',
+    category: 'heritage',
+  },
+  {
+    id: 'family-tree-chart',
+    name: 'Family tree',
+    icon: Trees,
+    component: PedigreeChart,
+    description: 'Visual family tree chart',
+    category: 'heritage',
+  },
+  {
+    id: 'life-story',
+    name: 'Life stories',
+    icon: BookOpen,
+    component: LifeStory,
+    description: 'Each person\'s life as a timeline',
+    category: 'heritage',
+  },
+  {
+    id: 'photo-restore',
+    name: 'Restore old photos',
+    icon: Image,
+    component: PhotoRestore,
+    description: 'Repair and colourise old photos',
+    category: 'heritage',
+  },
+  {
+    id: 'slideshow',
+    name: 'Slideshow video',
+    icon: Clapperboard,
+    component: SlideshowMaker,
+    description: 'Photos and a voice telling the story, as a video',
+    category: 'heritage',
+  },
+  {
+    id: 'album-scan',
+    name: 'Scan an album page',
+    icon: BookImage,
+    component: AlbumScan,
+    description: 'Save every photo on an album page at once',
+    category: 'heritage',
+  },
+  {
+    id: 'photo-date',
+    name: 'Date an old photo',
+    icon: CalendarClock,
+    component: PhotoDater,
+    description: 'Estimate when a photo was taken',
+    category: 'heritage',
+  },
+  {
+    id: 'document-reader',
+    name: 'Read an old document',
+    icon: ScanText,
+    component: DocumentReader,
+    description: 'Transcribe and translate old records and letters',
+    category: 'heritage',
+  },
+  {
+    id: 'family-map',
+    name: 'Family map',
+    icon: Map,
+    component: FamilyMap,
+    description: 'Where your family lived and moved',
+    category: 'heritage',
+  },
+  {
+    id: 'heritage-mix',
+    name: 'Where we come from',
+    icon: Globe,
+    component: HeritageMix,
+    description: 'Your heritage breakdown from your tree',
+    category: 'heritage',
+  },
+  {
+    id: 'family-facts',
+    name: 'Family facts',
+    icon: Sparkles,
+    component: FamilyFacts,
+    description: 'Highlights from your family tree',
+    category: 'heritage',
+  },
+  {
+    id: 'family-search',
+    name: 'Search my family',
+    icon: Search,
+    component: FamilySearch,
+    description: 'Find people, places, stories and recipes you have saved',
+    category: 'heritage',
+  },
+  {
+    id: 'my-account',
+    name: 'My account',
+    icon: User,
+    component: MyAccount,
+    description: 'Your name, password, text size and helper preferences',
+    category: 'core',
+  },
+  {
+    id: 'research-assistant',
+    name: 'Research assistant',
+    icon: Search,
+    component: ResearchAssistant,
+    description: 'Find and verify records for a person',
+    category: 'heritage',
+  },
+  {
+    id: 'tree-checkup',
+    name: 'Tree checkup',
+    icon: Shield,
+    component: TreeCheckup,
+    description: 'Find likely mistakes in your tree',
+    category: 'heritage',
+  },
+  {
+    id: 'privacy-center',
+    name: 'Your data & privacy',
+    icon: Shield,
+    component: PrivacyCenter,
+    description: 'Download or delete everything',
+    category: 'user',
+  },
   {
     id: 'records-search',
     name: 'Historical Records',
@@ -204,22 +427,6 @@ const features = [
     category: 'heritage',
   },
   // Core System Features
-  {
-    id: 'search',
-    name: 'Universal Search',
-    icon: Search,
-    component: UniversalSearch,
-    description: 'Search across all data sources',
-    category: 'core'
-  },
-  {
-    id: 'data',
-    name: 'Data Sources',
-    icon: Database,
-    component: DataSourceAdmin,
-    description: 'Manage data sources and integrations',
-    category: 'core'
-  },
   {
     id: 'ai-assistant',
     name: 'AI Assistant',
@@ -785,6 +992,14 @@ const features = [
     category: 'tools'
   },
   {
+    id: 'admin-waitlist',
+    name: 'Waitlist (admin)',
+    icon: ListChecks,
+    component: AdminWaitlist,
+    description: 'Who joined the waitlist',
+    category: 'user',
+  },
+  {
     id: 'admin-payments',
     name: 'Payments (admin)',
     icon: CreditCard,
@@ -794,91 +1009,121 @@ const features = [
   }
 ];
 
+// What customers see: family-history tools grouped by what they want to do, with plain names.
+// Everything else (business, enterprise, hackathon, monitoring tools) is only listed for admins.
+const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType<{ className?: string }>; items: Array<[string, string]> }> = [
+  { id: 'start', name: 'Start here', icon: Home, items: [['welcome', 'Get started'], ['tree-import', 'Import or export tree']] },
+  { id: 'family', name: 'My family', icon: Trees, items: [
+    ['family-tree-chart', 'Family tree'], ['family-map', 'Family map'], ['heritage-mix', 'Where we come from'], ['family-facts', 'Family facts'], ['life-story', 'Life stories'], ['family-tree-viz', 'People list'], ['tree-checkup', 'Tree checkup'], ['timeline-builder', 'Timeline'],
+    ['family-contacts', 'Family contacts'], ['family-sharing', 'Share with family'], ['dna-insights', 'DNA insights'],
+  ] },
+  { id: 'memories', name: 'Memories', icon: Heart, items: [
+    ['family-interview', 'Interview a relative'], ['weekly-questions', 'Weekly story questions'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'], ['slideshow', 'Slideshow video'],
+    ['album-scan', 'Scan an album page'], ['photo-restore', 'Restore old photos'], ['photo-date', 'Date an old photo'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
+    ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
+  ] },
+  { id: 'research', name: 'Research', icon: Search, items: [['document-reader', 'Read an old document'], ['record-hints', 'Record hints'], ['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
+  { id: 'ai', name: 'AI helper', icon: Brain, items: [
+    ['family-tree-voice', 'Talk about my tree'],
+  ] },
+  { id: 'account', name: 'Account', icon: User, items: [['my-account', 'My account'], ['privacy-center', 'Your data & privacy']] },
+];
+
 export const Dashboard: React.FC<DashboardProps> = () => {
+  useLang(); // menus follow the chosen language
   const { session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [preferences] = useAtom(userPreferencesAtom);
-  const [activeFeature, setActiveFeature] = useState('records-search');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  
-  const { colorScheme } = preferences;
+  const [searchParams] = useSearchParams();
+  // A link (?feature=) wins; otherwise a step remembered at sign-up (e.g. the tree import for people switching).
+  const [activeFeature, setActiveFeature] = useState(() => searchParams.get('feature') ?? takeNextFeature() ?? 'welcome');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    () => CUSTOMER_MENU.find((g) => g.items.some(([id]) => id === (searchParams.get('feature') ?? takeNextFeature() ?? 'welcome')))?.id ?? 'start',
+  );
 
-  const filteredFeatures = selectedCategory === 'all' 
-    ? features 
-    : features.filter(f => f.category === selectedCategory);
 
-  const activeEntry = (features.find(f => f.id === activeFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
+  // Links inside the app (e.g. "Research this person") change ?feature= to switch screens.
+  const linkedFeature = searchParams.get('feature');
+  useEffect(() => {
+    if (!linkedFeature) return;
+    setActiveFeature(linkedFeature);
+    const group = CUSTOMER_MENU.find((g) => g.items.some(([item]) => item === linkedFeature));
+    if (group) setSelectedCategory(group.id);
+  }, [linkedFeature, searchParams]);
+
+  useEffect(() => {
+    supabase.rpc('is_admin').then(({ data }: { data: boolean | null }) => setIsAdmin(data === true));
+  }, []);
+
+  const open = (id: string) => {
+    setActiveFeature(id);
+    const group = CUSTOMER_MENU.find((g) => g.items.some(([item]) => item === id));
+    if (group) setSelectedCategory(group.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const customerGroup = CUSTOMER_MENU.find((g) => g.id === selectedCategory);
+  const adminCategory = selectedCategory.startsWith('admin:') ? selectedCategory.slice(6) : null;
+  const filteredFeatures = customerGroup
+    ? customerGroup.items.map(([id, label]) => ({ ...(features.find((f) => f.id === id) ?? { id, icon: Home }), name: label }))
+    : adminCategory === 'all'
+      ? features
+      : features.filter(f => f.category === adminCategory);
+
+  // Tools outside the customer menu are for admins only, even when opened by a link.
+  const customerIds = new Set(CUSTOMER_MENU.flatMap((g) => g.items.map(([id]) => id)));
+  const visibleFeature = isAdmin || customerIds.has(activeFeature) ? activeFeature : 'welcome';
+  const activeEntry = (features.find(f => f.id === visibleFeature) ?? features[0]) as (typeof features)[number] & { render?: (close: () => void) => React.ReactNode };
   const ActiveComponent = activeEntry.component as React.ComponentType;
-  const closeFeature = () => setActiveFeature('records-search');
+  const closeFeature = () => setActiveFeature('welcome');
+
+  // On phones the menus are one swipeable row: keep the open section and screen in view.
+  useEffect(() => {
+    for (const menu of ['category-menu', 'feature-menu']) {
+      const el = document.querySelector<HTMLElement>(`[data-testid="${menu}"] [aria-current]`);
+      const row = el?.parentElement;
+      if (el && row && row.scrollWidth > row.clientWidth) row.scrollTo({ left: el.offsetLeft - 16, behavior: 'smooth' });
+    }
+  }, [selectedCategory, visibleFeature]);
 
   // Pop-up features close with the Escape key, as people expect.
   useEffect(() => {
     if (!activeEntry.render) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('records-search'); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setActiveFeature('welcome'); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [activeEntry]);
 
+  // Admins also get the full original tool list, including business and monitoring tools.
+  const adminCategories = [
+    { id: 'admin:all', name: 'All tools (admin)', icon: Plus },
+    { id: 'admin:user', name: 'Accounts & payments', icon: CreditCard },
+    { id: 'admin:business', name: 'Business tools', icon: Zap },
+    { id: 'admin:analytics', name: 'Monitoring', icon: BarChart3 },
+    { id: 'admin:core', name: 'System', icon: Settings },
+    { id: 'admin:hackathon', name: 'Demos', icon: Rocket },
+  ];
   const categories = [
-    { id: 'all', name: 'All Features', icon: Plus },
-    { id: 'core', name: 'Core System', icon: Home },
-    { id: 'heritage', name: 'Heritage Tools', icon: Globe },
-    { id: 'business', name: 'Business Tools', icon: Zap },
-    { id: 'media', name: 'Media & Content', icon: Camera },
-    { id: 'analytics', name: 'Analytics & Monitoring', icon: BarChart3 },
-    { id: 'user', name: 'User Management', icon: Users },
-    { id: 'ai', name: 'AI & Context', icon: Brain },
-    { id: 'timeline', name: 'Timeline & Organization', icon: Clock },
-    { id: 'hackathon', name: 'Hackathon Features', icon: Rocket },
-    { id: 'tools', name: 'Additional Tools', icon: Settings }
+    ...CUSTOMER_MENU.map(({ id, name, icon }) => ({ id, name, icon })),
+    ...(isAdmin ? adminCategories : []),
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-genesis-50 via-white to-spiritual-50">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur-sm" style={{ 
-        borderColor: colorScheme.border
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Home className="w-6 h-6 text-genesis-600" />
-                <h1 className="text-lg font-medium text-gray-900">
-                  Genesis Heritage
-                </h1>
-              </div>
-              <p className="text-sm hidden sm:block text-gray-600">
-                Automate your business and unlock your roots
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <RouterLink
-                to="/pricing"
-                className="px-3 py-1.5 text-sm bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Plans &amp; billing
-              </RouterLink>
-
-              <UserProfileButton />
-            </div>
-          </div>
-        </div>
-      </nav>
 
       {/* Category Filter */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 py-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0" data-testid="category-menu" role="navigation" aria-label={t('Sections')}>
             {categories.map(category => {
               const Icon = category.icon;
               return (
                 <motion.button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  aria-current={selectedCategory === category.id ? 'true' : undefined}
+                  className={`relative shrink-0 flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                     selectedCategory === category.id
                       ? 'bg-white text-genesis-700 shadow-sm border border-gray-200'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
@@ -887,7 +1132,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                   whileTap={{ scale: 0.98 }}
                 >
                   <Icon className={`w-4 h-4 ${selectedCategory === category.id ? 'text-genesis-600' : ''}`} />
-                  <span className="text-sm font-medium">{category.name}</span>
+                  <span className="text-sm font-medium">{t(category.name)}</span>
                 </motion.button>
               );
             })}
@@ -898,14 +1143,15 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       {/* Feature Navigation */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 py-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0" data-testid="feature-menu" role="navigation" aria-label={t('Pages in this section')}>
             {filteredFeatures.map(feature => {
               const Icon = feature.icon;
               return (
                 <motion.button
                   key={feature.id}
                   onClick={() => setActiveFeature(feature.id)}
-                  className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  aria-current={activeFeature === feature.id ? 'page' : undefined}
+                  className={`relative shrink-0 flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeFeature === feature.id
                       ? 'bg-gradient-to-r from-genesis-50 to-spiritual-50 text-genesis-700 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -914,7 +1160,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                   whileTap={{ scale: 0.98 }}
                 >
                   <Icon className={`w-4 h-4 ${activeFeature === feature.id ? 'text-genesis-600' : ''}`} />
-                  <span className="text-sm font-medium">{feature.name}</span>
+                  <span className="text-sm font-medium">{t(feature.name)}</span>
                   {activeFeature === feature.id && (
                     <motion.div
                       layoutId="activeFeatureIndicator"
@@ -932,22 +1178,23 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <FamilySummary />
             {/* key resets the boundary when you switch features, so one failure never blanks the rest */}
             <ErrorBoundary key={activeFeature}>
-              {activeEntry.render ? activeEntry.render(closeFeature) : typeof ActiveComponent === 'function' ? <ActiveComponent /> : (
+              <Suspense fallback={<p className="p-6 text-gray-600" role="status">{t('Loading…')}</p>}>
+              {activeEntry.id === 'welcome' ? <GetStarted open={open} /> : activeEntry.render ? activeEntry.render(closeFeature) : ActiveComponent ? <ActiveComponent /> : (
                 <div className="p-6 bg-red-100 text-red-800 rounded-lg">
                   <h2 className="text-xl font-bold mb-2">Component Error</h2>
                   <p>Feature component is not available or is not a valid React component.</p>
                 </div>
               )}
+              </Suspense>
             </ErrorBoundary>
             
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 scroll-mt-4" id="ai-helper">
             <ErrorBoundary>
               <EnhancedAIAssistant />
             </ErrorBoundary>
@@ -955,47 +1202,19 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         </div>
       </main>
 
-      {/* Enhanced Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative group">
-          <motion.button 
-            className="w-14 h-14 bg-gradient-to-r from-genesis-500 to-spiritual-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Plus className="w-6 h-6" />
-          </motion.button>
-          
-          <div className="absolute bottom-16 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-64">
-              <h3 className="font-semibold text-gray-900 mb-2">Enhanced AI Features</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Semantic Search</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Context Awareness</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Multi-model Routing</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Helper button: jumps to the AI family-history helper (it sits far below the page on phones). */}
+      <button
+        onClick={() => {
+          const helper = document.getElementById('ai-helper');
+          const box = helper?.querySelector<HTMLElement>('textarea, input[type="text"], input:not([type])');
+          (box ?? helper)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          box?.focus({ preventScroll: true });
+        }}
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 h-12 bg-genesis-600 text-white rounded-full shadow-lg hover:bg-genesis-700"
+        aria-label={t('Ask the family history helper')}
+      >
+        <MessageCircle className="w-5 h-5" /> <span className="hidden sm:inline">{t('Ask for help')}</span>
+      </button>
     </div>
   );
 };

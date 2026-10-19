@@ -187,7 +187,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
               onClick={() => setActiveTab('general')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'general' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -201,7 +201,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
               onClick={() => setActiveTab('memory')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'memory' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -215,7 +215,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
               onClick={() => setActiveTab('providers')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'providers' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -229,7 +229,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
               onClick={() => setActiveTab('instructions')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'instructions' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -243,7 +243,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
               onClick={() => setActiveTab('advanced')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                 activeTab === 'advanced' 
-                  ? 'bg-blue-50 text-blue-700' 
+                  ? 'bg-genesis-50 text-genesis-700' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -276,7 +276,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-y-auto p-6">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+                <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
               </div>
             ) : (
               <>
@@ -299,7 +299,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                               defaultModel: e.target.value
                             }
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                         >
                           <option value="auto">Auto-Select (Recommended)</option>
                           <option value="gpt-4">GPT-4 (Advanced reasoning)</option>
@@ -327,7 +327,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 streamResponses: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Stream responses in real-time</span>
                         </label>
@@ -345,7 +345,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 saveConversations: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Save conversation history</span>
                         </label>
@@ -363,7 +363,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 enableFeedback: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Enable response feedback</span>
                         </label>
@@ -390,11 +390,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 includeUserContext: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Include user profile context</span>
                         </label>
-                        <Brain className="w-4 h-4 text-blue-500" />
+                        <Brain className="w-4 h-4 text-genesis-500" />
                       </div>
                       
                       <div className="flex items-center justify-between">
@@ -409,11 +409,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 includeConversationHistory: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Include conversation history</span>
                         </label>
-                        <MessageSquare className="w-4 h-4 text-blue-500" />
+                        <MessageSquare className="w-4 h-4 text-genesis-500" />
                       </div>
                       
                       <div className="flex items-center justify-between">
@@ -428,11 +428,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 includeCustomInstructions: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Include custom instructions</span>
                         </label>
-                        <Settings className="w-4 h-4 text-blue-500" />
+                        <Settings className="w-4 h-4 text-genesis-500" />
                       </div>
                       
                       <div className="flex items-center justify-between">
@@ -447,11 +447,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 includeSemanticSearch: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Include semantic search results</span>
                         </label>
-                        <Search className="w-4 h-4 text-blue-500" />
+                        <Search className="w-4 h-4 text-genesis-500" />
                       </div>
                     </div>
                     
@@ -471,7 +471,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                               maxConversationLength: parseInt(e.target.value)
                             }
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                         >
                           <option value="5">5 messages</option>
                           <option value="10">10 messages</option>
@@ -522,7 +522,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                               semanticSearchCount: parseInt(e.target.value)
                             }
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                         >
                           <option value="3">3 results</option>
                           <option value="5">5 results</option>
@@ -546,7 +546,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                         {Array.from(providerStatus.entries()).map(([id, provider]) => (
                           <div key={id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
                             <div className="flex items-center space-x-3">
-                              <Zap className="w-5 h-5 text-blue-500" />
+                              <Zap className="w-5 h-5 text-genesis-500" />
                               <div>
                                 <h5 className="font-medium text-gray-900">{provider.name}</h5>
                                 <p className="text-xs text-gray-500">
@@ -607,7 +607,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                         <textarea
                           value={customInstructions}
                           onChange={(e) => setCustomInstructions(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                           rows={8}
                           placeholder="Example: I'm a software developer working on a web application. I prefer concise answers with code examples in JavaScript. Please format code with syntax highlighting and explain any complex concepts."
                         />
@@ -618,19 +618,19 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                       
                       <button
                         onClick={() => setShowCustomInstructionsEditor(true)}
-                        className="w-full mt-3 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center space-x-2"
+                        className="w-full mt-3 px-4 py-2 bg-genesis-100 text-genesis-700 rounded-lg hover:bg-genesis-200 transition-colors flex items-center justify-center space-x-2"
                       >
                         <Edit className="w-4 h-4" />
                         <span>Edit Custom Instructions</span>
                       </button>
                     </div>
                     
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
                       <div className="flex items-start">
-                        <Brain className="w-5 h-5 text-blue-500 mt-0.5 mr-2" />
+                        <Brain className="w-5 h-5 text-genesis-500 mt-0.5 mr-2" />
                         <div>
-                          <h4 className="font-medium text-blue-900">Instruction Tips</h4>
-                          <ul className="mt-2 space-y-1 text-sm text-blue-700">
+                          <h4 className="font-medium text-genesis-900">Instruction Tips</h4>
+                          <ul className="mt-2 space-y-1 text-sm text-genesis-700">
                             <li>• Include your role, industry, or background</li>
                             <li>• Specify your preferred response format</li>
                             <li>• Mention topics you're interested in</li>
@@ -664,11 +664,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 enableDebugMode: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Enable debug mode</span>
                         </label>
-                        <Database className="w-4 h-4 text-blue-500" />
+                        <Database className="w-4 h-4 text-genesis-500" />
                       </div>
                       
                       <div className="flex items-center justify-between">
@@ -683,11 +683,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 logTokenUsage: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Log token usage</span>
                         </label>
-                        <Database className="w-4 h-4 text-blue-500" />
+                        <Database className="w-4 h-4 text-genesis-500" />
                       </div>
                       
                       <div className="flex items-center justify-between">
@@ -702,11 +702,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 enableCircuitBreaker: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Enable circuit breaker</span>
                         </label>
-                        <Shield className="w-4 h-4 text-blue-500" />
+                        <Shield className="w-4 h-4 text-genesis-500" />
                       </div>
                       
                       <div className="flex items-center justify-between">
@@ -721,11 +721,11 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
                                 enableErrorRecovery: e.target.checked
                               }
                             })}
-                            className="rounded text-blue-600 focus:ring-blue-500"
+                            className="rounded text-genesis-600 focus:ring-genesis-500"
                           />
                           <span className="text-gray-700">Enable error recovery</span>
                         </label>
-                        <Shield className="w-4 h-4 text-blue-500" />
+                        <Shield className="w-4 h-4 text-genesis-500" />
                       </div>
                     </div>
                     
@@ -756,7 +756,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isOpen, onClose }) => {
             <button
               onClick={saveSettings}
               disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
             >
               {isSaving ? (
                 <>

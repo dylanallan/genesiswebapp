@@ -52,7 +52,7 @@ export const AIFeedbackAnalytics: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <MessageSquare className="w-6 h-6 text-blue-500" />
+          <MessageSquare className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">AI Feedback Analytics</h2>
         </div>
         <button
@@ -66,7 +66,7 @@ export const AIFeedbackAnalytics: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+          <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
         </div>
       ) : !feedback || feedback.totalFeedback === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -79,8 +79,8 @@ export const AIFeedbackAnalytics: React.FC = () => {
       ) : (
         <div className="space-y-6">
           {/* Overall Rating */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <h3 className="font-medium text-blue-900 mb-3">Overall Rating</h3>
+          <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
+            <h3 className="font-medium text-genesis-900 mb-3">Overall Rating</h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <span className={`text-3xl font-bold ${getRatingColor(feedback.averageRating)}`}>
@@ -90,7 +90,7 @@ export const AIFeedbackAnalytics: React.FC = () => {
                   {renderStars(feedback.averageRating)}
                 </div>
               </div>
-              <span className="text-sm text-blue-700">
+              <span className="text-sm text-genesis-700">
                 Based on {feedback.totalFeedback} ratings
               </span>
             </div>
@@ -166,13 +166,13 @@ export const AIFeedbackAnalytics: React.FC = () => {
                     className="flex items-center justify-between"
                   >
                     <div className="flex items-center space-x-2">
-                      <Tag className="w-4 h-4 text-blue-500" />
+                      <Tag className="w-4 h-4 text-genesis-500" />
                       <span className="text-gray-700">{category.category}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-blue-500"
+                          className="h-full bg-genesis-500"
                           style={{ width: `${(category.count / feedback.totalFeedback) * 100}%` }}
                         />
                       </div>

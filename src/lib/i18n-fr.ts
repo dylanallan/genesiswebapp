@@ -1,0 +1,299 @@
+// French (Canada) for the app. Keys are the exact English text shown in the app; keep `{placeholders}` as they are.
+// Tone: warm, plain, "vous". Typographic apostrophes (’) and French spacing before : ; ? ! use a normal space here.
+import { FR_MORE } from './i18n-fr-more';
+import { FR_REST } from './i18n-fr-rest';
+import { FR_LEGAL } from './i18n-fr-legal';
+import { FR_ACCOUNT } from './i18n-fr-account';
+import { FR_RESEARCH } from './i18n-fr-research';
+import { FR_TREE } from './i18n-fr-tree';
+import { FR_PARTNERS } from './i18n-fr-partners';
+import { FR_BOOK } from './i18n-fr-book';
+import { FR_SWITCH } from './i18n-fr-switch';
+import { FR_GIFT } from './i18n-fr-gift';
+import { FR_HELPER } from './i18n-fr-helper';
+import { FR_DOCS } from './i18n-fr-docs';
+import { FR_WEEKLY } from './i18n-fr-weekly';
+
+export const FR: Record<string, string> = {
+  ...FR_REST,
+  ...FR_MORE,
+  ...FR_LEGAL,
+  ...FR_ACCOUNT,
+  ...FR_RESEARCH,
+  ...FR_TREE,
+  ...FR_PARTNERS,
+  ...FR_BOOK,
+  ...FR_SWITCH,
+  ...FR_GIFT,
+  ...FR_HELPER,
+  ...FR_DOCS,
+  ...FR_WEEKLY,
+  // Brand and shared
+  'Ancestry gives you the foundation, but Genesis takes you on the journey.': 'Ancestry vous donne les bases. Genesis vous emmène dans le voyage.',
+  'Start free': 'Commencer gratuitement',
+  'Sign in': 'Se connecter',
+  'Features': 'Fonctionnalités',
+  'Pricing': 'Tarifs',
+  'Questions': 'Questions',
+  'Privacy': 'Confidentialité',
+  'Terms': 'Conditions',
+  'All rights reserved.': 'Tous droits réservés.',
+  'Language': 'Langue',
+
+  // Home page
+  'Family history, kept alive': 'L’histoire familiale, toujours vivante',
+  "Your family tree, your relatives' voices, their stories, recipes and photos, and free historical records, all in one private place you can share with the people who matter.":
+    'Votre arbre généalogique, la voix de vos proches, leurs histoires, recettes et photos, et des archives historiques gratuites, réunis dans un espace privé à partager avec ceux qui comptent.',
+  "Start your family's story, free": 'Commencez l’histoire de votre famille, gratuitement',
+  'Moving from Ancestry?': 'Vous quittez Ancestry ?',
+  'Free to start · No credit card · We never sell your data': 'Gratuit pour commencer · Sans carte de crédit · Nous ne vendons jamais vos données',
+  'Not ready yet? Join the waitlist': 'Pas encore prêt ? Inscrivez-vous à la liste d’attente',
+  'A Genesis family tree with four generations': 'Un arbre généalogique Genesis sur quatre générations',
+  'Bring your tree over in about two minutes': 'Transférez votre arbre en deux minutes environ',
+  'Download your tree': 'Téléchargez votre arbre',
+  'On Ancestry or MyHeritage, use the "Export tree" option to download a GEDCOM (.ged) file.':
+    'Sur Ancestry ou MyHeritage, utilisez l’option « Exporter l’arbre » pour télécharger un fichier GEDCOM (.ged).',
+  'Upload it to Genesis': 'Importez-le dans Genesis',
+  'Choose the file. Everyone comes across, with parents, children and spouses linked, even old files with accented names.':
+    'Choisissez le fichier. Tout le monde est transféré, avec parents, enfants et conjoints reliés, même dans les vieux fichiers aux noms accentués.',
+  'Keep the journey going': 'Poursuivez le voyage',
+  'Check your tree for mistakes, research ancestors with evidence, record interviews and make your storybook.':
+    'Vérifiez les erreurs de votre arbre, recherchez vos ancêtres preuves à l’appui, enregistrez des entrevues et créez votre livre de famille.',
+  "Don't just get a hint. See the evidence.": 'Pas seulement un indice : voyez les preuves.',
+  "Pick anyone in your tree. Genesis searches open archives several ways and checks every record against the names, dates and places you know, then shows exactly what matches and what doesn't. An AI genealogist explains it in plain words and tells you what to check next.":
+    'Choisissez n’importe qui dans votre arbre. Genesis fouille les archives ouvertes de plusieurs façons, compare chaque document aux noms, dates et lieux que vous connaissez, puis montre exactement ce qui concorde et ce qui ne concorde pas. Un généalogiste IA vous l’explique simplement et vous dit quoi vérifier ensuite.',
+  'Every ancestor gets their life story.': 'Chaque ancêtre a droit à son histoire de vie.',
+  "See each person's life as a timeline, with their age at every moment and the world events they lived through. Then let the AI write their story from the facts you have, never inventing anything.":
+    'Voyez la vie de chaque personne sur une ligne du temps, avec son âge à chaque étape et les événements du monde qu’elle a vécus. Puis laissez l’IA écrire son histoire à partir de vos faits, sans jamais rien inventer.',
+  "Save Grandma's voice while you can.": 'Gardez la voix de grand-maman pendant qu’il est temps.',
+  'The app reads each question out loud, records the answers and writes them down, in English, Español, Français and more. Every interview is kept with the person it belongs to.':
+    'L’application lit chaque question à voix haute, enregistre les réponses et les met par écrit, en français, en anglais, en espagnol et plus encore. Chaque entrevue est conservée avec la personne concernée.',
+  "And everything else your family's story needs": 'Et tout ce dont l’histoire de votre famille a besoin',
+  'Bring your tree': 'Apportez votre arbre',
+  'Import your GEDCOM file from Ancestry, MyHeritage or FamilySearch in about two minutes. Download it again any time.':
+    'Importez votre fichier GEDCOM depuis Ancestry, MyHeritage ou FamilySearch en deux minutes environ. Téléchargez-le de nouveau quand vous voulez.',
+  'Free records, no paywall': 'Archives gratuites, sans abonnement obligatoire',
+  'World family trees, historic newspapers, and national archives in Canada, the US, Europe and beyond.':
+    'Arbres du monde entier, journaux d’époque et archives nationales du Canada, des États-Unis, d’Europe et d’ailleurs.',
+  'AI family storybook': 'Livre de famille par IA',
+  'Turn your family history into a book to print, save as a PDF or give as a gift.': 'Transformez votre histoire familiale en livre à imprimer, à enregistrer en PDF ou à offrir.',
+  'Family map': 'Carte de la famille',
+  'See where your family lived and press play to watch the journey across the generations.': 'Voyez où votre famille a vécu et lancez la lecture pour suivre son parcours au fil des générations.',
+  'Restore old photos': 'Restaurer de vieilles photos',
+  'Repair scratches and fading, and add natural colour to black-and-white photos.': 'Réparez les égratignures et les couleurs pâlies, et ajoutez des couleurs naturelles aux photos en noir et blanc.',
+  'Tree checkup': 'Vérification de l’arbre',
+  'Finds impossible dates, too-young parents and people listed twice, free.': 'Repère gratuitement les dates impossibles, les parents trop jeunes et les personnes en double.',
+  'Where you come from': 'D’où vous venez',
+  'A heritage breakdown worked out from your own tree, country by country, with no DNA kit to buy.': 'Vos origines calculées à partir de votre propre arbre, pays par pays, sans test d’ADN à acheter.',
+  'How are we related?': 'Quel est notre lien de parenté ?',
+  'Click anyone to see exactly how you are related, from great-aunt to second cousin once removed, and the path that links you.':
+    'Cliquez sur n’importe qui pour voir exactement votre lien de parenté, de la grand-tante au cousin issu de germain, et le chemin qui vous relie.',
+  'Share with family': 'Partager avec la famille',
+  'Invite relatives to see your tree and add their own memories. Joining is free for them.': 'Invitez vos proches à voir votre arbre et à ajouter leurs souvenirs. C’est gratuit pour eux.',
+  "Your family's story is not for sale.": 'L’histoire de votre famille n’est pas à vendre.',
+  'Family history is personal. Here is our promise, in plain words.': 'L’histoire familiale est personnelle. Voici notre promesse, en termes simples.',
+  'Simple, fair pricing': 'Des prix simples et justes',
+  'Free': 'Gratuit',
+  'Unlimited family tree, import and export': 'Arbre généalogique illimité, importation et exportation',
+  'Free records search, no paywall': 'Recherche d’archives gratuite, sans abonnement obligatoire',
+  'Interviews, stories, recipes and photos': 'Entrevues, histoires, recettes et photos',
+  'Share with family for free': 'Partage gratuit avec la famille',
+  'AI helper with a daily allowance': 'Assistant IA avec une limite quotidienne',
+  'CAD / month, or $190 / year': '$ CA / mois, ou 190 $ / an',
+  'Everything in Free': 'Tout ce qui est inclus dans Gratuit',
+  'Much higher AI limits: storybooks, life stories, research': 'Limites d’IA beaucoup plus élevées : livres, histoires de vie, recherche',
+  'Restore and colourise 10 old photos a day': 'Restaurez et colorisez 10 vieilles photos par jour',
+  'Priority support': 'Soutien prioritaire',
+  'Start free, upgrade any time': 'Commencez gratuitement, passez à Pro quand vous voulez',
+  'Not ready to start? Join the waitlist.': 'Pas prêt à commencer ? Inscrivez-vous à la liste d’attente.',
+  'Be first to hear when new features open, from printed family books to the French version. Share your link and bring the whole family.':
+    'Soyez parmi les premiers informés des nouveautés, des livres de famille imprimés aux nouvelles langues. Partagez votre lien et amenez toute la famille.',
+  'Questions families ask': 'Les questions que posent les familles',
+  'Is it really free?': 'Est-ce vraiment gratuit ?',
+  'Yes. Building your tree, importing from other sites, searching free records, recording interviews and sharing with family are free. Pro ($19 CAD a month, or $190 a year) adds much higher AI limits and more photo restorations.':
+    'Oui. Bâtir votre arbre, importer depuis d’autres sites, chercher dans les archives gratuites, enregistrer des entrevues et partager avec votre famille, c’est gratuit. Pro (19 $ CA par mois ou 190 $ par an) ajoute des limites d’IA beaucoup plus élevées et plus de restaurations de photos.',
+  'Can I move my tree from Ancestry or MyHeritage?': 'Puis-je transférer mon arbre depuis Ancestry ou MyHeritage ?',
+  'Yes. Both let you download your tree as a GEDCOM file. Upload it to Genesis and everyone comes across with their parents, children and spouses linked. You can also download your Genesis tree as a GEDCOM file at any time.':
+    'Oui. Les deux vous permettent de télécharger votre arbre en fichier GEDCOM. Importez-le dans Genesis et tout le monde est transféré avec parents, enfants et conjoints reliés. Vous pouvez aussi télécharger votre arbre Genesis en GEDCOM à tout moment.',
+  'Do you sell my data or DNA?': 'Vendez-vous mes données ou mon ADN ?',
+  "No. We never sell your data or your family's data, to anyone. We don't run DNA tests. If you upload a DNA results file, it is only used to show you your own insights.":
+    'Non. Nous ne vendons jamais vos données ni celles de votre famille, à qui que ce soit. Nous ne faisons pas de tests d’ADN. Si vous importez un fichier de résultats d’ADN, il sert uniquement à vous montrer vos propres résultats.',
+  "Which countries' records can I search?": 'Dans les archives de quels pays puis-je chercher ?',
+  'Genesis searches open, free sources worldwide (WikiTree, Wikidata, the Internet Archive, US historic newspapers and more), and links you straight to free official archives in Canada, the United States, the UK and Ireland, Spain and Latin America, and Australia.':
+    'Genesis fouille des sources ouvertes et gratuites du monde entier (WikiTree, Wikidata, Internet Archive, journaux historiques américains et plus) et vous mène directement aux archives officielles gratuites du Canada, des États-Unis, du Royaume-Uni et de l’Irlande, de l’Espagne et de l’Amérique latine, et de l’Australie.',
+  'Can my relatives join?': 'Mes proches peuvent-ils se joindre à moi ?',
+  "Yes. Send them an invite link. They can see your tree, stories and storybooks, and you can let them add their own memories. It's free for them.":
+    'Oui. Envoyez-leur un lien d’invitation. Ils peuvent voir votre arbre, vos histoires et vos livres, et vous pouvez les laisser ajouter leurs souvenirs. C’est gratuit pour eux.',
+  'What if I want to leave?': 'Et si je veux partir ?',
+  "Download everything you've saved in one click, then delete your account and everything in it whenever you like.":
+    'Téléchargez tout ce que vous avez enregistré en un clic, puis supprimez votre compte et tout son contenu quand vous le voulez.',
+  'Ancestry and MyHeritage are trademarks of their respective owners. Genesis Heritage is an independent service and is not affiliated with them.':
+    'Ancestry et MyHeritage sont des marques de commerce de leurs propriétaires respectifs. Genesis Heritage est un service indépendant qui n’y est pas affilié.',
+
+  // Privacy promises
+  "We never sell your data or your family's data. Not to advertisers, not to insurers, not to anyone.":
+    'Nous ne vendons jamais vos données ni celles de votre famille. Ni aux annonceurs, ni aux assureurs, ni à personne.',
+  'Your tree, photos, recordings and stories are private to you unless you choose to share them.': 'Votre arbre, vos photos, vos enregistrements et vos histoires restent privés, sauf si vous choisissez de les partager.',
+  'If you upload a DNA results file, it is used only to show you your own insights. It is never sold or shared.': 'Si vous importez un fichier de résultats d’ADN, il sert uniquement à vous montrer vos propres résultats. Il n’est jamais vendu ni partagé.',
+  'You can download everything you have saved, at any time, in standard formats.': 'Vous pouvez télécharger tout ce que vous avez enregistré, à tout moment, dans des formats standards.',
+  'You can delete your account and everything in it, at any time, in one step.': 'Vous pouvez supprimer votre compte et tout son contenu, à tout moment, en une seule étape.',
+
+  // Waitlist
+  'Email': 'Courriel',
+  'First name': 'Prénom',
+  '(optional)': '(facultatif)',
+  'Join the waitlist': 'M’inscrire à la liste d’attente',
+  'Just launch news, no spam. We never share or sell your email. Leave any time.': 'Seulement des nouvelles du lancement, pas de pourriels. Nous ne partageons ni ne vendons jamais votre courriel. Désabonnez-vous quand vous voulez.',
+  'We couldn’t add you just now. Please try again.': 'Impossible de vous inscrire pour le moment. Veuillez réessayer.',
+  'Please check your email address.': 'Veuillez vérifier votre adresse courriel.',
+  'You’re already on the list.': 'Vous êtes déjà sur la liste.',
+  'You’re on the list!': 'Vous êtes sur la liste !',
+  'You’re number {n}. We’ll email you when Genesis Heritage opens.': 'Vous êtes le numéro {n}. Nous vous écrirons à l’ouverture de Genesis Heritage.',
+  'Invite your family with your own link:': 'Invitez votre famille avec votre lien personnel :',
+  'Your invite link': 'Votre lien d’invitation',
+  'Copy link': 'Copier le lien',
+  'Copied': 'Copié',
+  '{n} people have joined from your link.': '{n} personnes se sont inscrites grâce à votre lien.',
+  '1 person has joined from your link.': '1 personne s’est inscrite grâce à votre lien.',
+
+  // Messages from the server, shown as they arrive
+  'Please enter a valid email address.': 'Veuillez entrer une adresse courriel valide.',
+  'Lots of people are joining right now. Please try again in a few minutes.': 'Beaucoup de gens s’inscrivent en ce moment. Veuillez réessayer dans quelques minutes.',
+  'This link is no longer open.': 'Ce lien n’est plus ouvert.',
+  'That question is not part of this request.': 'Cette question ne fait pas partie de la demande.',
+  'Please write or say an answer first.': 'Veuillez d’abord écrire ou dire une réponse.',
+  'That answer is too long. Please split it into two.': 'Cette réponse est trop longue. Veuillez la séparer en deux.',
+  'Lots of answers today. Please try again tomorrow.': 'Beaucoup de réponses aujourd’hui. Veuillez réessayer demain.',
+
+  // Sign in
+  'Bring your Ancestry tree': 'Apportez votre arbre Ancestry',
+  'Import your GEDCOM file in two minutes. Download it again any time.': 'Importez votre fichier GEDCOM en deux minutes. Téléchargez-le de nouveau quand vous voulez.',
+  'Stories, not just dates': 'Des histoires, pas seulement des dates',
+  'Record interviews with grandparents and keep recipes, photos and traditions together.': 'Enregistrez des entrevues avec vos grands-parents et gardez recettes, photos et traditions au même endroit.',
+  'An AI family storybook': 'Un livre de famille créé par IA',
+  'Turn your tree and stories into a book to print or share.': 'Transformez votre arbre et vos histoires en un livre à imprimer ou à partager.',
+  'Search open archives and official records from Canada, the US, Europe and beyond.': 'Cherchez dans les archives ouvertes et les registres officiels du Canada, des États-Unis, d’Europe et d’ailleurs.',
+  'Private by design': 'Privé dès la conception',
+  'We never sell your data. Delete everything in one click.': 'Nous ne vendons jamais vos données. Supprimez tout en un clic.',
+  'Fair price': 'Un prix juste',
+  'Free to start. Pro is $19 CAD a month, a fraction of the big sites.': 'Gratuit pour commencer. Pro coûte 19 $ CA par mois, une fraction du prix des grands sites.',
+  "Keep your family's story alive: tree, voices, stories and records in one private place, shared with the people who matter.":
+    'Gardez vivante l’histoire de votre famille : arbre, voix, histoires et archives dans un espace privé, partagé avec ceux qui comptent.',
+  '← Back to the home page': '← Retour à l’accueil',
+  "You've been invited to join your family's history. Create a free account (or sign in) to see it.": 'Vous êtes invité à rejoindre l’histoire de votre famille. Créez un compte gratuit (ou connectez-vous) pour la voir.',
+  'Welcome to Genesis Heritage': 'Bienvenue chez Genesis Heritage',
+  'Sign in to your account': 'Connectez-vous à votre compte',
+  'Create your account': 'Créez votre compte',
+  'Reset your password': 'Réinitialisez votre mot de passe',
+  'Continue with Google': 'Continuer avec Google',
+  'Or continue with email': 'Ou continuez avec votre courriel',
+  'Password': 'Mot de passe',
+  'Forgot password?': 'Mot de passe oublié ?',
+  'Signing in...': 'Connexion…',
+  'Creating account...': 'Création du compte…',
+  'Sending...': 'Envoi…',
+  'Sign In': 'Se connecter',
+  'Create Account': 'Créer mon compte',
+  'Email me a reset link': 'M’envoyer un lien de réinitialisation',
+  "Don't have an account? Sign up": 'Pas de compte ? Inscrivez-vous',
+  'Already have an account? Sign in': 'Vous avez déjà un compte ? Connectez-vous',
+  'Back to sign in': 'Retour à la connexion',
+  'Successfully signed in!': 'Vous êtes connecté !',
+  'That email and password do not match. If you forgot your password, use "Forgot password?" below.': 'Ce courriel et ce mot de passe ne correspondent pas. Si vous avez oublié votre mot de passe, utilisez « Mot de passe oublié ? » ci-dessous.',
+  'Please confirm your email first: open the link we emailed you.': 'Veuillez d’abord confirmer votre courriel : ouvrez le lien que nous vous avons envoyé.',
+  'Failed to sign in': 'La connexion a échoué',
+  'This email is already registered. Please sign in instead or use a different email.': 'Ce courriel est déjà inscrit. Connectez-vous plutôt ou utilisez un autre courriel.',
+  'Account created! Please check your email to verify.': 'Compte créé ! Vérifiez votre courriel pour le confirmer.',
+  'This email is already registered. Please sign in instead.': 'Ce courriel est déjà inscrit. Veuillez plutôt vous connecter.',
+  'Failed to create account': 'La création du compte a échoué',
+  'If that email has an account, a reset link is on its way. Check your inbox (and spam).': 'Si ce courriel a un compte, un lien de réinitialisation est en route. Vérifiez votre boîte de réception (et vos pourriels).',
+  'Could not send the reset email. Please try again.': 'Impossible d’envoyer le courriel de réinitialisation. Veuillez réessayer.',
+  'Failed to sign in with Google': 'La connexion avec Google a échoué',
+  'Loading Genesis Heritage Pro...': 'Chargement de Genesis Heritage…',
+
+  // Account bar
+  'Dashboard': 'Tableau de bord',
+  'Plans': 'Forfaits',
+  'Upgrade': 'Passer à Pro',
+  'Change password': 'Changer le mot de passe',
+  'Change your password': 'Changez votre mot de passe',
+  'Sign out': 'Se déconnecter',
+  'Payment confirmed — welcome to Pro!': 'Paiement confirmé — bienvenue dans Pro !',
+  'PayPal is still confirming your payment. Your plan will update shortly.': 'PayPal confirme encore votre paiement. Votre forfait sera mis à jour sous peu.',
+  'Checkout cancelled — you have not been charged.': 'Paiement annulé — rien ne vous a été facturé.',
+  'Could not sign out. Please try again.': 'Impossible de vous déconnecter. Veuillez réessayer.',
+
+  // Menu
+  'Start here': 'Commencer ici',
+  'Get started': 'Premiers pas',
+  'Import or export tree': 'Importer ou exporter l’arbre',
+  'My family': 'Ma famille',
+  'Family tree': 'Arbre généalogique',
+  'Where we come from': 'D’où nous venons',
+  'Family facts': 'Faits sur la famille',
+  'Life stories': 'Histoires de vie',
+  'People list': 'Liste des personnes',
+  'Timeline': 'Ligne du temps',
+  'Family contacts': 'Contacts de la famille',
+  'DNA insights': 'Résultats d’ADN',
+  'Memories': 'Souvenirs',
+  'Interview a relative': 'Interviewer un proche',
+  'Ask a relative by link': 'Questionner un proche par lien',
+  'Story library': 'Bibliothèque d’histoires',
+  'Family storybook': 'Livre de famille',
+  'Photos & faces': 'Photos et visages',
+  'Recipes': 'Recettes',
+  'Traditions': 'Traditions',
+  'Celebrations': 'Fêtes',
+  'Heirlooms': 'Objets de famille',
+  'Media library': 'Médiathèque',
+  'Voice recorder': 'Enregistreur vocal',
+  'Research': 'Recherche',
+  'Record hints': 'Pistes d’archives',
+  'Search my family': 'Chercher dans ma famille',
+  'Research assistant': 'Assistant de recherche',
+  'Historical records': 'Archives historiques',
+  'My saved records': 'Mes documents enregistrés',
+  'AI helper': 'Assistant IA',
+  'Talk about my tree': 'Parler de mon arbre',
+  'Account': 'Compte',
+  'My account': 'Mon compte',
+  'Your data & privacy': 'Vos données et votre vie privée',
+  'Sections': 'Sections',
+  'Pages in this section': 'Pages de cette section',
+
+  // Relative's answer page (Ask a relative)
+  'Opening…': 'Ouverture…',
+  'This link doesn’t work': 'Ce lien ne fonctionne pas',
+  'Please ask the person who sent it for a new link.': 'Demandez un nouveau lien à la personne qui vous l’a envoyé.',
+  'Thank you, {name}': 'Merci, {name}',
+  '{from} has closed this link. Your answers are safely saved.': '{from} a fermé ce lien. Vos réponses sont bien enregistrées.',
+  'Hello {name}': 'Bonjour {name}',
+  '{from} is saving your family’s stories and would love to hear yours. Answer as much or as little as you like. You can type, or press the microphone and just talk.':
+    '{from} conserve les histoires de votre famille et aimerait beaucoup entendre les vôtres. Répondez autant ou aussi peu que vous le voulez. Vous pouvez écrire, ou appuyer sur le micro et simplement parler.',
+  '{done} of {total} answered': '{done} sur {total} répondues',
+  'Question {n} of {total}': 'Question {n} sur {total}',
+  'You’ve answered this one. Writing again will replace your answer.': 'Vous avez déjà répondu à celle-ci. Écrire de nouveau remplacera votre réponse.',
+  'Your answer…': 'Votre réponse…',
+  'Stop listening': 'Arrêter l’écoute',
+  'Speak instead of typing': 'Parler au lieu d’écrire',
+  'The microphone didn’t work. You can type your answer instead.': 'Le micro n’a pas fonctionné. Vous pouvez écrire votre réponse.',
+  'That didn’t save. Please try again.': 'L’enregistrement a échoué. Veuillez réessayer.',
+  'Saved. Thank you!': 'Enregistré. Merci !',
+  'Save my answer': 'Enregistrer ma réponse',
+  'Back': 'Retour',
+  'Next question': 'Question suivante',
+  'Skip': 'Passer',
+  'You’ve answered every question. Thank you, {name}! {from} will treasure these. You can go back and add more to any answer.':
+    'Vous avez répondu à toutes les questions. Merci, {name} ! {from} va les chérir. Vous pouvez revenir compléter n’importe quelle réponse.',
+  'Your answers go only to {from}’s private family tree on Genesis Heritage.': 'Vos réponses vont uniquement dans l’arbre familial privé de {from} sur Genesis Heritage.',
+
+  // Pricing promises
+  'Our promises': 'Nos promesses',
+  'Cancel in one tap on this page. No phone calls, no forms, no questions.': 'Annulez d’un seul geste sur cette page. Pas d’appel, pas de formulaire, pas de questions.',
+  'If you cancel, you keep Pro until the end of the time you paid for.': 'Si vous annulez, vous gardez Pro jusqu’à la fin de la période payée.',
+  'e-Transfer and one-time PayPal payments never renew. We never charge you without asking.': 'Les virements Interac et les paiements PayPal uniques ne se renouvellent jamais. Nous ne vous facturons jamais sans vous le demander.',
+  'Stop paying and your tree, photos, stories and recordings stay yours on the free plan. Download everything any time.': 'Si vous cessez de payer, votre arbre, vos photos, vos histoires et vos enregistrements restent à vous avec le forfait gratuit. Téléchargez tout quand vous voulez.',
+  'One clear price in Canadian dollars. No teaser rates and no add-on packs.': 'Un prix clair en dollars canadiens. Pas de tarif d’appel ni de forfaits supplémentaires.',
+  "We never sell your data or your family's data.": 'Nous ne vendons jamais vos données ni celles de votre famille.',
+};

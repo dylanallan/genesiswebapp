@@ -37,15 +37,15 @@ const FunnelStage: React.FC<FunnelStageProps> = ({ stage, isActive, onClick }) =
     className={cn(
       "p-4 rounded-lg border cursor-pointer transition-colors",
       isActive 
-        ? "bg-blue-50 border-blue-200" 
-        : "bg-white border-gray-200 hover:border-blue-200"
+        ? "bg-genesis-50 border-genesis-200" 
+        : "bg-white border-gray-200 hover:border-genesis-200"
     )}
     onClick={onClick}
   >
     <div className="flex items-center justify-between">
       <div className="flex items-center space-x-3">
         {stage.type === 'lead_magnet' && <Gift className="w-5 h-5 text-purple-500" />}
-        {stage.type === 'email_sequence' && <Mail className="w-5 h-5 text-blue-500" />}
+        {stage.type === 'email_sequence' && <Mail className="w-5 h-5 text-genesis-500" />}
         {stage.type === 'workshop' && <Users className="w-5 h-5 text-green-500" />}
         <span className="font-medium text-gray-900">{stage.name}</span>
       </div>
@@ -68,7 +68,7 @@ const FunnelStage: React.FC<FunnelStageProps> = ({ stage, isActive, onClick }) =
               e.stopPropagation();
               // Edit stage
             }}
-            className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+            className="px-3 py-1 text-xs bg-genesis-50 text-genesis-600 rounded-md hover:bg-genesis-100"
           >
             <Edit className="w-4 h-4" />
           </button>
@@ -185,7 +185,7 @@ export const MarketingAutomation: React.FC = () => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <Workflow className="w-6 h-6 text-blue-500" />
+            <Workflow className="w-6 h-6 text-genesis-500" />
             <h2 className="text-xl font-semibold text-gray-900">Marketing Automation</h2>
           </div>
           
@@ -199,7 +199,7 @@ export const MarketingAutomation: React.FC = () => {
             
             <button
               onClick={createFunnel}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
             >
               <Plus className="w-5 h-5" />
               <span>New Funnel</span>
@@ -209,7 +209,7 @@ export const MarketingAutomation: React.FC = () => {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-genesis-500" />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -223,8 +223,8 @@ export const MarketingAutomation: React.FC = () => {
                   className={cn(
                     "p-4 rounded-lg border cursor-pointer transition-colors",
                     selectedFunnel === funnel.id
-                      ? "bg-blue-50 border-blue-200"
-                      : "bg-white border-gray-200 hover:border-blue-200"
+                      ? "bg-genesis-50 border-genesis-200"
+                      : "bg-white border-gray-200 hover:border-genesis-200"
                   )}
                   onClick={() => setSelectedFunnel(funnel.id)}
                 >
@@ -266,7 +266,7 @@ export const MarketingAutomation: React.FC = () => {
                   onClick={() => {
                     // Add new stage
                   }}
-                  className="w-full p-4 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:border-blue-300 hover:text-blue-500 transition-colors"
+                  className="w-full p-4 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:border-genesis-300 hover:text-genesis-500 transition-colors"
                 >
                   <Plus className="w-5 h-5 mx-auto" />
                 </button>

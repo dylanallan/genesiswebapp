@@ -1,12 +1,17 @@
 // Writes public/sitemap.xml (and points robots.txt at it) before each build.
 // Only public, crawlable pages are listed; everything else requires sign-in.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const site = (process.env.SITE_URL || process.env.URL || 'https://example.com').replace(/\/$/, ''); // Netlify sets URL
-const pages = ['/', '/pricing'];
+const site = (process.env.SITE_URL || process.env.URL || 'https://genesisheritage.netlify.app').replace(/\/$/, ''); // Netlify sets URL
+const pages = ['/', '/switch', '/compare', '/partners', '/gift', '/privacy', '/terms'];
+// Static guide pages: public/guides/<slug>/index.html, served at /guides/<slug>/.
+const guidesDir = join(root, 'public', 'guides');
+if (existsSync(guidesDir)) {
+  pages.push('/guides/', ...readdirSync(guidesDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => `/guides/${e.name}/`).sort());
+}
 const today = new Date().toISOString().slice(0, 10);
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>

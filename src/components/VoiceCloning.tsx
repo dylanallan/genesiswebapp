@@ -41,7 +41,10 @@ export const VoiceCloning: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadProfiles = useCallback(async () => {
-    const { data, error } = await supabase.from('voice_profiles').select('id,name,relationship,created_at').order('created_at', { ascending: false });
+    // Only this person's voices (the database enforces this too).
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase.from('voice_profiles').select('id,name,relationship,created_at').eq('user_id', user.id).order('created_at', { ascending: false });
     if (error) return toast.error('Could not load saved voices');
     setVoiceProfiles((data ?? []) as VoiceProfile[]);
   }, []);
@@ -159,7 +162,7 @@ export const VoiceCloning: React.FC = () => {
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isProcessing}
               aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isRecording ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'} disabled:opacity-50`}
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isRecording ? 'bg-red-500 text-white' : 'bg-genesis-600 text-white'} disabled:opacity-50`}
             >
               {isProcessing ? <Loader2 className="w-8 h-8 animate-spin" /> : <Mic className="w-8 h-8" />}
             </button>
@@ -174,7 +177,7 @@ export const VoiceCloning: React.FC = () => {
                 <li key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span>{p.name}{p.relationship ? ` — ${p.relationship}` : ''}</span>
                   <span className="flex gap-2">
-                    <button onClick={() => playSample(p.id)} aria-label={`Play ${p.name}'s recording`} className="text-blue-600"><Play className="w-4 h-4" /></button>
+                    <button onClick={() => playSample(p.id)} aria-label={`Play ${p.name}'s recording`} className="text-genesis-600"><Play className="w-4 h-4" /></button>
                     <button onClick={() => deleteVoice(p)} aria-label={`Delete ${p.name}'s voice`} className="text-red-600"><Trash2 className="w-4 h-4" /></button>
                   </span>
                 </li>
@@ -209,7 +212,7 @@ export const VoiceCloning: React.FC = () => {
           <button
             onClick={generateVoiceStory}
             disabled={!selectedProfile || !storyText.trim() || isProcessing}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="w-full px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50"
           >
             {isProcessing ? 'Generating...' : 'Generate Voice Story'}
           </button>

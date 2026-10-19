@@ -157,7 +157,7 @@ export const UserProfile: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <User className="w-6 h-6 text-blue-500" />
+          <User className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Your Profile</h2>
         </div>
         <Button
@@ -170,7 +170,7 @@ export const UserProfile: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+          <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
         </div>
       ) : !profile ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -196,7 +196,7 @@ export const UserProfile: React.FC = () => {
               className="bg-white border border-gray-200 rounded-lg p-5"
             >
               <div className="flex items-center space-x-2 mb-4">
-                <User className="w-5 h-5 text-blue-500" />
+                <User className="w-5 h-5 text-genesis-500" />
                 <h3 className="font-semibold text-gray-900">Personal Information</h3>
               </div>
               

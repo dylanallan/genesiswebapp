@@ -290,12 +290,12 @@ export const WorkflowGenerator: React.FC<WorkflowGeneratorProps> = ({
                 </p>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
                 <div className="flex items-start">
-                  <Bot className="w-5 h-5 text-blue-500 mt-0.5 mr-2" />
+                  <Bot className="w-5 h-5 text-genesis-500 mt-0.5 mr-2" />
                   <div>
-                    <h3 className="font-medium text-blue-800">AI-Powered Workflow Generation</h3>
-                    <p className="text-sm text-blue-700 mt-1">
+                    <h3 className="font-medium text-genesis-800">AI-Powered Workflow Generation</h3>
+                    <p className="text-sm text-genesis-700 mt-1">
                       Our AI will generate a complete n8n workflow based on your description. You can then customize it further in n8n.
                     </p>
                   </div>
@@ -408,7 +408,7 @@ export const WorkflowGenerator: React.FC<WorkflowGeneratorProps> = ({
                 </button>
                 <button
                   onClick={downloadWorkflow}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 bg-genesis-100 text-genesis-700 rounded-lg hover:bg-genesis-200 transition-colors"
                 >
                   <Download className="w-5 h-5" />
                   <span>Download JSON</span>

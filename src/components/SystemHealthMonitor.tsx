@@ -160,7 +160,7 @@ export const SystemHealthMonitor: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Activity className="w-6 h-6 text-blue-500" />
+          <Activity className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">System Health Monitor</h2>
           <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(systemStatus.overall)}`}>
             {getStatusIcon(systemStatus.overall)}
@@ -182,7 +182,7 @@ export const SystemHealthMonitor: React.FC = () => {
           
           <button
             onClick={handleForceRecovery}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
           >
             <Zap className="w-4 h-4" />
             <span>Force Recovery</span>

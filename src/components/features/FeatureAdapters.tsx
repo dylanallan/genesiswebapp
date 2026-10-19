@@ -1,10 +1,10 @@
 // Adapters that give dashboard features the data and open/close wiring they need.
 // Each one loads real data for the signed-in user; nothing here is placeholder content.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { FamilyTreeVisualizer } from '../FamilyTreeVisualizer';
-import { fromRow, toRow, type TreeMember } from '../../lib/family';
+import { loadFamilyMembers, toRow, type TreeMember } from '../../lib/family';
 import { EnterpriseROICalculator } from '../EnterpriseROICalculator';
 import EnterpriseMetricsPanel from '../EnterpriseMetricsPanel';
 import { VideoPlayer } from '../VideoPlayer';
@@ -13,32 +13,38 @@ import { MediaPlayer } from '../MediaPlayer';
 import { ConversationSummarizer } from '../ConversationSummarizer';
 import { DataTable } from '../DataTable';
 import { SEO } from '../SEO';
+import { t, useLang } from '../../lib/i18n';
 
 // ---------- Family tree ----------
 export function FamilyTreeFeature() {
+  useLang();
   const [members, setMembers] = useState<TreeMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from('family_members').select('*').order('birth_date', { ascending: true, nullsFirst: false });
-    if (error) toast.error('Could not load your family tree.');
-    setMembers((data ?? []).map(fromRow));
+    try {
+      setMembers(await loadFamilyMembers());
+    } catch {
+      toast.error(t('Could not load your family tree.'));
+    }
     setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
   const run = async (op: PromiseLike<{ error: unknown }>, ok: string) => {
     const { error } = await op;
-    if (error) return toast.error('That change could not be saved. Please try again.');
+    if (error) return toast.error(t('That change could not be saved. Please try again.'));
     toast.success(ok);
     void load();
   };
 
-  if (loading) return <p className="p-6 text-gray-600">Loading your family tree…</p>;
-  const pending = members.filter((m) => m.source === 'ai');
+  // Made once per load, not on every redraw: the list remembers relationships per family list it is given.
+  const confirmed = useMemo(() => members.filter((m) => m.source !== 'ai'), [members]);
+  const pending = useMemo(() => members.filter((m) => m.source === 'ai'), [members]);
+  if (loading) return <p className="p-6 text-gray-600">{t('Loading your family tree…')}</p>;
   return (
     <FamilyTreeVisualizer
-      familyMembers={members.filter((m) => m.source !== 'ai')}
+      familyMembers={confirmed}
       pendingMembers={pending}
       onAddMember={(m) => run(supabase.from('family_members').insert(toRow(m)), 'Family member added')}
       onUpdateMember={(m) => run(supabase.from('family_members').update(toRow(m)).eq('id', m.id), 'Saved')}
@@ -51,6 +57,7 @@ export function FamilyTreeFeature() {
 
 // ---------- ROI calculator ----------
 export function ROICalculatorFeature() {
+  useLang();
   const [v, setV] = useState({ employeeCount: 10, averageSalary: 60000, hoursSavedPerWeek: 5, increasedRevenue: 0 });
   const field = (key: keyof typeof v, label: string, step = 1) => (
     <label className="text-sm">
@@ -74,6 +81,7 @@ export function ROICalculatorFeature() {
 
 // ---------- Account metrics (real counts for this user) ----------
 export function MetricsFeature() {
+  useLang();
   const [metrics, setMetrics] = useState<Parameters<typeof EnterpriseMetricsPanel>[0]['metrics'] | null>(null);
   useEffect(() => {
     (async () => {
@@ -85,7 +93,7 @@ export function MetricsFeature() {
       };
       const started = performance.now();
       const [family, saved, artifacts, workflows] = await Promise.all([
-        count('family_members'), count('saved_records'), count('cultural_artifacts'), count('workflows'),
+        count('family_members'), count('saved_records'), count('cultural_artifacts'), count('automation_workflows'),
       ]);
       const responseTime = Math.round(performance.now() - started);
       const today = new Date().toISOString().slice(0, 10);
@@ -96,7 +104,7 @@ export function MetricsFeature() {
       });
     })();
   }, []);
-  if (!metrics) return <p className="p-6 text-gray-600">Loading your activity…</p>;
+  if (!metrics) return <p className="p-6 text-gray-600">{t('Loading your activity…')}</p>;
   return <EnterpriseMetricsPanel metrics={metrics} />;
 }
 
@@ -109,7 +117,7 @@ function useMediaSource() {
   const picker = (accept: string) => (
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-white p-4">
       <label className="text-sm">
-        <span className="mr-2 text-gray-700">Choose a file</span>
+        <span className="mr-2 text-gray-700">{t('Choose a file')}</span>
         <input type="file" accept={accept} onChange={(e) => {
           const f = e.target.files?.[0];
           if (!f) return;
@@ -118,12 +126,12 @@ function useMediaSource() {
           setSrc(URL.createObjectURL(f));
         }} />
       </label>
-      <span className="text-gray-400 text-sm">or</span>
-      <input aria-label="Media link" className="flex-1 min-w-[200px] border rounded px-2 py-1 text-sm" placeholder="Paste a https:// link to an audio or video file"
+      <span className="text-gray-400 text-sm">{t('or')}</span>
+      <input aria-label={t('Media link')} className="flex-1 min-w-[200px] border rounded px-2 py-1 text-sm" placeholder={t('Paste a https:// link to an audio or video file')}
         onKeyDown={(e) => {
           if (e.key !== 'Enter') return;
           const url = (e.target as HTMLInputElement).value.trim();
-          if (!/^https:\/\//.test(url)) return toast.error('Please paste a link starting with https://');
+          if (!/^https:\/\//.test(url)) return toast.error(t('Please paste a link starting with https://'));
           setKind(/\.(mp3|wav|m4a|ogg|aac)(\?|$)/i.test(url) ? 'audio' : 'video');
           setTitle(url.split('/').pop() ?? 'Media');
           setSrc(url);
@@ -134,20 +142,24 @@ function useMediaSource() {
 }
 
 export function VideoFeature() {
+  useLang();
   const { src, title, picker } = useMediaSource();
-  return <div>{picker('video/*')}{src ? <VideoPlayer src={src} title={title} /> : <p className="text-gray-600">Pick a family video to watch it here.</p>}</div>;
+  return <div>{picker('video/*')}{src ? <VideoPlayer src={src} title={title} /> : <p className="text-gray-600">{t('Pick a family video to watch it here.')}</p>}</div>;
 }
 export function AudioFeature() {
+  useLang();
   const { src, title, picker } = useMediaSource();
-  return <div>{picker('audio/*')}{src ? <AudioPlayer src={src} title={title} /> : <p className="text-gray-600">Pick a recording to listen to it here.</p>}</div>;
+  return <div>{picker('audio/*')}{src ? <AudioPlayer src={src} title={title} /> : <p className="text-gray-600">{t('Pick a recording to listen to it here.')}</p>}</div>;
 }
 export function MediaFeature() {
+  useLang();
   const { src, title, kind, picker } = useMediaSource();
-  return <div>{picker('audio/*,video/*')}{src ? <MediaPlayer src={src} type={kind} title={title} /> : <p className="text-gray-600">Pick an audio or video file to play it here.</p>}</div>;
+  return <div>{picker('audio/*,video/*')}{src ? <MediaPlayer src={src} type={kind} title={title} /> : <p className="text-gray-600">{t('Pick an audio or video file to play it here.')}</p>}</div>;
 }
 
 // ---------- Conversation summarizer: pick one of your saved chats ----------
 export function SummarizerFeature({ onClose }: { onClose: () => void }) {
+  useLang();
   const [conversations, setConversations] = useState<Array<{ id: string; title: string }>>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [messages, setMessages] = useState<Array<{ role: string; content: string; timestamp?: Date }>>([]);
@@ -168,17 +180,17 @@ export function SummarizerFeature({ onClose }: { onClose: () => void }) {
   }
   return (
     <div className="rounded-xl border bg-white p-6">
-      <h2 className="text-lg font-semibold mb-3">Summarize a conversation</h2>
+      <h2 className="text-lg font-semibold mb-3">{t('Summarize a conversation')}</h2>
       {conversations.length === 0 ? (
-        <p className="text-gray-600">You have no saved conversations yet. Chat with the AI Assistant first, then come back to summarize it.</p>
+        <p className="text-gray-600">{t('You have no saved conversations yet. Chat with the AI Assistant first, then come back to summarize it.')}</p>
       ) : (
         <ul className="divide-y">
           {conversations.map((c) => (
-            <li key={c.id}><button className="w-full text-left py-2 hover:text-blue-700" onClick={() => setSelected(c.id)}>{c.title || 'Untitled conversation'}</button></li>
+            <li key={c.id}><button className="w-full text-left py-2 hover:text-genesis-700" onClick={() => setSelected(c.id)}>{c.title || 'Untitled conversation'}</button></li>
           ))}
         </ul>
       )}
-      <button className="mt-4 text-sm text-gray-600 underline" onClick={onClose}>Back</button>
+      <button className="mt-4 text-sm text-gray-600 underline" onClick={onClose}>{t('Back')}</button>
     </div>
   );
 }
@@ -190,6 +202,7 @@ interface SavedRecordRow {
 }
 
 export function SavedRecordsTableFeature() {
+  useLang();
   const [rows, setRows] = useState<SavedRecordRow[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
@@ -197,7 +210,7 @@ export function SavedRecordsTableFeature() {
     const { data, error } = await supabase.from('saved_records')
       .select('id,title,source,record_date,url,attribution,license,notes,created_at')
       .order('created_at', { ascending: false });
-    if (error) toast.error('Could not load your saved records.');
+    if (error) toast.error(t('Could not load your saved records.'));
     setRows((data ?? []) as SavedRecordRow[]);
     setLoading(false);
   }, []);
@@ -205,7 +218,7 @@ export function SavedRecordsTableFeature() {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-semibold">My saved records</h2>
+      <h2 className="text-lg font-semibold">{t('My saved records')}</h2>
       <DataTable<SavedRecordRow>
         data={rows}
         isLoading={loading}
@@ -214,7 +227,7 @@ export function SavedRecordsTableFeature() {
         searchKeys={['title', 'source', 'attribution', 'notes']}
         keyExtractor={(r) => r.id}
         onRowClick={(r) => window.open(r.url, '_blank', 'noopener')}
-        emptyState={<p className="p-6 text-gray-600">No saved records yet. Use Historical Records search and press Save on anything useful.</p>}
+        emptyState={<p className="p-6 text-gray-600">{t('No saved records yet. Use Historical Records search and press Save on anything useful.')}</p>}
         columns={[
           { key: 'title', header: 'Record', sortable: true },
           { key: 'source', header: 'Source', sortable: true },
@@ -228,23 +241,24 @@ export function SavedRecordsTableFeature() {
 
 // ---------- Search & sharing preview for the public site ----------
 export function SEOFeature() {
+  useLang();
   const site = typeof window !== 'undefined' ? window.location.origin : '';
-  const title = 'Genesis Heritage - Automate your business and unlock your roots';
+  const title = 'Genesis Heritage – Family tree, stories and voices, kept private';
   const description = 'Genesis Heritage helps businesses automate their operations and discover their roots through advanced AI technology.';
   return (
     <div className="space-y-4 rounded-xl border bg-white p-6">
-      <SEO title="SEO Tools" />
-      <h2 className="text-lg font-semibold">How your site appears</h2>
+      <SEO title={t('SEO Tools')} />
+      <h2 className="text-lg font-semibold">{t('How your site appears')}</h2>
       <div className="rounded-lg border p-4">
-        <p className="text-xs text-gray-500 mb-1">Search result preview</p>
+        <p className="text-xs text-gray-500 mb-1">{t('Search result preview')}</p>
         <p className="text-sm text-green-700">{site}</p>
-        <p className="text-lg text-blue-800">{title}</p>
+        <p className="text-lg text-genesis-800">{title}</p>
         <p className="text-sm text-gray-700">{description}</p>
       </div>
       <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-        <li>Sitemap: <a className="text-blue-700 underline" href="/sitemap.xml" target="_blank" rel="noopener">{site}/sitemap.xml</a> (regenerated on every deploy)</li>
-        <li>Robots rules: <a className="text-blue-700 underline" href="/robots.txt" target="_blank" rel="noopener">{site}/robots.txt</a></li>
-        <li>Every page sets its own title and sharing (Open Graph / Twitter) tags.</li>
+        <li>{t('Sitemap:')} <a className="text-genesis-700 underline" href="/sitemap.xml" target="_blank" rel="noopener">{site}/sitemap.xml</a> {t('(regenerated on every deploy)')}</li>
+        <li>{t('Robots rules:')} <a className="text-genesis-700 underline" href="/robots.txt" target="_blank" rel="noopener">{site}/robots.txt</a></li>
+        <li>{t('Every page sets its own title and sharing (Open Graph / Twitter) tags.')}</li>
       </ul>
     </div>
   );

@@ -1,4 +1,3 @@
-import { toast } from 'sonner';
 
 interface PerformanceMetrics {
   memoryUsage: number;
@@ -224,7 +223,6 @@ class PerformanceMonitor {
       // Clear large objects from memory
       this.clearLargeObjects();
       
-      toast.success('Memory cleanup completed');
     } catch (error) {
       console.error('Memory cleanup failed:', error);
     }

@@ -126,12 +126,12 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <Brain className="w-6 h-6 text-blue-500" />
+            <Brain className="w-6 h-6 text-genesis-500" />
             <h2 className="text-xl font-semibold text-gray-900">AI Co-Founder</h2>
           </div>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <span>Step</span>
-            <span className="font-medium text-blue-600">{step}</span>
+            <span className="font-medium text-genesis-600">{step}</span>
             <span>of 4</span>
           </div>
         </div>
@@ -155,8 +155,8 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                     onClick={() => handleInterestToggle(interest)}
                     className={`p-3 rounded-lg text-sm font-medium transition-colors ${
                       selectedInterests.includes(interest)
-                        ? 'bg-blue-50 text-blue-700 border-2 border-blue-200'
-                        : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-blue-200'
+                        ? 'bg-genesis-50 text-genesis-700 border-2 border-genesis-200'
+                        : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-genesis-200'
                     }`}
                   >
                     {interest}
@@ -171,7 +171,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                   type="button"
                   onClick={() => setStep(2)}
                   disabled={selectedInterests.length === 0}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50"
                 >
                   <span>Next</span>
                   <ChevronRight className="w-4 h-4" />
@@ -221,7 +221,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                   type="button"
                   onClick={() => setStep(3)}
                   disabled={selectedSkills.length === 0}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50"
                 >
                   <span>Next</span>
                   <ChevronRight className="w-4 h-4" />
@@ -247,7 +247,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                   </label>
                   <textarea
                     {...register('marketObservations')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500"
                     rows={3}
                     placeholder="What trends or opportunities have you noticed?"
                   />
@@ -262,7 +262,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                   </label>
                   <textarea
                     {...register('targetAudience')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500"
                     rows={2}
                     placeholder="Who would benefit most from your solution?"
                   />
@@ -277,7 +277,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                   </label>
                   <textarea
                     {...register('problemStatement')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500"
                     rows={2}
                     placeholder="What specific problem are you trying to solve?"
                   />
@@ -297,7 +297,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                 <button
                   type="submit"
                   disabled={isAnalyzing}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 disabled:opacity-50"
                 >
                   {isAnalyzing ? (
                     <>
@@ -321,12 +321,12 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-blue-900 flex items-center mb-2">
-                  <TrendingUp className="w-5 h-5 text-blue-500 mr-2" />
+              <div className="bg-genesis-50 p-4 rounded-lg">
+                <h3 className="text-lg font-medium text-genesis-900 flex items-center mb-2">
+                  <TrendingUp className="w-5 h-5 text-genesis-500 mr-2" />
                   Idea Score: {feedback.score}/10
                 </h3>
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-genesis-700">
                   Based on market potential, execution capability, and innovation
                 </p>
               </div>
@@ -362,7 +362,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                 <ul className="space-y-2">
                   {feedback.nextSteps.map((step, index) => (
                     <li key={index} className="text-sm text-gray-600 flex items-center">
-                      <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-2 text-xs">
+                      <span className="w-5 h-5 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center mr-2 text-xs">
                         {index + 1}
                       </span>
                       {step}
@@ -408,7 +408,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
                     // Save idea to database
                     toast.success('Idea saved to your dashboard');
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700"
                 >
                   Save Idea
                 </button>

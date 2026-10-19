@@ -115,7 +115,7 @@ export const EnterpriseROICalculator: React.FC<ROICalculatorProps> = ({
         </div>
         <div className="p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-500">Total Benefits</p>
-          <p className="text-2xl font-semibold text-blue-600">{formatCurrency(calculations.totalBenefits)}</p>
+          <p className="text-2xl font-semibold text-genesis-600">{formatCurrency(calculations.totalBenefits)}</p>
         </div>
         <div className="p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-500">Est. Net Gain</p>

@@ -20,7 +20,7 @@ const EnterpriseValueProposition: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <TrendingUp className="w-6 h-6 text-blue-500" />
+          <TrendingUp className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Enterprise Value Proposition</h2>
         </div>
       </div>
@@ -62,7 +62,7 @@ const EnterpriseValueProposition: React.FC = () => {
               
               <div className="flex items-start">
                 <div className="flex-shrink-0 mt-1">
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  <TrendingUp className="w-5 h-5 text-genesis-500" />
                 </div>
                 <div className="ml-3">
                   <h4 className="text-lg font-medium text-gray-900">Predictive Analytics</h4>
@@ -106,7 +106,7 @@ const EnterpriseValueProposition: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Genesis Heritage Pro</span>
-                    <span className="text-blue-600 font-bold">$37M target</span>
+                    <span className="text-genesis-600 font-bold">$37M target</span>
                   </div>
                 </div>
               </div>
@@ -156,13 +156,13 @@ const EnterpriseValueProposition: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100"
+            className="mt-6 bg-genesis-50 p-4 rounded-lg border border-genesis-100"
           >
             <div className="flex items-start">
-              <Users className="w-5 h-5 text-blue-500 mt-0.5" />
+              <Users className="w-5 h-5 text-genesis-500 mt-0.5" />
               <div className="ml-3">
-                <h4 className="font-medium text-blue-900">Early Customer Validation</h4>
-                <p className="text-sm text-blue-700 mt-1">
+                <h4 className="font-medium text-genesis-900">Early Customer Validation</h4>
+                <p className="text-sm text-genesis-700 mt-1">
                   50+ enterprise prospects with $10M+ in potential ARR have validated our approach to cultural-aware business automation.
                 </p>
               </div>
@@ -175,32 +175,32 @@ const EnterpriseValueProposition: React.FC = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-4">Implementation Priority Matrix</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <h4 className="font-medium text-blue-900 mb-2">Phase 1: Hackathon MVP</h4>
+          <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
+            <h4 className="font-medium text-genesis-900 mb-2">Phase 1: Hackathon MVP</h4>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center">
-                <div className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-2 text-xs">
+                <div className="w-5 h-5 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center mr-2 text-xs">
                   1
                 </div>
-                <span className="text-blue-700">Core AI automation demo</span>
+                <span className="text-genesis-700">Core AI automation demo</span>
               </li>
               <li className="flex items-center">
-                <div className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-2 text-xs">
+                <div className="w-5 h-5 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center mr-2 text-xs">
                   2
                 </div>
-                <span className="text-blue-700">Real-time analytics dashboard</span>
+                <span className="text-genesis-700">Real-time analytics dashboard</span>
               </li>
               <li className="flex items-center">
-                <div className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-2 text-xs">
+                <div className="w-5 h-5 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center mr-2 text-xs">
                   3
                 </div>
-                <span className="text-blue-700">Mobile-responsive UI</span>
+                <span className="text-genesis-700">Mobile-responsive UI</span>
               </li>
               <li className="flex items-center">
-                <div className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-2 text-xs">
+                <div className="w-5 h-5 bg-genesis-100 text-genesis-600 rounded-full flex items-center justify-center mr-2 text-xs">
                   4
                 </div>
-                <span className="text-blue-700">Error handling and validation</span>
+                <span className="text-genesis-700">Error handling and validation</span>
               </li>
             </ul>
           </div>

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Search, Plus, Edit, Trash, Globe, Calendar, User, Check, X, Tag, Info, Clock, MapPin } from 'lucide-react';
+import { BookOpen, Search, Plus, Edit, Trash, Calendar, User, Check, X, Info, Clock, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { signedUrl } from '../lib/storage';
+import { useSaveGuard } from '../lib/use-save-guard';
+import { locale, t, useLang } from '../lib/i18n';
+import ListenButton, { VoicePicker, useVoiceProfiles } from './ListenButton';
 
 interface CulturalStory {
   id: string;
@@ -17,14 +21,27 @@ interface CulturalStory {
   verification_status: string;
   created_at: string;
   updated_at: string;
+  audio_path?: string | null;
 }
 
+// Interview recordings are private files, so they are played through a short-lived link.
+const RecordingPlayer: React.FC<{ path: string }> = ({ path }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    signedUrl('voice-recordings', path).then(setUrl).catch(() => setUrl(null));
+  }, [path]);
+  return url ? <audio controls src={url} className="w-full mb-4" aria-label={t('Interview recording')} /> : null;
+};
+
 export const CulturalStoryLibrary: React.FC = () => {
+  useLang();
   const [stories, setStories] = useState<CulturalStory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStory, setSelectedStory] = useState<CulturalStory | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const voices = useVoiceProfiles();
+  const [voiceId, setVoiceId] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<CulturalStory>>({
     title: '',
@@ -54,33 +71,35 @@ export const CulturalStoryLibrary: React.FC = () => {
       setStories(data || []);
     } catch (error) {
       console.error('Error fetching stories:', error);
-      toast.error('Failed to load cultural stories');
+      toast.error(t('Failed to load cultural stories'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const guard = useSaveGuard(); // a second quick tap must not save twice
+  const handleSubmit = guard(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    // An empty date field must be saved as "no date", not as an empty string (the database rejects '').
+    const row = { ...formData, date_recorded: formData.date_recorded || null };
     try {
       if (isEditing && selectedStory) {
         // Update existing story
         const { error } = await supabase
           .from('cultural_stories')
-          .update(formData)
+          .update(row)
           .eq('id', selectedStory.id);
 
         if (error) throw error;
-        toast.success('Story updated successfully');
+        toast.success(t('Story updated successfully'));
       } else {
         // Create new story
         const { error } = await supabase
           .from('cultural_stories')
-          .insert([formData]);
+          .insert([row]);
 
         if (error) throw error;
-        toast.success('Story added successfully');
+        toast.success(t('Story added successfully'));
       }
 
       // Reset form and fetch updated stories
@@ -101,9 +120,9 @@ export const CulturalStoryLibrary: React.FC = () => {
       fetchStories();
     } catch (error) {
       console.error('Error saving story:', error);
-      toast.error('Failed to save story');
+      toast.error(t('Failed to save story'));
     }
-  };
+  });
 
   const handleEdit = (story: CulturalStory) => {
     setFormData({
@@ -123,7 +142,7 @@ export const CulturalStoryLibrary: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this story?')) return;
+    if (!confirm(t('Are you sure you want to delete this story?'))) return;
 
     try {
       const { error } = await supabase
@@ -132,11 +151,11 @@ export const CulturalStoryLibrary: React.FC = () => {
         .eq('id', id);
 
       if (error) throw error;
-      toast.success('Story deleted successfully');
+      toast.success(t('Story deleted successfully'));
       fetchStories();
     } catch (error) {
       console.error('Error deleting story:', error);
-      toast.error('Failed to delete story');
+      toast.error(t('Failed to delete story'));
     }
   };
 
@@ -153,21 +172,21 @@ export const CulturalStoryLibrary: React.FC = () => {
         return (
           <span className="flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
             <Check className="w-3 h-3" />
-            <span>Verified</span>
+            <span>{t('Verified')}</span>
           </span>
         );
       case 'pending':
         return (
           <span className="flex items-center space-x-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
             <Clock className="w-3 h-3" />
-            <span>Pending</span>
+            <span>{t('Pending')}</span>
           </span>
         );
       default:
         return (
           <span className="flex items-center space-x-1 px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
             <Info className="w-3 h-3" />
-            <span>Unverified</span>
+            <span>{t('Unverified')}</span>
           </span>
         );
     }
@@ -177,8 +196,8 @@ export const CulturalStoryLibrary: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <BookOpen className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-semibold text-gray-900">Cultural Stories</h2>
+          <BookOpen className="w-6 h-6 text-genesis-500" />
+          <h2 className="text-xl font-semibold text-gray-900">{t('Family stories')}</h2>
         </div>
         <button
           onClick={() => {
@@ -196,10 +215,10 @@ export const CulturalStoryLibrary: React.FC = () => {
               verification_status: 'unverified'
             });
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors min-h-[44px]"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Story</span>
+          <span>{t('Add Story')}</span>
         </button>
       </div>
 
@@ -209,30 +228,31 @@ export const CulturalStoryLibrary: React.FC = () => {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search stories by title, content, storyteller, or themes..."
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder={t('Search stories by title, content, storyteller, or themes...')}
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
         />
       </div>
+      {voices.length > 0 && <div className="mb-6"><VoicePicker profiles={voices} value={voiceId} onChange={setVoiceId} /></div>}
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-genesis-500"></div>
         </div>
       ) : filteredStories.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No stories found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('No stories found')}</h3>
           <p className="text-gray-500 mb-4">
             {searchTerm 
-              ? `No results for "${searchTerm}"` 
-              : 'Start by adding your first cultural story'}
+              ? t('No results for “{q}”', { q: searchTerm })
+              : t('Start by adding your first family story')}
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="inline-flex items-center px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 min-h-[44px]"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Add Story
+            {t('Add Story')}
           </button>
         </div>
       ) : (
@@ -256,8 +276,8 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     {story.storyteller && (
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <User className="w-4 h-4 text-blue-500" />
-                        <span className="font-medium">Storyteller:</span>
+                        <User className="w-4 h-4 text-genesis-500" />
+                        <span className="font-medium">{t('Storyteller:')}</span>
                         <span>{story.storyteller}</span>
                       </div>
                     )}
@@ -265,15 +285,15 @@ export const CulturalStoryLibrary: React.FC = () => {
                     {story.date_recorded && (
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
                         <Calendar className="w-4 h-4 text-green-500" />
-                        <span className="font-medium">Recorded:</span>
-                        <span>{new Date(story.date_recorded).toLocaleDateString()}</span>
+                        <span className="font-medium">{t('Recorded:')}</span>
+                        <span>{new Date(story.date_recorded).toLocaleDateString(locale())}</span>
                       </div>
                     )}
                     
                     {story.location && (
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
                         <MapPin className="w-4 h-4 text-red-500" />
-                        <span className="font-medium">Location:</span>
+                        <span className="font-medium">{t('Location:')}</span>
                         <span>{story.location}</span>
                       </div>
                     )}
@@ -282,7 +302,7 @@ export const CulturalStoryLibrary: React.FC = () => {
                   {story.themes && story.themes.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-4">
                       {story.themes.map((theme, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                        <span key={index} className="px-2 py-1 bg-genesis-50 text-genesis-700 rounded-full text-xs">
                           {theme}
                         </span>
                       ))}
@@ -293,12 +313,14 @@ export const CulturalStoryLibrary: React.FC = () => {
                 <div className="flex space-x-2 ml-4">
                   <button
                     onClick={() => handleEdit(story)}
-                    className="p-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                    aria-label={t('Edit {name}', { name: story.title })}
+                    className="p-2 text-gray-500 hover:text-genesis-500 hover:bg-genesis-50 rounded-full transition-colors"
                   >
                     <Edit className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDelete(story.id)}
+                    aria-label={t('Delete {name}', { name: story.title })}
                     className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                   >
                     <Trash className="w-5 h-5" />
@@ -306,14 +328,17 @@ export const CulturalStoryLibrary: React.FC = () => {
                 </div>
               </div>
               
-              <button
-                onClick={() => setSelectedStory(
-                  selectedStory?.id === story.id ? null : story
-                )}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center"
-              >
-                <span>{selectedStory?.id === story.id ? 'Hide full story' : 'Read full story'}</span>
-              </button>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setSelectedStory(
+                    selectedStory?.id === story.id ? null : story
+                  )}
+                  className="text-sm text-genesis-600 hover:text-genesis-800 flex items-center min-h-[44px]"
+                >
+                  <span>{t(selectedStory?.id === story.id ? 'Hide full story' : 'Read full story')}</span>
+                </button>
+                <ListenButton title={story.title} text={story.content} lang={story.language} voiceProfileId={voiceId || null} />
+              </div>
               
               {selectedStory?.id === story.id && (
                 <motion.div
@@ -322,16 +347,17 @@ export const CulturalStoryLibrary: React.FC = () => {
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-4 pt-4 border-t border-gray-200"
                 >
+                  {story.audio_path && <RecordingPlayer path={story.audio_path} />}
                   <div className="prose prose-sm max-w-none">
-                    <p>{story.content}</p>
+                    <p className="whitespace-pre-line">{story.content}</p>
                   </div>
                   
-                  {story.language && story.language !== 'english' && (
+                  {story.language && !/^en/i.test(story.language) && (
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Original Language: {story.language}</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">{t('Original language:')} {story.language}</h4>
                       {story.translation && (
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Translation</h5>
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">{t('Translation')}</h5>
                           <p className="text-gray-600">{story.translation}</p>
                         </div>
                       )}
@@ -355,10 +381,11 @@ export const CulturalStoryLibrary: React.FC = () => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900">
-                  {isEditing ? 'Edit Cultural Story' : 'Add New Cultural Story'}
+                  {t(isEditing ? 'Edit this story' : 'Add a family story')}
                 </h3>
                 <button
                   onClick={() => setShowAddForm(false)}
+                  aria-label={t('Close')}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X className="w-6 h-6" />
@@ -367,129 +394,129 @@ export const CulturalStoryLibrary: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title *
+                  <label htmlFor="story-field-1" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('Title')} *
                   </label>
-                  <input
+                  <input id="story-field-1"
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter story title"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
+                    placeholder={t('Enter story title')}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Story Content *
+                  <label htmlFor="story-field-2" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('Story Content')} *
                   </label>
-                  <textarea
+                  <textarea id="story-field-2"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={6}
-                    placeholder="Enter the full story text"
+                    placeholder={t('Enter the full story text')}
                     required
                   ></textarea>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Storyteller
+                    <label htmlFor="story-field-3" className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('Storyteller')}
                     </label>
-                    <input
+                    <input id="story-field-3"
                       type="text"
                       value={formData.storyteller}
                       onChange={(e) => setFormData({ ...formData, storyteller: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Who told this story?"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
+                      placeholder={t('Who told this story?')}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date Recorded
+                    <label htmlFor="story-field-4" className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('Date Recorded')}
                     </label>
-                    <input
+                    <input id="story-field-4"
                       type="date"
                       value={formData.date_recorded ? new Date(formData.date_recorded).toISOString().split('T')[0] : ''}
                       onChange={(e) => setFormData({ ...formData, date_recorded: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location
+                    <label htmlFor="story-field-5" className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('Location')}
                     </label>
-                    <input
+                    <input id="story-field-5"
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Where does this story take place?"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
+                      placeholder={t('Where does this story take place?')}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Language
+                    <label htmlFor="story-field-6" className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('Language')}
                     </label>
-                    <input
+                    <input id="story-field-6"
                       type="text"
                       value={formData.language}
                       onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Original language of the story"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
+                      placeholder={t('Original language of the story')}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Themes (comma separated)
+                  <label htmlFor="story-field-7" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('Themes (comma separated)')}
                   </label>
-                  <input
+                  <input id="story-field-7"
                     type="text"
                     value={formData.themes?.join(', ') || ''}
                     onChange={(e) => setFormData({ 
                       ...formData, 
                       themes: e.target.value.split(',').map(theme => theme.trim()).filter(theme => theme) 
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g., family, resilience, tradition"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
+                    placeholder={t('e.g., family, resilience, tradition')}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Translation (if applicable)
+                  <label htmlFor="story-field-8" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('Translation (if applicable)')}
                   </label>
-                  <textarea
+                  <textarea id="story-field-8"
                     value={formData.translation}
                     onChange={(e) => setFormData({ ...formData, translation: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     rows={4}
-                    placeholder="If the story is in another language, provide an English translation"
+                    placeholder={t('If the story is in another language, provide a translation')}
                   ></textarea>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Verification Status
+                  <label htmlFor="story-field-9" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('Verification Status')}
                   </label>
-                  <select
+                  <select id="story-field-9"
                     value={formData.verification_status}
                     onChange={(e) => setFormData({ ...formData, verification_status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                   >
-                    <option value="unverified">Unverified</option>
-                    <option value="pending">Pending Verification</option>
-                    <option value="verified">Verified</option>
+                    <option value="unverified">{t('Unverified')}</option>
+                    <option value="pending">{t('Pending Verification')}</option>
+                    <option value="verified">{t('Verified')}</option>
                   </select>
                 </div>
 
@@ -497,15 +524,15 @@ export const CulturalStoryLibrary: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors min-h-[44px]"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors min-h-[44px]"
                   >
-                    {isEditing ? 'Update Story' : 'Save Story'}
+                    {t(isEditing ? 'Update Story' : 'Save Story')}
                   </button>
                 </div>
               </form>

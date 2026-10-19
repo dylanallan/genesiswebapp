@@ -211,7 +211,7 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+              <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
             </div>
           ) : (
             <>
@@ -295,7 +295,7 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
                             <span className="text-xs text-gray-500">{template.nodes} nodes</span>
                             <button
                               onClick={() => importTemplate(template.id)}
-                              className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                              className="flex items-center space-x-1 px-3 py-1 bg-genesis-100 text-genesis-700 rounded-lg hover:bg-genesis-200 transition-colors text-sm"
                             >
                               <ArrowRight className="w-4 h-4" />
                               <span>Import to n8n</span>
@@ -317,12 +317,12 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
                 </div>
               ) : (
                 <div className="p-6 space-y-6">
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <div className="bg-genesis-50 p-4 rounded-lg border border-genesis-100">
                     <div className="flex items-start">
-                      <Zap className="w-5 h-5 text-blue-500 mt-0.5 mr-2" />
+                      <Zap className="w-5 h-5 text-genesis-500 mt-0.5 mr-2" />
                       <div>
-                        <h3 className="font-medium text-blue-800">Connect to n8n</h3>
-                        <p className="text-sm text-blue-700 mt-1">
+                        <h3 className="font-medium text-genesis-800">Connect to n8n</h3>
+                        <p className="text-sm text-genesis-700 mt-1">
                           Connect your Genesis Heritage account to n8n to automate your business processes and free up time for cultural exploration.
                         </p>
                       </div>
@@ -338,7 +338,7 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
                         type="text"
                         value={n8nUrl}
                         onChange={(e) => setN8nUrl(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                         placeholder="https://your-n8n-instance.com"
                         required
                       />
@@ -355,7 +355,7 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
                         type="password"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                         placeholder="n8n API key for secure access"
                       />
                       <p className="text-xs text-gray-500 mt-1">
@@ -388,7 +388,7 @@ export const N8NIntegration: React.FC<N8NIntegrationProps> = ({ isOpen, onClose 
                       type="button"
                       onClick={handleConnect}
                       disabled={isTestingConnection || !n8nUrl}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                      className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
                     >
                       {isTestingConnection ? (
                         <>

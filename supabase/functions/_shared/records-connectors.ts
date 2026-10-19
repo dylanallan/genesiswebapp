@@ -19,12 +19,14 @@ export interface RecordHit {
   url: string
   license?: string // license or rights statement when the source provides one
   attribution: string
+  facts?: { birthYear?: number | null; deathYear?: number | null; birthPlace?: string | null; deathPlace?: string | null } // structured, when the source has them
 }
 
 export interface Connector {
   id: string
   label: string
   needsKey?: string // env var that must be set for this connector to run
+  enabledBy?: string // env var that must be "true": sources we have not yet tested live stay off until then
   search(q: RecordQuery, signal: AbortSignal): Promise<RecordHit[]>
 }
 
@@ -86,6 +88,59 @@ const internetArchive: Connector = {
   },
 }
 
+// WikiTree: a free, collaborative world family tree (40M+ profiles) with an open, keyless API.
+const wikitree: Connector = {
+  id: 'wikitree',
+  label: 'WikiTree',
+  async search(q, signal) {
+    const parts = q.name.trim().split(/\s+/)
+    const last = parts.length > 1 ? parts.pop()! : parts[0]!
+    const first = parts.length && parts[0] !== last ? parts.join(' ') : ''
+    const params = new URLSearchParams({
+      action: 'searchPerson', appId: 'GenesisHeritage', limit: '8', LastName: last,
+      fields: 'Id,Name,FirstName,LastNameAtBirth,LastNameCurrent,BirthDate,DeathDate,BirthLocation,DeathLocation',
+    })
+    if (first) params.set('FirstName', first)
+    if (q.place) params.set('BirthLocation', q.place)
+    if (q.year) { params.set('BirthDate', `${q.year}-01-01`); params.set('dateSpread', '10'); params.set('dateInclude', 'both') }
+    const data = await getJson(`https://api.wikitree.com/api.php?${params}`, signal)
+    const matches = (Array.isArray(data) ? data[0]?.matches : data?.matches) ?? []
+    const year = (d: unknown) => (typeof d === 'string' && !d.startsWith('0000') ? d.slice(0, 4) : '')
+    return matches.filter((m: any) => m?.Name).map((m: any): RecordHit => {
+      const life = [year(m.BirthDate), year(m.DeathDate)]
+      return {
+        source: 'wikitree', sourceLabel: 'WikiTree', sourceId: String(m.Id ?? m.Name),
+        title: `${m.FirstName ?? ''} ${m.LastNameAtBirth ?? m.LastNameCurrent ?? ''}`.trim() + (life.some(Boolean) ? ` (${life[0] || '?'}–${life[1]})` : ''),
+        snippet: clip([m.BirthLocation && `Born: ${m.BirthLocation}`, m.DeathLocation && `Died: ${m.DeathLocation}`].filter(Boolean).join(' · ')),
+        date: year(m.BirthDate), url: `https://www.wikitree.com/wiki/${encodeURIComponent(m.Name)}`,
+        license: 'See WikiTree terms', attribution: 'WikiTree contributors',
+        facts: {
+          birthYear: Number(life[0]) || null, deathYear: Number(life[1]) || null,
+          birthPlace: m.BirthLocation || null, deathPlace: m.DeathLocation || null,
+        },
+      }
+    })
+  },
+}
+
+// Trove (free key): National Library of Australia newspapers, gazettes and family notices.
+const trove: Connector = {
+  id: 'trove',
+  label: 'Trove (National Library of Australia)',
+  needsKey: 'TROVE_API_KEY',
+  async search(q, signal) {
+    const url = `https://api.trove.nla.gov.au/v3/result?category=newspaper&n=8&encoding=json&q=${encodeURIComponent(terms(q))}`
+    const data = await getJson(url, signal, { 'X-API-KEY': cfg('TROVE_API_KEY') ?? '' })
+    const records = data.category?.[0]?.records?.article ?? []
+    return records.map((a: any): RecordHit => ({
+      source: 'trove', sourceLabel: 'Trove', sourceId: String(a.id),
+      title: text(a.heading) || 'Newspaper article', snippet: clip(text(a.snippet).replace(/<[^>]+>/g, '')),
+      date: text(a.date), url: text(a.troveUrl) || `https://trove.nla.gov.au/newspaper/article/${a.id}`,
+      license: 'See item page', attribution: text(a.title?.title) || 'National Library of Australia',
+    }))
+  },
+}
+
 // Digital Public Library of America (free key): US libraries, archives, museums.
 const dpla: Connector = {
   id: 'dpla',
@@ -120,7 +175,116 @@ const europeana: Connector = {
   },
 }
 
-export const CONNECTORS: Connector[] = [wikidata, chroniclingAmerica, internetArchive, dpla, europeana]
+// Gallica (Bibliothèque nationale de France): French books, newspapers and archives, useful for Quebec, Acadian
+// and French families. Official SRU 1.2 search API, open without restriction except abuse (BnF / data.gouv.fr).
+// Returns Dublin Core XML. Off until tested live: set RECORDS_ENABLE_GALLICA=true.
+const xmlField = (rec: string, tag: string): string[] =>
+  [...rec.matchAll(new RegExp(`<dc:${tag}[^>]*>([\\s\\S]*?)</dc:${tag}>`, 'g'))].map((m) => decodeXml(m[1]).trim()).filter(Boolean)
+const decodeXml = (s: string) => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&amp;/g, '&')
+const cqlPhrase = (s: string) => `"${s.replace(/["\\]/g, ' ').trim()}"`
+
+export function parseGallica(xml: string): RecordHit[] {
+  return [...xml.matchAll(/<srw:record>([\s\S]*?)<\/srw:record>/g)].map((m): RecordHit | null => {
+    const rec = m[1]
+    const url = xmlField(rec, 'identifier').find((id) => id.startsWith('https://gallica.bnf.fr/ark:'))
+    if (!url) return null
+    const type = xmlField(rec, 'type')[0]
+    return {
+      source: 'gallica', sourceLabel: 'Gallica (BnF)', sourceId: url.replace('https://gallica.bnf.fr/', ''),
+      title: xmlField(rec, 'title')[0] || 'Document', snippet: clip([type, ...xmlField(rec, 'description')].filter(Boolean).join(' · ')),
+      date: xmlField(rec, 'date')[0], url,
+      license: xmlField(rec, 'rights')[0] || 'See item page', attribution: 'Bibliothèque nationale de France / Gallica',
+    }
+  }).filter((h): h is RecordHit => h !== null)
+}
+
+const gallica: Connector = {
+  id: 'gallica',
+  label: 'Gallica (Bibliothèque nationale de France)',
+  enabledBy: 'RECORDS_ENABLE_GALLICA',
+  async search(q, signal) {
+    const query = [`gallica all ${cqlPhrase(q.name)}`, q.place && `gallica all ${cqlPhrase(q.place)}`].filter(Boolean).join(' and ')
+    const params = new URLSearchParams({ operation: 'searchRetrieve', version: '1.2', maximumRecords: '8', query })
+    const res = await fetch(`https://gallica.bnf.fr/SRU?${params}`, { signal, headers: { 'User-Agent': UA, Accept: 'application/xml' } })
+    if (!res.ok) throw new Error(`${res.status} from gallica.bnf.fr`)
+    return parseGallica(await res.text())
+  },
+}
+
+// US National Archives Catalog (free key by email from Catalog_API@nara.gov): immigration, military, census and
+// other federal records; US government works are public domain. API v2, key in the x-api-key header.
+export function parseNara(data: any): RecordHit[] {
+  return (data?.body?.hits?.hits ?? []).map((h: any): RecordHit | null => {
+    const r = h?._source?.record ?? {}
+    const naId = r.naId ?? h?._source?.naId ?? h?._id
+    if (!naId) return null
+    return {
+      source: 'nara', sourceLabel: 'US National Archives', sourceId: String(naId),
+      title: text(r.title) || 'Archival record', snippet: clip(text(r.scopeAndContentNote) || text(r.levelOfDescription)),
+      date: text(r.productionDates?.[0]?.logicalDate ?? r.coverageStartDate?.logicalDate), url: `https://catalog.archives.gov/id/${naId}`,
+      license: 'Public domain (US government record) unless noted', attribution: 'US National Archives and Records Administration',
+    }
+  }).filter((h: RecordHit | null): h is RecordHit => h !== null)
+}
+
+const nara: Connector = {
+  id: 'nara',
+  label: 'US National Archives Catalog',
+  needsKey: 'NARA_API_KEY',
+  async search(q, signal) {
+    const params = new URLSearchParams({ q: terms(q), limit: '8' })
+    return parseNara(await getJson(`https://catalog.archives.gov/api/v2/records/search?${params}`, signal, { 'x-api-key': cfg('NARA_API_KEY') ?? '' }))
+  },
+}
+
+// Open Archives (openarchieven.nl): hundreds of millions of indexed civil and church records, mostly Dutch and
+// Belgian, plus other European archives. Free JSON API (https://www.openarchieven.nl/api/docs/): no key for search,
+// at most 4 requests a second, identify the program by name, and cite the archive as the source.
+// The exact shape of search results is not fully documented, so the parser accepts both plain and nested values.
+// Off until tested live: set RECORDS_ENABLE_OPENARCH=true.
+const openArchValue = (v: unknown): string => {
+  if (Array.isArray(v)) return openArchValue(v[0])
+  if (v && typeof v === 'object') {
+    const d = v as Record<string, unknown>
+    if ('year' in d) return [d.year, d.month, d.day].filter((x) => x !== undefined && x !== null && x !== '').map(String)
+      .map((x, i) => (i ? x.padStart(2, '0') : x)).join('-')
+  }
+  return typeof v === 'string' || typeof v === 'number' ? String(v) : ''
+}
+
+export function parseOpenArch(data: any): RecordHit[] {
+  return (data?.response?.docs ?? []).map((d: any): RecordHit | null => {
+    const archive = openArchValue(d?.archive_code ?? d?.archive)
+    const id = openArchValue(d?.identifier ?? d?.pid)
+    const own = openArchValue(d?.url)
+    const url = own.startsWith('https://') ? own : archive && id ? `https://www.openarchieven.nl/${encodeURIComponent(archive)}:${encodeURIComponent(id)}` : ''
+    if (!url) return null
+    const name = openArchValue(d?.personname) || 'Record'
+    const event = [openArchValue(d?.eventtype), openArchValue(d?.eventplace)].filter(Boolean).join(', ')
+    const role = openArchValue(d?.relationtype)
+    return {
+      source: 'openarch', sourceLabel: 'Open Archives', sourceId: `${archive}:${id}` || url,
+      title: name, snippet: clip([role, event, openArchValue(d?.sourcetype)].filter(Boolean).join(' · ')),
+      date: openArchValue(d?.eventdate), url,
+      license: 'See record page', attribution: openArchValue(d?.archive_org) || 'Open Archives (openarchieven.nl)',
+    }
+  }).filter((h: RecordHit | null): h is RecordHit => h !== null)
+}
+
+const openArch: Connector = {
+  id: 'openarch',
+  label: 'Open Archives (Netherlands, Belgium and more)',
+  enabledBy: 'RECORDS_ENABLE_OPENARCH',
+  async search(q, signal) {
+    const name = q.year ? `${q.name} ${q.year}` : q.name
+    const params = new URLSearchParams({ name, number_show: '8', lang: 'en' })
+    if (q.place) params.set('eventplace', q.place)
+    return parseOpenArch(await getJson(`https://api.openarch.nl/1.1/records/search.json?${params}`, signal))
+  },
+}
+
+export const CONNECTORS: Connector[] = [wikitree, wikidata, chroniclingAmerica, internetArchive, dpla, europeana, trove, gallica, nara, openArch]
 
 export interface SearchOutcome {
   hits: RecordHit[]
@@ -132,7 +296,7 @@ export async function searchAll(q: RecordQuery, timeoutMs = 8000): Promise<Searc
   const outcome: SearchOutcome = { hits: [], sources: [] }
   await Promise.all(
     CONNECTORS.map(async (c) => {
-      if (c.needsKey && !cfg(c.needsKey)) {
+      if ((c.needsKey && !cfg(c.needsKey)) || (c.enabledBy && cfg(c.enabledBy) !== 'true')) {
         outcome.sources.push({ id: c.id, label: c.label, status: 'not_configured', count: 0 })
         return
       }

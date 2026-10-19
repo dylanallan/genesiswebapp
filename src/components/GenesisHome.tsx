@@ -43,12 +43,12 @@ export const GenesisHome: React.FC = () => {
             <span className="text-xl font-bold">Power Dashboard</span>
             <span className="text-sm mt-2">Full-featured, modular, and analytics-rich</span>
           </button>
-          <button onClick={() => navigate('/hackathon')} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl shadow-xl p-8 flex flex-col items-center hover:scale-105 transition-transform">
+          <button onClick={() => navigate('/hackathon')} className="bg-gradient-to-r from-genesis-600 to-purple-600 text-white rounded-xl shadow-xl p-8 flex flex-col items-center hover:scale-105 transition-transform">
             <Rocket className="w-8 h-8 mb-2" />
             <span className="text-xl font-bold">Hackathon Mode</span>
             <span className="text-sm mt-2">Live demo, real-time metrics, and AI showcase</span>
           </button>
-          <button onClick={() => navigate('/intelligence')} className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl shadow-xl p-8 flex flex-col items-center hover:scale-105 transition-transform">
+          <button onClick={() => navigate('/intelligence')} className="bg-gradient-to-r from-green-500 to-genesis-500 text-white rounded-xl shadow-xl p-8 flex flex-col items-center hover:scale-105 transition-transform">
             <BarChart3 className="w-8 h-8 mb-2" />
             <span className="text-xl font-bold">Intelligence Hub</span>
             <span className="text-sm mt-2">Global, competitive, and advanced analytics</span>

@@ -109,7 +109,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
       <div className="p-4">
         {isLoading && (
           <div className="flex items-center justify-center h-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-genesis-500"></div>
           </div>
         )}
         
@@ -174,7 +174,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
               
               <button
                 onClick={togglePlay}
-                className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                className="p-3 bg-genesis-600 text-white rounded-full hover:bg-genesis-700 transition-colors"
               >
                 {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
               </button>

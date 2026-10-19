@@ -1,67 +1,42 @@
+import { applyLang, getLang, loadFrench } from './lib/i18n';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'sonner';
 import './index.css';
+import { installErrorReporting } from './lib/error-report';
+import { applyTextSize } from './lib/text-size';
+import './lib/install'; // catches the browser's install offer early
 
-console.log('🚀 Starting React app...');
-console.log('📁 Current directory:', window.location.href);
-console.log('🔍 Looking for root element...');
+installErrorReporting();
+applyTextSize();
+applyLang();
 
 const root = document.getElementById('root');
-if (!root) {
-  console.error('❌ Root element not found!');
-  console.error('🔍 Available elements:', document.body.children);
-  throw new Error('Root element not found');
+if (!root) throw new Error('Root element not found');
+
+function start(root: HTMLElement) {
+  try {
+    createRoot(root).render(
+      <React.StrictMode>
+        <HelmetProvider>
+          {/* Shows every toast() message in the app (errors, confirmations). */}
+          <Toaster position="top-center" richColors closeButton />
+          <App />
+        </HelmetProvider>
+      </React.StrictMode>
+    );
+  } catch (error: unknown) {
+    // Plain text only: the message is never put into the page as HTML.
+    const box = document.createElement('div');
+    box.style.cssText = 'padding:20px;font-family:Arial,sans-serif';
+    box.textContent = 'Genesis Heritage could not start. Please reload the page.';
+    root.replaceChildren(box);
+    console.error(error);
+  }
 }
 
-console.log('✅ Root element found:', root);
-console.log('🎨 Root element classes:', root.className);
-console.log('📏 Root element dimensions:', root.offsetWidth, 'x', root.offsetHeight);
-
-try {
-  console.log('🔧 Creating React root...');
-  const reactRoot = createRoot(root);
-  console.log('✅ React root created successfully');
-  
-  console.log('🎭 Rendering App component...');
-  reactRoot.render(
-    <React.StrictMode>
-      <HelmetProvider>
-        {/* Shows every toast() message in the app (errors, confirmations). */}
-        <Toaster position="top-center" richColors closeButton />
-        <App />
-      </HelmetProvider>
-    </React.StrictMode>
-  );
-  console.log('✅ React app rendered successfully');
-  
-  // Add a visual indicator that React is working
-  setTimeout(() => {
-    console.log('🎯 React app should be visible now');
-    if (root.children.length > 0) {
-      console.log('✅ Root has children:', root.children.length);
-    } else {
-      console.warn('⚠️ Root has no children after render');
-    }
-  }, 100);
-  
-} catch (error: unknown) {
-  console.error('❌ Error rendering React app:', error);
-  console.error('🔍 Error details:', {
-    name: error instanceof Error ? error.name : 'Unknown',
-    message: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : 'No stack trace'
-  });
-  
-  // Show error in the DOM
-  root.innerHTML = `
-    <div style="padding: 20px; color: red; font-family: Arial, sans-serif;">
-      <h1>❌ React App Error</h1>
-      <p><strong>Error:</strong> ${error instanceof Error ? error.message : String(error)}</p>
-      <p><strong>Type:</strong> ${error instanceof Error ? error.name : 'Unknown'}</p>
-      <pre style="background: #f0f0f0; padding: 10px; overflow: auto;">${error instanceof Error ? error.stack : 'No stack trace'}</pre>
-    </div>
-  `;
-}
+// French users wait for the French text (a small file) so the page never flashes English first.
+if (getLang() === 'fr') void loadFrench().finally(() => start(root));
+else start(root);

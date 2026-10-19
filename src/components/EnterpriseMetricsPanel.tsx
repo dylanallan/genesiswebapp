@@ -75,8 +75,8 @@ const EnterpriseMetricsPanel: React.FC<EnterpriseMetricsPanelProps> = ({ metrics
       <MetricCard
         title="Family Members"
         value={metrics.totalUsers.toLocaleString()}
-        icon={<Users className="w-5 h-5 text-blue-500" />}
-        color="hover:border-blue-200"
+        icon={<Users className="w-5 h-5 text-genesis-500" />}
+        color="hover:border-genesis-200"
         delay={0.1}
       />
       
@@ -115,8 +115,8 @@ const EnterpriseMetricsPanel: React.FC<EnterpriseMetricsPanelProps> = ({ metrics
       <MetricCard
         title="Saved Records"
         value={metrics.businessProcesses.toLocaleString()}
-        icon={<TrendingUp className="w-5 h-5 text-blue-500" />}
-        color="hover:border-blue-200"
+        icon={<TrendingUp className="w-5 h-5 text-genesis-500" />}
+        color="hover:border-genesis-200"
         delay={0.6}
       />
       

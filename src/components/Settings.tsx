@@ -135,7 +135,7 @@ const Settings: React.FC = () => {
               type="checkbox"
               checked={value === 'true'}
               onChange={(e) => handleInputChange(setting.key, e.target.checked ? 'true' : 'false')}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-genesis-600 bg-gray-100 border-gray-300 rounded focus:ring-genesis-500"
             />
             <span className="text-sm text-gray-600">
               {value === 'true' ? 'Enabled' : 'Disabled'}
@@ -149,7 +149,7 @@ const Settings: React.FC = () => {
             type="number"
             value={value}
             onChange={(e) => handleInputChange(setting.key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-genesis-500"
           />
         );
 
@@ -159,7 +159,7 @@ const Settings: React.FC = () => {
             type="text"
             value={value}
             onChange={(e) => handleInputChange(setting.key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-genesis-500"
           />
         );
     }
@@ -168,7 +168,7 @@ const Settings: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-genesis-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -177,7 +177,7 @@ const Settings: React.FC = () => {
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <SettingsIcon className="w-6 h-6 text-blue-600" />
+          <SettingsIcon className="w-6 h-6 text-genesis-600" />
           <h1 className="text-2xl font-bold text-gray-900">Genesis Dashboard Settings</h1>
         </div>
         <button
@@ -223,7 +223,7 @@ const Settings: React.FC = () => {
                   <button
                     onClick={() => saveSetting(setting.key, editedValues[setting.key] || '')}
                     disabled={saving || editedValues[setting.key] === setting.value}
-                    className="flex items-center space-x-2 px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center space-x-2 px-3 py-1 text-sm bg-genesis-600 text-white rounded-md hover:bg-genesis-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Save size={14} />
                     <span>Save</span>

@@ -39,17 +39,17 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({ title, metrics, target
         <div className="space-y-3 mb-4 pb-4 border-b border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Cpu className="w-4 h-4 text-blue-400" />
+              <Cpu className="w-4 h-4 text-genesis-400" />
               <span className="text-xs font-medium text-gray-300">CPU Usage</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-24 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                  className="h-full bg-genesis-500 rounded-full transition-all duration-300"
                   style={{ width: `${performanceMetrics.cpuUsage}%` }}
                 />
               </div>
-              <span className="text-xs font-medium text-blue-400">
+              <span className="text-xs font-medium text-genesis-400">
                 {performanceMetrics.cpuUsage.toFixed(1)}%
               </span>
             </div>

@@ -106,7 +106,7 @@ export const ProfileHistoryViewer: React.FC<ProfileHistoryViewerProps> = ({
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <History className="w-6 h-6 text-blue-500" />
+          <History className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Profile Update History</h2>
         </div>
         <button
@@ -124,13 +124,13 @@ export const ProfileHistoryViewer: React.FC<ProfileHistoryViewerProps> = ({
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search profile changes..."
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
         />
       </div>
 
       {isLoading && page === 0 ? (
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+          <RefreshCw className="w-8 h-8 animate-spin text-genesis-500" />
         </div>
       ) : filteredChanges.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -154,8 +154,8 @@ export const ProfileHistoryViewer: React.FC<ProfileHistoryViewerProps> = ({
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-2">
-                  <div className="p-2 bg-blue-50 rounded-full">
-                    <User className="w-4 h-4 text-blue-500" />
+                  <div className="p-2 bg-genesis-50 rounded-full">
+                    <User className="w-4 h-4 text-genesis-500" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">
@@ -168,7 +168,7 @@ export const ProfileHistoryViewer: React.FC<ProfileHistoryViewerProps> = ({
                 </div>
                 
                 {change.reason && (
-                  <div className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                  <div className="px-2 py-1 bg-genesis-50 text-genesis-700 rounded-full text-xs">
                     {change.reason}
                   </div>
                 )}
@@ -184,8 +184,8 @@ export const ProfileHistoryViewer: React.FC<ProfileHistoryViewerProps> = ({
                 
                 <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
                 
-                <div className="flex-1 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-500 mb-1">New Value</p>
+                <div className="flex-1 p-3 bg-genesis-50 rounded-lg">
+                  <p className="text-sm text-genesis-500 mb-1">New Value</p>
                   <p className="text-gray-700">
                     {change.new_value || <span className="text-gray-400 italic">Not set</span>}
                   </p>

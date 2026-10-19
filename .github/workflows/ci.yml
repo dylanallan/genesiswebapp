@@ -16,12 +16,22 @@ jobs:
           cache: npm
       - run: npm ci --legacy-peer-deps
       - run: npm run typecheck
+      - name: No secret settings in browser code
+        # Anything named VITE_* ships to every visitor, so keys, secrets and passwords must live server-side.
+        run: |
+          if grep -rnE '\bVITE_[A-Z0-9_]*(KEY|SECRET|PASSWORD|TOKEN)' src | grep -v 'VITE_SUPABASE_ANON_KEY'; then
+            echo "Move these to Supabase secrets and call them from an Edge Function."; exit 1
+          fi
       - run: npm test
       - name: Production build
         run: npm run build
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_ANON_KEY: ci-placeholder
+      - name: No secret keys or source maps in the build
+        run: |
+          if grep -rlE 'sk-[A-Za-z0-9]{20}|sk_live_|sb_secret_|service_role' dist; then echo "A secret key is in the build."; exit 1; fi
+          if find dist -name '*.map' | grep -q .; then echo "Source maps must not be published."; exit 1; fi
 
   functions:
     runs-on: ubuntu-latest
@@ -61,11 +71,11 @@ jobs:
           done
           # Notices carry the "must be refused" results, so show them here.
           export PGOPTIONS="-c client_min_messages=notice"
-          out=$(psql -d checks -At -F ' | ' -f supabase/tests/rls_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/payments_test.sql 2>&1)
+          out=$(psql -d checks -At -F ' | ' -f supabase/tests/rls_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/payments_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/sharing_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/gifts_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/editors_test.sql 2>&1; psql -d checks -At -F ' | ' -f supabase/tests/series_test.sql 2>&1)
           echo "$out" | grep -E '\| (t|f)$|CHECK'
           if echo "$out" | grep -qE '\| f$|: FAIL'; then echo "A privacy or payment check failed"; exit 1; fi
           # A check that prints nothing (for example a query that returns no rows) must not count as a pass.
-          expected=$(cat supabase/tests/rls_test.sql supabase/tests/payments_test.sql | grep -cE "as check|raise notice 'CHECK .*: PASS'")
+          expected=$(cat supabase/tests/rls_test.sql supabase/tests/payments_test.sql supabase/tests/sharing_test.sql supabase/tests/gifts_test.sql supabase/tests/editors_test.sql supabase/tests/series_test.sql | grep -cE "as check|raise notice 'CHECK .*: PASS'")
           passed=$(echo "$out" | grep -cE '\| t$|: PASS')
           if [ "$passed" -ne "$expected" ]; then echo "Only $passed of $expected privacy and payment checks reported a pass"; exit 1; fi
 

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { loadFamilyMembers as fetchFamilyMembers, saveFamilyMember } from '../lib/family';
 import { supabase } from '../lib/supabase';
 import { streamResponse } from '../lib/ai';
+import { t, useLang } from '../lib/i18n';
 
 interface FamilyMember {
   id: string;
@@ -28,6 +29,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
   userName = 'User', 
   ancestry = 'European and Asian heritage'
 }) => {
+  useLang();
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -38,8 +40,17 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [pendingMembers, setPendingMembers] = useState<FamilyMember[]>([]);
   const [showFamilyTree, setShowFamilyTree] = useState(false);
+  // Voices installed on this device (they differ between phones and computers); '' means the device's default.
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const load = () => setVoices(window.speechSynthesis.getVoices());
+    load();
+    window.speechSynthesis.addEventListener?.('voiceschanged', load);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', load);
+  }, []);
   const [voiceSettings, setVoiceSettings] = useState({
-    voice: 'en-US-Standard-J',
+    voice: (() => { try { return localStorage.getItem('genesis-voice') ?? ''; } catch { return ''; } })(),
     rate: 1.0,
     pitch: 1.0,
     volume: 1.0
@@ -70,7 +81,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
     } catch (error) {
       console.error('Error loading family members:', error);
-      toast.error('Failed to load family tree');
+      toast.error(t('Failed to load family tree'));
     }
   };
 
@@ -93,7 +104,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
-        toast.error('Speech recognition error. Please try again.');
+        toast.error(t('Speech recognition error. Please try again.'));
       };
 
       recognition.onend = () => {
@@ -113,7 +124,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      toast.error('Speech recognition is not supported in your browser');
+      toast.error(t('Speech recognition is not supported in your browser'));
       return;
     }
 
@@ -129,7 +140,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
       recognitionRef.current.start();
       setIsListening(true);
       setTranscript('');
-      toast.success('Listening... Tell me about your family history');
+      toast.success(t('Listening... Tell me about your family history'));
     }
   };
 
@@ -282,7 +293,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
   const speakResponse = (text: string) => {
     if (!synthRef.current) {
-      toast.error('Speech synthesis is not supported in your browser');
+      toast.error(t('Speech synthesis is not supported in your browser'));
       return;
     }
 
@@ -296,6 +307,8 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
     utteranceRef.current.rate = voiceSettings.rate;
     utteranceRef.current.pitch = voiceSettings.pitch;
     utteranceRef.current.volume = voiceSettings.volume;
+    const chosen = voices.find((v) => v.voiceURI === voiceSettings.voice);
+    if (chosen) utteranceRef.current.voice = chosen;
 
     // Set event handlers
     utteranceRef.current.onstart = () => setIsSpeaking(true);
@@ -303,7 +316,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
     utteranceRef.current.onerror = (event) => {
       console.error('Speech synthesis error:', event);
       setIsSpeaking(false);
-      toast.error('Error during speech synthesis');
+      toast.error(t('Error during speech synthesis'));
     };
 
     // Start speaking
@@ -344,7 +357,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
   const rejectFamilyMember = (memberId: string) => {
     setPendingMembers(prev => prev.filter(m => m.id !== memberId));
-    toast.info('Entry rejected');
+    toast.info(t('Entry rejected'));
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -364,15 +377,18 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <Mic className="w-6 h-6 text-blue-500" />
-            <h2 className="text-xl font-semibold text-gray-900">Family Tree Voice Agent</h2>
+            <Mic className="w-6 h-6 text-genesis-500" />
+            <h2 className="text-xl font-semibold text-gray-900">{t('Family Tree Voice Agent')}</h2>
           </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowFamilyTree(!showFamilyTree)}
+              aria-label={showFamilyTree ? 'Hide the family tree' : 'Show the family tree'}
+              aria-pressed={showFamilyTree}
+              title={showFamilyTree ? 'Hide the family tree' : 'Show the family tree'}
               className={`p-2 rounded-lg transition-colors ${
                 showFamilyTree 
-                  ? 'bg-blue-100 text-blue-600' 
+                  ? 'bg-genesis-100 text-genesis-600' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -380,6 +396,9 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
             </button>
             <button
               onClick={toggleMute}
+              aria-label={isMuted ? 'Turn spoken replies on' : 'Turn spoken replies off'}
+              aria-pressed={isMuted}
+              title={isMuted ? 'Turn spoken replies on' : 'Turn spoken replies off'}
               className={`p-2 rounded-lg transition-colors ${
                 isMuted 
                   ? 'bg-red-100 text-red-600' 
@@ -390,6 +409,8 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
+              aria-label={t('Reading speed and pitch')}
+              title={t('Reading speed and pitch')}
               className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
             >
               <Settings className="w-5 h-5" />
@@ -400,20 +421,20 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
         {showFamilyTree ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900">Your Family Tree</h3>
+              <h3 className="font-medium text-gray-900">{t('Your Family Tree')}</h3>
               <button
                 onClick={() => setShowFamilyTree(false)}
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                className="text-genesis-600 hover:text-genesis-800 text-sm"
               >
-                Back to Voice Agent
+                {t('Back to Voice Agent')}
               </button>
             </div>
             
             {familyMembers.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded-lg">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <h4 className="text-lg font-medium text-gray-900 mb-1">No family members yet</h4>
-                <p className="text-gray-500">Start by telling the voice agent about your family history</p>
+                <h4 className="text-lg font-medium text-gray-900 mb-1">{t('No family members yet')}</h4>
+                <p className="text-gray-500">{t('Start by telling the voice agent about your family history')}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -425,14 +446,14 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-medium text-gray-900">{member.name}</h4>
-                        <p className="text-sm text-blue-600">{member.relationship}</p>
+                        <p className="text-sm text-genesis-600">{member.relationship}</p>
                       </div>
                       <div className="flex items-center space-x-1 text-xs">
                         <span className={`px-2 py-1 rounded-full ${
                           member.source === 'validated' 
                             ? 'bg-green-100 text-green-800' 
                             : member.source === 'user'
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-genesis-100 text-genesis-800'
                               : 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {member.source === 'validated' ? 'Validated' : 
@@ -444,25 +465,25 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                     <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                       {member.birthDate && (
                         <div>
-                          <span className="text-gray-500">Birth: </span>
+                          <span className="text-gray-500">{t('Birth:')} </span>
                           <span className="text-gray-700">{member.birthDate}</span>
                         </div>
                       )}
                       {member.birthPlace && (
                         <div>
-                          <span className="text-gray-500">Place: </span>
+                          <span className="text-gray-500">{t('Place:')} </span>
                           <span className="text-gray-700">{member.birthPlace}</span>
                         </div>
                       )}
                       {member.deathDate && (
                         <div>
-                          <span className="text-gray-500">Death: </span>
+                          <span className="text-gray-500">{t('Death:')} </span>
                           <span className="text-gray-700">{member.deathDate}</span>
                         </div>
                       )}
                       {member.deathPlace && (
                         <div>
-                          <span className="text-gray-500">Place: </span>
+                          <span className="text-gray-500">{t('Place:')} </span>
                           <span className="text-gray-700">{member.deathPlace}</span>
                         </div>
                       )}
@@ -481,8 +502,8 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
             {pendingMembers.length > 0 && (
               <div className="mt-6 border-t border-gray-200 pt-6">
                 <div className="flex items-center space-x-2 mb-4">
-                  <Info className="w-5 h-5 text-blue-500" />
-                  <h3 className="font-medium text-gray-900">Pending Validation</h3>
+                  <Info className="w-5 h-5 text-genesis-500" />
+                  <h3 className="font-medium text-gray-900">{t('Pending Validation')}</h3>
                 </div>
                 
                 <div className="space-y-4">
@@ -494,9 +515,9 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h4 className="font-medium text-gray-900">{member.name}</h4>
-                          <p className="text-sm text-blue-600">{member.relationship}</p>
+                          <p className="text-sm text-genesis-600">{member.relationship}</p>
                           <div className="flex items-center space-x-1 mt-1">
-                            <span className="text-xs text-gray-500">Confidence:</span>
+                            <span className="text-xs text-gray-500">{t('Confidence:')}</span>
                             <span className={`text-xs font-medium ${getConfidenceColor(member.confidence)}`}>
                               {getConfidenceLabel(member.confidence)} ({Math.round(member.confidence * 100)}%)
                             </span>
@@ -521,13 +542,13 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {member.birthDate && (
                           <div>
-                            <span className="text-gray-500">Birth: </span>
+                            <span className="text-gray-500">{t('Birth:')} </span>
                             <span className="text-gray-700">{member.birthDate}</span>
                           </div>
                         )}
                         {member.birthPlace && (
                           <div>
-                            <span className="text-gray-500">Place: </span>
+                            <span className="text-gray-500">{t('Place:')} </span>
                             <span className="text-gray-700">{member.birthPlace}</span>
                           </div>
                         )}
@@ -545,10 +566,12 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
               whileTap={{ scale: 0.95 }}
               onClick={toggleListening}
               disabled={isProcessing}
+              aria-label={isListening ? 'Stop listening' : 'Start talking'}
+              title={isListening ? 'Stop listening' : 'Start talking'}
               className={`w-24 h-24 rounded-full flex items-center justify-center transition-colors ${
                 isListening
                   ? 'bg-red-500 text-white'
-                  : 'bg-blue-500 text-white'
+                  : 'bg-genesis-600 text-white'
               } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isProcessing ? (
@@ -572,9 +595,9 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-4 bg-blue-50 rounded-lg max-w-md w-full"
+                className="mt-4 p-4 bg-genesis-50 rounded-lg max-w-md w-full"
               >
-                <p className="text-blue-800">{transcript}</p>
+                <p className="text-genesis-800">{transcript}</p>
               </motion.div>
             )}
             
@@ -585,13 +608,13 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                 className="mt-4 p-4 bg-gray-50 rounded-lg max-w-md w-full"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-900">Response</h4>
+                  <h4 className="font-medium text-gray-900">{t('Response')}</h4>
                   <button
                     onClick={toggleSpeaking}
                     className={`p-1 rounded-full ${
                       isSpeaking 
-                        ? 'bg-blue-200 text-blue-700' 
-                        : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                        ? 'bg-genesis-200 text-genesis-700' 
+                        : 'bg-genesis-100 text-genesis-600 hover:bg-genesis-200'
                     }`}
                   >
                     {isSpeaking ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -610,7 +633,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-2">
                     <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                    <h4 className="font-medium text-yellow-900">Family Members Detected</h4>
+                    <h4 className="font-medium text-yellow-900">{t('Family Members Detected')}</h4>
                   </div>
                   <span className="text-sm text-yellow-700">{pendingMembers.length} found</span>
                 </div>
@@ -642,7 +665,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                   {pendingMembers.length > 2 && (
                     <button
                       onClick={() => setShowFamilyTree(true)}
-                      className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
+                      className="w-full text-center text-sm text-genesis-600 hover:text-genesis-800"
                     >
                       View all {pendingMembers.length} pending members
                     </button>
@@ -652,10 +675,10 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                 <div className="mt-3 pt-3 border-t border-yellow-200">
                   <button
                     onClick={() => setShowFamilyTree(true)}
-                    className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors text-sm"
                   >
                     <FileTree className="w-4 h-4" />
-                    <span>Review & Validate</span>
+                    <span>{t('Review & Validate')}</span>
                   </button>
                 </div>
               </motion.div>
@@ -667,7 +690,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                 className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 <FileTree className="w-5 h-5" />
-                <span>View Family Tree</span>
+                <span>{t('View Family Tree')}</span>
               </button>
             </div>
           </div>
@@ -683,7 +706,7 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Voice Settings</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">{t('Voice Settings')}</h3>
                   <button
                     onClick={() => setShowSettings(false)}
                     className="text-gray-500 hover:text-gray-700"
@@ -694,20 +717,22 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Voice
-                    </label>
+                    <label htmlFor="voice-choice" className="block text-sm font-medium text-gray-700">{t('Reading voice')}</label>
                     <select
+                      id="voice-choice"
                       value={voiceSettings.voice}
-                      onChange={(e) => setVoiceSettings({ ...voiceSettings, voice: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      onChange={(e) => {
+                        setVoiceSettings({ ...voiceSettings, voice: e.target.value });
+                        try { localStorage.setItem('genesis-voice', e.target.value); } catch { /* private window */ }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                     >
-                      <option value="en-US-Standard-J">Male (US)</option>
-                      <option value="en-US-Standard-E">Female (US)</option>
-                      <option value="en-GB-Standard-B">Male (UK)</option>
-                      <option value="en-GB-Standard-A">Female (UK)</option>
+                      <option value="">{t('This device\'s usual voice')}</option>
+                      {voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
                     </select>
+                    {voices.length === 0 && <p className="text-xs text-gray-500">{t('This device has no other voices to choose from.')}</p>}
                   </div>
+
 
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
@@ -758,11 +783,11 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                     <button
                       onClick={() => {
                         speakResponse("This is a test of the voice settings you've selected for your family history assistant.");
-                        toast.success('Testing voice settings');
+                        toast.success(t('Testing voice settings'));
                       }}
-                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="w-full px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                     >
-                      Test Voice
+                      {t('Test Voice')}
                     </button>
                   </div>
                 </div>
@@ -771,25 +796,22 @@ export const FamilyTreeVoiceAgent: React.FC<FamilyTreeVoiceAgentProps> = ({
                   <button
                     onClick={() => {
                       setVoiceSettings({
-                        voice: 'en-US-Standard-J',
+                        voice: '',
                         rate: 1.0,
                         pitch: 1.0,
                         volume: 1.0
                       });
-                      toast.info('Voice settings reset to default');
+                      toast.info(t('Voice settings reset to default'));
                     }}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Reset to Default
+                    {t('Reset to Default')}
                   </button>
                   <button
-                    onClick={() => {
-                      setShowSettings(false);
-                      toast.success('Voice settings saved');
-                    }}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => setShowSettings(false)}
+                    className="flex-1 px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
-                    Save Settings
+                    {t('Done')}
                   </button>
                 </div>
               </div>

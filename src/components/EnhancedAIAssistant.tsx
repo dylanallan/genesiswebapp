@@ -19,6 +19,18 @@ import { toast } from 'sonner';
 import { useSession } from '../lib/session-context';
 import { chatApi } from '../api/chat';
 import { AICustomInstructionsEditor } from './AICustomInstructionsEditor';
+import { locale, t, useLang } from '../lib/i18n';
+
+// The opening message, shown in the reader's language (translated when drawn, so switching language updates it).
+const WELCOME_ID = 'welcome';
+const WELCOME = `👋 Hello! I'm your family history helper. I can help you:
+
+- Work out where to look for an ancestor's records
+- Read old documents, handwriting and place names
+- Understand what life was like for your family in their time and place
+- Think of questions to ask your relatives
+
+What would you like to find out?`;
 
 // Type definitions for SpeechRecognition
 declare global {
@@ -42,6 +54,7 @@ interface ChatMessage {
 }
 
 export const EnhancedAIAssistant: React.FC = () => {
+  useLang();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +67,7 @@ export const EnhancedAIAssistant: React.FC = () => {
   const [showCustomInstructionsEditor, setShowCustomInstructionsEditor] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesBoxRef = useRef<HTMLDivElement>(null);
   const conversationIdRef = useRef<string | undefined>(undefined);
   const session = useSession();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -61,16 +75,9 @@ export const EnhancedAIAssistant: React.FC = () => {
   useEffect(() => {
     // Add initial welcome message
     const initialMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: WELCOME_ID,
       role: 'assistant',
-      content: `👋 Hello! I'm your AI assistant. I can help with:
-
-- Business automation strategies
-- Cultural heritage exploration
-- Technical questions and problem-solving
-- Creative projects and ideas
-
-How can I assist you today?`,
+      content: WELCOME,
       timestamp: new Date()
     };
     
@@ -84,8 +91,10 @@ How can I assist you today?`,
     scrollToBottom();
   }, [messages, streamingContent]);
 
+  // Scroll only the conversation box, never the whole page, so opening any screen doesn't jump down to the helper.
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const box = messagesBoxRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
   };
 
   const initializeSpeechRecognition = () => {
@@ -108,7 +117,7 @@ How can I assist you today?`,
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
-        toast.error('Speech recognition error. Please try again.');
+        toast.error(t('Speech recognition error. Please try again.'));
       };
 
       recognition.onend = () => {
@@ -119,7 +128,7 @@ How can I assist you today?`,
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      toast.error('Speech recognition is not supported in your browser');
+      toast.error(t('Speech recognition is not supported in your browser'));
       return;
     }
 
@@ -131,7 +140,7 @@ How can I assist you today?`,
       setIsListening(true);
       setInput('');
       setTranscript('');
-      toast.success('Listening... Speak now');
+      toast.success(t('Listening… Speak now'));
     }
   };
 
@@ -160,7 +169,7 @@ How can I assist you today?`,
         provider: currentModel,
       });
       conversationIdRef.current = response.conversationId;
-      if (response.code === 'UPGRADE_REQUIRED') toast.info('Free daily limit reached — upgrade to Pro to keep chatting.');
+      if (response.code === 'UPGRADE_REQUIRED') toast.info(t('Free daily limit reached — upgrade to Pro to keep chatting.'));
 
       console.log('📥 EnhancedAIAssistant received response:', response);
       
@@ -182,13 +191,13 @@ How can I assist you today?`,
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: "I'm sorry, I encountered an error processing your request. Please try again or contact support if the issue persists.",
+        content: t('Sorry, something went wrong with your question. Please try again in a moment.'),
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, errorMessage]);
       
-      toast.error('Failed to get response');
+      toast.error(t('The helper couldn’t answer just now.'));
     } finally {
       setIsLoading(false);
       setTranscript('');
@@ -208,52 +217,32 @@ How can I assist you today?`,
           : m
       ));
       
-      toast.success(rating > 3 ? 'Thanks for the positive feedback!' : 'Thanks for your feedback. We\'ll work to improve.');
+      toast.success(t(rating > 3 ? 'Thanks for the positive feedback!' : 'Thanks for your feedback. We’ll work to improve.'));
     } catch (error) {
       console.error('Error saving feedback:', error);
-      toast.error('Failed to save feedback');
+      toast.error(t('Couldn’t save your feedback.'));
     }
   };
 
   const availableModels = chatApi.getAvailableModels();
 
   return (
-    <div className="flex flex-col h-[700px] bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-lg border border-blue-200">
+    <div className="flex flex-col h-[700px] bg-gradient-to-br from-white to-genesis-50 rounded-xl shadow-lg border border-genesis-200">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-blue-200 bg-white/80 backdrop-blur-sm rounded-t-xl">
+      <div className="flex items-center justify-between p-4 border-b border-genesis-200 bg-white/80 backdrop-blur-sm rounded-t-xl">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-genesis-500 to-purple-600 flex items-center justify-center">
             <Brain className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-gray-900">Genesis AI Assistant Pro</h2>
-            <p className="text-xs text-gray-500">Powered by Advanced AI</p>
+            <h2 className="font-bold text-gray-900">{t('Family history helper')}</h2>
+            <p className="text-xs text-gray-500">{t('Ask anything about your ancestors')}</p>
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <select
-            value={currentModel}
-            onChange={(e) => setCurrentModel(e.target.value)}
-            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {availableModels.map(model => (
-              <option key={model.id} value={model.id}>
-                {model.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Settings"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-blue-50/30">
+      <div ref={messagesBoxRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-genesis-50/30">
         {messages.map((message, index) => (
           <motion.div 
             key={message.id}
@@ -265,25 +254,20 @@ How can I assist you today?`,
               message.role === 'assistant' ? 'justify-start' : 'justify-end'
             }`}>
               {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-genesis-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
               )}
               
               <div className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
                 message.role === 'user' 
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
+                  ? 'bg-gradient-to-r from-genesis-600 to-genesis-700 text-white' 
                   : 'bg-white text-gray-900 border border-gray-200'
               }`}>
-                <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                <div className="whitespace-pre-wrap leading-relaxed">{message.id === WELCOME_ID ? t(WELCOME) : message.content}</div>
                 
                 <div className="mt-3 flex items-center justify-between text-xs opacity-70">
-                  <span>{message.timestamp.toLocaleTimeString()}</span>
-                  {message.provider && (
-                    <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-600">
-                      {message.provider.toUpperCase()}
-                    </span>
-                  )}
+                  <span>{message.timestamp.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
               </div>
               
@@ -303,7 +287,8 @@ How can I assist you today?`,
                       ? 'bg-green-100 text-green-600 shadow-sm' 
                       : 'text-gray-400 hover:text-green-600 hover:bg-green-50 hover:shadow-sm'
                   }`}
-                  title="This response was helpful"
+                  title={t('This answer was helpful')}
+                  aria-label={t('This answer was helpful')}
                 >
                   <ThumbsUp className="w-4 h-4" />
                 </button>
@@ -314,7 +299,8 @@ How can I assist you today?`,
                       ? 'bg-red-100 text-red-600 shadow-sm' 
                       : 'text-gray-400 hover:text-red-600 hover:bg-red-50 hover:shadow-sm'
                   }`}
-                  title="This response was not helpful"
+                  title={t('This answer was not helpful')}
+                  aria-label={t('This answer was not helpful')}
                 >
                   <ThumbsDown className="w-4 h-4" />
                 </button>
@@ -329,18 +315,18 @@ How can I assist you today?`,
             animate={{ opacity: 1, y: 0 }}
             className="flex items-start space-x-3"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-genesis-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
               <Bot className="w-4 h-4 text-white" />
             </div>
             <div className="max-w-[85%] rounded-2xl p-4 bg-white text-gray-900 border border-gray-200 shadow-sm">
               <div className="whitespace-pre-wrap leading-relaxed">{streamingContent}</div>
               <div className="mt-2 flex items-center space-x-2">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
-                <span className="text-xs text-gray-500">AI is typing...</span>
+                <span className="text-xs text-gray-500">{t('The helper is typing…')}</span>
               </div>
             </div>
           </motion.div>
@@ -353,11 +339,11 @@ How can I assist you today?`,
             className="flex items-center justify-center space-x-3 text-gray-500 py-8"
           >
             <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-genesis-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
-            <span className="text-sm font-medium">AI is thinking...</span>
+            <span className="text-sm font-medium">{t('The helper is thinking…')}</span>
           </motion.div>
         )}
         
@@ -365,13 +351,13 @@ How can I assist you today?`,
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-blue-50 border border-blue-200 p-4 rounded-xl mx-4"
+            className="bg-genesis-50 border border-genesis-200 p-4 rounded-xl mx-4"
           >
             <div className="flex items-center space-x-2 mb-2">
-              <Mic className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Listening...</span>
+              <Mic className="w-4 h-4 text-genesis-600" />
+              <span className="text-sm font-medium text-genesis-700">{t('Listening…')}</span>
             </div>
-            <p className="text-sm text-blue-800">{transcript}</p>
+            <p className="text-sm text-genesis-800">{transcript}</p>
           </motion.div>
         )}
         
@@ -379,7 +365,7 @@ How can I assist you today?`,
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-blue-200 bg-white rounded-b-xl">
+      <div className="p-4 border-t border-genesis-200 bg-white rounded-b-xl">
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex space-x-3">
             <button
@@ -390,7 +376,8 @@ How can I assist you today?`,
                   ? 'bg-red-100 text-red-600 hover:bg-red-200 shadow-md' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
               }`}
-              title={isListening ? 'Stop listening' : 'Start voice input'}
+              title={t(isListening ? 'Stop listening' : 'Speak your question')}
+              aria-label={t(isListening ? 'Stop listening' : 'Speak your question')}
             >
               {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
@@ -399,8 +386,9 @@ How can I assist you today?`,
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything about business automation, cultural heritage, or genealogy..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                placeholder={t('Ask about an ancestor, a record, or your family’s history…')}
+                aria-label={t('Your question')}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500 shadow-sm"
                 disabled={isLoading}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -413,6 +401,7 @@ How can I assist you today?`,
                 <button
                   type="button"
                   onClick={() => setInput('')}
+                  aria-label={t('Clear')}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
@@ -421,8 +410,10 @@ How can I assist you today?`,
             </div>
             <button
               type="submit"
+              aria-label={t('Send')}
+              title={t('Send')}
               disabled={isLoading || !input.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-gradient-to-r from-genesis-600 to-genesis-700 text-white rounded-xl hover:from-genesis-700 hover:to-genesis-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <Send className="w-5 h-5" />
             </button>
@@ -432,24 +423,24 @@ How can I assist you today?`,
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setInput("Help me with genealogy research")}
-              className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+              onClick={() => setInput(t('Where should I start looking for my family’s records?'))}
+              className="px-3 py-1.5 text-xs bg-genesis-100 text-genesis-700 rounded-full hover:bg-genesis-200 transition-colors"
             >
-              Genealogy Research
+              {t('Where to start')}
             </button>
             <button
               type="button"
-              onClick={() => setInput("How can I automate my business processes?")}
+              onClick={() => setInput(t('What records could tell me when my great-grandparents arrived in this country?'))}
               className="px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors"
             >
-              Business Automation
+              {t('Immigration records')}
             </button>
             <button
               type="button"
-              onClick={() => setInput("Tell me about cultural heritage preservation")}
+              onClick={() => setInput(t('What questions should I ask my grandparents about their childhood?'))}
               className="px-3 py-1.5 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
             >
-              Cultural Heritage
+              {t('Questions for grandparents')}
             </button>
           </div>
         </form>
@@ -465,9 +456,10 @@ How can I assist you today?`,
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Assistant Settings</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{t('Helper settings')}</h3>
                 <button
                   onClick={() => setShowSettings(false)}
+                  aria-label={t('Close')}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X className="w-6 h-6" />
@@ -476,11 +468,11 @@ How can I assist you today?`,
 
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">AI Model</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">{t('AI model')}</h4>
                   <select
                     value={currentModel}
                     onChange={(e) => setCurrentModel(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-genesis-500 focus:border-genesis-500"
                   >
                     {availableModels.map(model => (
                       <option key={model.id} value={model.id}>
@@ -491,13 +483,13 @@ How can I assist you today?`,
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Custom Instructions</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">{t('Custom instructions')}</h4>
                   <button
                     onClick={() => setShowCustomInstructionsEditor(true)}
-                    className="w-full flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                    className="w-full flex items-center space-x-2 px-4 py-2 bg-genesis-100 text-genesis-700 rounded-lg hover:bg-genesis-200 transition-colors"
                   >
                     <Brain className="w-4 h-4" />
-                    <span>Edit Custom Instructions</span>
+                    <span>{t('Edit custom instructions')}</span>
                   </button>
                 </div>
 
@@ -505,11 +497,11 @@ How can I assist you today?`,
                   <button
                     onClick={() => {
                       setShowSettings(false);
-                      toast.success('Settings saved');
+                      toast.success(t('Settings saved'));
                     }}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
                   >
-                    Save Settings
+                    {t('Save settings')}
                   </button>
                 </div>
               </div>

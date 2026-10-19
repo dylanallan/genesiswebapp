@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsFor } from '../_shared/cors.ts'
 import { requireUser, requireActiveSubscription, json, errorResponse } from '../_shared/auth.ts'
+import { takeDailyUse } from '../_shared/quota.ts'
 import { cfg } from '../_shared/runtime-config.ts'
 
 // Family voice preservation (Pro), using ElevenLabs Instant Voice Cloning.
@@ -71,6 +72,9 @@ Deno.serve(async (req) => {
       if (dlError || !file) return json({ error: 'Recording not found' }, 404, cors)
       if (file.size < 20_000) return json({ error: 'The recording is too short. Please record at least 30 seconds of clear speech.' }, 400, cors)
 
+      const use = await takeDailyUse(user.id, 'voice-create', 5, 5, 'new voices')
+      if (!use.ok) return json({ error: use.message, code: 'LIMIT_REACHED' }, 429, cors)
+
       const form = new FormData()
       form.append('name', `${name} (${user.id.slice(0, 8)})`)
       form.append('description', relationship ? `Family voice: ${relationship}` : 'Family voice')
@@ -79,6 +83,7 @@ Deno.serve(async (req) => {
       const out = await r.json().catch(() => ({}))
       if (!r.ok || !out.voice_id) {
         console.error('ElevenLabs add voice failed', r.status, JSON.stringify(out).slice(0, 500))
+        await use.refund()
         return json({ error: 'The voice could not be created. Please try a clearer recording.' }, 502, cors)
       }
 
@@ -96,6 +101,8 @@ Deno.serve(async (req) => {
       if (text.length > MAX_TEXT) return json({ error: `Text too long (max ${MAX_TEXT} characters)` }, 400, cors)
       const p = await loadProfile()
       if (!p?.provider_voice_id) return json({ error: 'Voice not found' }, 404, cors)
+      const use = await takeDailyUse(user.id, 'voice-speak', 50, 50, 'stories read aloud')
+      if (!use.ok) return json({ error: use.message, code: 'LIMIT_REACHED' }, 429, cors)
 
       const r = await fetch(`${API}/text-to-speech/${encodeURIComponent(p.provider_voice_id)}`, {
         method: 'POST',
@@ -105,6 +112,7 @@ Deno.serve(async (req) => {
       })
       if (!r.ok) {
         console.error('ElevenLabs TTS failed', r.status, await r.text())
+        await use.refund()
         return json({ error: 'The story could not be generated. Please try again.' }, 502, cors)
       }
       const audio = new Uint8Array(await r.arrayBuffer())

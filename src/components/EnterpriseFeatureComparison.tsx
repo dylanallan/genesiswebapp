@@ -22,7 +22,7 @@ const EnterpriseFeatureComparison: React.FC = () => {
   const features = [
     {
       category: 'AI Capabilities',
-      icon: <Brain className="w-5 h-5 text-blue-500" />,
+      icon: <Brain className="w-5 h-5 text-genesis-500" />,
       items: [
         { name: 'AI-powered automation', starter: true, professional: true, enterprise: true },
         { name: 'Multi-model AI routing', starter: false, professional: true, enterprise: true },
@@ -77,7 +77,7 @@ const EnterpriseFeatureComparison: React.FC = () => {
     },
     {
       category: 'Support',
-      icon: <Users className="w-5 h-5 text-blue-500" />,
+      icon: <Users className="w-5 h-5 text-genesis-500" />,
       items: [
         { name: 'Support channels', starter: 'Email', professional: 'Email, Chat', enterprise: 'Email, Chat, Phone' },
         { name: 'Response time', starter: '48 hours', professional: '24 hours', enterprise: '1 hour' },
@@ -92,7 +92,7 @@ const EnterpriseFeatureComparison: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Zap className="w-6 h-6 text-blue-500" />
+          <Zap className="w-6 h-6 text-genesis-500" />
           <h2 className="text-xl font-semibold text-gray-900">Enterprise Feature Comparison</h2>
         </div>
       </div>
@@ -112,7 +112,7 @@ const EnterpriseFeatureComparison: React.FC = () => {
                 Professional
                 <div className="text-gray-900 font-bold mt-1">$499/month</div>
               </th>
-              <th scope="col" className="py-3 px-6 text-center text-xs font-medium text-blue-500 uppercase tracking-wider w-1/4">
+              <th scope="col" className="py-3 px-6 text-center text-xs font-medium text-genesis-500 uppercase tracking-wider w-1/4">
                 Enterprise
                 <div className="text-gray-900 font-bold mt-1">$2,999/month</div>
               </th>
@@ -159,7 +159,7 @@ const EnterpriseFeatureComparison: React.FC = () => {
                     <td className="py-3 px-6 text-center">
                       {typeof feature.enterprise === 'boolean' ? (
                         feature.enterprise ? (
-                          <Check className="w-5 h-5 text-blue-500 mx-auto" />
+                          <Check className="w-5 h-5 text-genesis-500 mx-auto" />
                         ) : (
                           <X className="w-5 h-5 text-gray-300 mx-auto" />
                         )
@@ -200,7 +200,7 @@ const EnterpriseFeatureComparison: React.FC = () => {
       <div className="mt-6 text-center">
         <button
           onClick={() => toast.success('Custom quote request received')}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          className="text-genesis-600 hover:text-genesis-800 text-sm font-medium"
         >
           Need a custom plan? Get a personalized quote
         </button>

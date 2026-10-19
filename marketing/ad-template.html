@@ -1,0 +1,49 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  :root { --paper:#F5EEDF; --ink:#1E2A23; --forest:#2E5A44; --gold:#B5843A; --clay:#A9503A; --muted:#5C6660; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:var(--w); height:var(--h); }
+  body { background:var(--paper); color:var(--ink); font-family:'Carlito','Liberation Sans',sans-serif; position:relative; overflow:hidden; }
+  .grain { position:absolute; inset:0; background:
+      radial-gradient(circle at 85% 12%, rgba(181,132,58,.16), transparent 42%),
+      radial-gradient(circle at 8% 92%, rgba(46,90,68,.14), transparent 45%); }
+  .frame { position:absolute; inset:36px; border:2px solid rgba(30,42,35,.18); border-radius:6px; }
+  .wrap { position:absolute; inset:0; padding:96px 92px; display:flex; flex-direction:column; }
+  .eyebrow { font-size:30px; letter-spacing:.14em; text-transform:uppercase; color:var(--forest); font-weight:700; display:flex; align-items:center; gap:16px; }
+  .eyebrow::before { content:''; width:46px; height:3px; background:var(--gold); }
+  h1 { font-family:'Caladea','Bitstream Charter',serif; font-weight:700; color:var(--ink); line-height:1.04; letter-spacing:-.01em; margin-top:34px; }
+  h1 em { font-style:italic; color:var(--forest); font-weight:400; }
+  .body { color:var(--muted); line-height:1.35; margin-top:30px; max-width:880px; }
+  .visual { flex:1; display:flex; align-items:center; justify-content:flex-end; min-height:0; }
+  .visual svg { height:100%; max-height:var(--vis); width:auto; }
+  .foot { display:flex; align-items:center; justify-content:space-between; gap:24px; }
+  .brand { display:flex; align-items:center; gap:18px; font-family:'Caladea',serif; font-size:40px; font-weight:700; white-space:nowrap; flex-shrink:0; }
+  .sq .cta { font-size:30px; padding:24px 34px; }
+  .brand small { display:block; font-family:'Carlito',sans-serif; font-size:24px; font-weight:400; color:var(--muted); letter-spacing:.02em; }
+  .cta { background:var(--forest); color:#fff; font-size:34px; font-weight:700; padding:26px 40px; border-radius:999px; white-space:nowrap; box-shadow:0 10px 24px rgba(46,90,68,.25); }
+  .legal { position:absolute; left:92px; right:92px; bottom:50px; font-size:17px; color:rgba(30,42,35,.55); }
+  /* square */
+  .sq h1 { font-size:86px; } .sq .body { font-size:34px; } .sq { --vis:330px; }
+  /* link preview (1200x630) */
+  .og .wrap { padding:56px 64px; } .og h1 { font-size:62px; margin-top:20px; } .og .body { font-size:26px; margin-top:16px; max-width:720px; }
+  .og { --vis:170px; } .og .frame { inset:22px; } .og .eyebrow { font-size:22px; } .og .cta { font-size:26px; padding:18px 30px; } .og .brand { font-size:30px; } .og .legal { left:64px; bottom:30px; font-size:13px; } .og .foot { margin-bottom:14px; }
+  /* story */
+  .st .wrap { padding:150px 92px 170px; } .st h1 { font-size:112px; margin-top:44px; } .st .body { font-size:44px; margin-top:44px; }
+  .st { --vis:760px; } .st .visual { justify-content:center; } .st .foot { flex-direction:column; align-items:flex-start; gap:40px; } .st .cta { font-size:44px; padding:34px 56px; }
+  .st .legal { bottom:80px; font-size:22px; }
+</style></head>
+<body class="FORMAT">
+  <div class="grain"></div><div class="frame"></div>
+  <div class="wrap">
+    <div class="eyebrow">EYEBROW</div>
+    <h1>HEADLINE</h1>
+    <p class="body">BODY</p>
+    <div class="visual">VISUAL</div>
+    <div class="foot">
+      <div class="brand">LOGO<div>Genesis Heritage<small>genesisheritage.netlify.app</small></div></div>
+      <div class="cta">CTA →</div>
+    </div>
+  </div>
+  LEGAL
+</body></html>

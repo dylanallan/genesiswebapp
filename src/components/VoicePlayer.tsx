@@ -91,7 +91,7 @@ export default function VoicePlayer({ text, defaultLanguage = "en", defaultVoice
             <option key={v.id} value={v.id}>{v.label}</option>
           ))}
         </select>
-        <button className="bg-blue-600 text-white rounded px-3 py-1 disabled:opacity-50" onClick={handlePlay} disabled={loading || !text.trim()}>
+        <button className="bg-genesis-600 text-white rounded px-3 py-1 disabled:opacity-50" onClick={handlePlay} disabled={loading || !text.trim()}>
           {loading ? "Generating…" : "Play"}
         </button>
       </div>

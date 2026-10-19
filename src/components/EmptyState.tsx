@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { t, useLang } from '../lib/i18n';
 
 interface EmptyStateProps {
   title: string;
@@ -20,6 +21,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   action,
   className
 }) => {
+  useLang();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -38,15 +40,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         {icon}
       </motion.div>
       
-      <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-500 mb-6 max-w-md">{description}</p>
+      <h3 className="text-lg font-medium text-gray-900 mb-2">{t(title)}</h3>
+      <p className="text-gray-500 mb-6 max-w-md">{t(description)}</p>
       
       {action && (
         <button
           onClick={action.onClick}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="px-4 py-2 bg-genesis-600 text-white rounded-lg hover:bg-genesis-700 transition-colors"
         >
-          {action.label}
+          {t(action.label)}
         </button>
       )}
     </motion.div>
