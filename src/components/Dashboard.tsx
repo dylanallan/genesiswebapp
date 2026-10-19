@@ -110,6 +110,7 @@ import {
   Send,
   ScanText,
   CalendarClock,
+  BookImage,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { t, useLang } from '../lib/i18n';
@@ -212,6 +213,7 @@ const FamilySearch = lazy(() => import('./FamilySearch'));
 const PhotoRestore = lazy(() => import('./PhotoRestore'));
 const DocumentReader = lazy(() => import('./DocumentReader'));
 const PhotoDater = lazy(() => import('./PhotoDater'));
+const AlbumScan = lazy(() => import('./AlbumScan'));
 const LifeStory = lazy(() => import('./LifeStory'));
 const SavedRecordsTableFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SavedRecordsTableFeature })));
 const SEOFeature = lazy(() => import('./features/FeatureAdapters').then((m) => ({ default: m.SEOFeature })));
@@ -306,6 +308,14 @@ const features = [
     icon: Image,
     component: PhotoRestore,
     description: 'Repair and colourise old photos',
+    category: 'heritage',
+  },
+  {
+    id: 'album-scan',
+    name: 'Scan an album page',
+    icon: BookImage,
+    component: AlbumScan,
+    description: 'Save every photo on an album page at once',
     category: 'heritage',
   },
   {
@@ -989,7 +999,7 @@ const CUSTOMER_MENU: Array<{ id: string; name: string; icon: React.ComponentType
   ] },
   { id: 'memories', name: 'Memories', icon: Heart, items: [
     ['family-interview', 'Interview a relative'], ['ask-relative', 'Ask a relative by link'], ['cultural-stories', 'Story library'], ['family-storybook', 'Family storybook'],
-    ['photo-restore', 'Restore old photos'], ['photo-date', 'Date an old photo'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
+    ['album-scan', 'Scan an album page'], ['photo-restore', 'Restore old photos'], ['photo-date', 'Date an old photo'], ['family-photos', 'Photos & faces'], ['cultural-recipes', 'Recipes'], ['traditions', 'Traditions'],
     ['celebrations', 'Celebrations'], ['cultural-artifacts', 'Heirlooms'], ['media-gallery', 'Media library'], ['voice-recorder', 'Voice recorder'],
   ] },
   { id: 'research', name: 'Research', icon: Search, items: [['document-reader', 'Read an old document'], ['record-hints', 'Record hints'], ['family-search', 'Search my family'], ['research-assistant', 'Research assistant'], ['records-search', 'Historical records'], ['data-table', 'My saved records']] },
